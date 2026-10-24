@@ -1,0 +1,9 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# React Router (BrowserRouter): serve index.html for client routes.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
