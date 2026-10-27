@@ -17,6 +17,7 @@ import AdminIndex from "./pages/admin/AdminIndex.jsx";
 import AdminInquiries from "./pages/admin/AdminInquiries.jsx";
 import AdminInquiryDetail from "./pages/admin/AdminInquiryDetail.jsx";
 import AdminBrandSettings from "./pages/admin/AdminBrandSettings.jsx";
+import AdminPageContent from "./pages/admin/AdminPageContent.jsx";
 import AdminMessages from "./pages/admin/AdminMessages.jsx";
 import AdminMessageDetail from "./pages/admin/AdminMessageDetail.jsx";
 import AdminLogin from "./pages/admin/AdminLogin.jsx";
@@ -61,6 +62,7 @@ export default function App() {
           <Route path="/admin/messages" element={<AdminMessages />} />
           <Route path="/admin/messages/:id" element={<AdminMessageDetail />} />
           <Route path="/admin/settings/brand" element={<AdminBrandSettings />} />
+          <Route path="/admin/page-content" element={<AdminPageContent />} />
           <Route path="/admin/custom-build-setup" element={<AdminCustomBuildSetup />} />
           <Route path="/admin/custom-build-setup/:categoryId/new" element={<WizardOptionEditor />} />
           <Route path="/admin/custom-build-setup/:categoryId/:optionId" element={<WizardOptionEditor />} />

@@ -47,8 +47,13 @@ test("admins can open inquiry and brand settings routes", () => {
     pathname: "/admin/custom-build-setup",
     session: { accessToken: "token", user: { role: "admin" } },
   });
+  const pageContent = resolveAdminView({
+    pathname: "/admin/page-content",
+    session: { accessToken: "token", user: { role: "admin" } },
+  });
   assert.equal(brand.view, "allow");
   assert.equal(wizardSetup.view, "allow");
+  assert.equal(pageContent.view, "allow");
   const superadmin = resolveAdminView({
     pathname: "/admin/inquiries",
     session: { accessToken: "token", user: { role: "superadmin" } },
