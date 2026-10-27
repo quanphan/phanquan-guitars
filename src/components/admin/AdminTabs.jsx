@@ -4,6 +4,7 @@ import { useLanguage } from "../../i18n/LanguageContext.jsx";
 const tabs = [
   { to: "/admin/users", key: "admin.tabs.users" },
   { to: "/admin/catalog", key: "admin.tabs.catalog" },
+  { to: "/admin/custom-build-setup", key: "admin.tabs.wizardSetup" },
   { to: "/admin/inquiries", key: "admin.tabs.inquiries" },
   { to: "/admin/messages", key: "admin.tabs.messages" },
   { to: "/admin/settings/brand", key: "admin.tabs.brandSettings" },

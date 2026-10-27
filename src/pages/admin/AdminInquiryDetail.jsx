@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext.jsx";
+import { mediaUrl } from "../../config/api.js";
 import ConfirmDialog from "../../components/admin/ConfirmDialog.jsx";
 import Button from "../../components/Button.jsx";
 import PageHeader from "../../components/PageHeader.jsx";
@@ -94,7 +95,7 @@ export default function AdminInquiryDetail() {
     dateStyle: "medium",
     timeStyle: "short",
   });
-  const display = inquiry ? buildInquiryDisplay(inquiry, t) : null;
+  const display = inquiry ? buildInquiryDisplay(inquiry, t, { language }) : null;
   const notProvided = t("admin.detail.notProvided");
   const submitted = inquiry?.createdAt ? dateFormatter.format(new Date(inquiry.createdAt)) : null;
   const phoneLink = phoneHref(inquiry?.customer?.phone);
@@ -238,6 +239,37 @@ export default function AdminInquiryDetail() {
               <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-ivory/90">
                 {inquiry.message?.trim() ? inquiry.message : t("admin.detail.noMessage")}
               </p>
+            </section>
+
+            <section className="border border-white/10 bg-panel/40 p-5 sm:p-6">
+              <h2 className="text-[11px] uppercase tracking-[0.22em] text-gold">
+                {t("admin.detail.referenceImages")}
+              </h2>
+              {display?.referenceImages?.length ? (
+                <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
+                  {display.referenceImages.map((path) => (
+                    <li key={path}>
+                      <a
+                        href={mediaUrl(path)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block border border-white/10 bg-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                      >
+                        <img
+                          src={mediaUrl(path)}
+                          alt={t("admin.detail.openImage")}
+                          className="aspect-square w-full object-cover"
+                        />
+                        <span className="block px-2 py-2 text-[11px] uppercase tracking-[0.16em] text-gold">
+                          {t("admin.detail.openImage")}
+                        </span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-4 text-sm text-muted">{t("admin.detail.noReferenceImages")}</p>
+              )}
             </section>
 
             <section>

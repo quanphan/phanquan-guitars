@@ -24,6 +24,14 @@ export async function listAdminMessages(request, { page = 1, limit = 10 } = {}) 
   };
 }
 
+export async function getAdminMessage(request, id) {
+  const result = await request(`/api/admin/messages/${encodeURIComponent(id)}`);
+  if (!result.ok || result.payload?.success !== true || !result.payload.data?.id) {
+    return { ...failure(result), message: null };
+  }
+  return { ok: true, code: null, message: result.payload.data };
+}
+
 export async function deleteAdminMessage(request, id) {
   const result = await request(`/api/admin/messages/${encodeURIComponent(id)}`, { method: "DELETE" });
   if (!result.ok || result.payload?.success !== true) {

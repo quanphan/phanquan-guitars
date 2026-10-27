@@ -61,12 +61,22 @@ import {
   isTopApplicable,
   isTunersApplicable,
   pruneSelections,
+  applySeriesDefault,
+  setWizardLists,
+  getWizardLists,
 } from "../data/customBuild.js";
+import { interpretPublicCatalog } from "../data/wizardCatalog.js";
+import { fetchPublicWizardCatalog } from "../services/wizardSetupService.js";
 import {
   INQUIRY_CODES,
   isCustomBuildInquiryConfigured,
   submitCustomBuildInquiry,
 } from "../services/customBuildService.js";
+import {
+  buildInquiryPayload,
+  evaluateMappedSelections,
+  firstIssueStep,
+} from "../services/customBuildPayload.js";
 import { nextSubmitAction } from "../utils/customBuildSubmitFlow.js";
 import { debugSubmit } from "../utils/submitDebug.js";
 import {
@@ -109,10 +119,56 @@ export function useCustomBuild() {
   const [submitIssues, setSubmitIssues] = useState([]);
   const [configIssueStep, setConfigIssueStep] = useState(null);
   const submitLockRef = useRef(false);
+  const catalogRef = useRef(null);
   const [submitAttempt, setSubmitAttempt] = useState(0);
+  const [catalogTick, setCatalogTick] = useState(0);
+  const [catalogSource, setCatalogSource] = useState("loading");
+  const [catalogRetry, setCatalogRetry] = useState(0);
+
+  const reloadCatalog = () => {
+    setCatalogSource("loading");
+    setCatalogRetry((value) => value + 1);
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setCatalogSource("loading");
+      try {
+        const result = await fetchPublicWizardCatalog();
+        if (cancelled) return;
+        const loaded = interpretPublicCatalog(result);
+        if (!loaded.ok) {
+          catalogRef.current = null;
+          setWizardLists(null);
+          setCatalogSource("error");
+          return;
+        }
+        catalogRef.current = loaded.catalog || null;
+        setWizardLists(loaded.lists);
+        setCatalogSource("live");
+        setCatalogTick((value) => value + 1);
+        setSelections((previous) => pruneSelections(previous));
+      } catch {
+        if (cancelled) return;
+        catalogRef.current = null;
+        setWizardLists(null);
+        setCatalogSource("error");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [catalogRetry]);
 
   const update = (patch) => {
-    setSelections((previous) => pruneSelections({ ...previous, ...patch }));
+    setSelections((previous) => {
+      const next = pruneSelections({ ...previous, ...patch });
+      if (Object.prototype.hasOwnProperty.call(patch, "instrumentTypeId")) {
+        return applySeriesDefault(next);
+      }
+      return next;
+    });
   };
 
   const availableSeries = getAvailableSeries(selections);
@@ -219,6 +275,22 @@ export function useCustomBuild() {
     update({ controlLayoutId });
   };
 
+  const setCustomerSuppliedParts = (customerSuppliedParts) => {
+    if (customerSuppliedParts) {
+      update({
+        customerSuppliedParts: true,
+        pickupConfigId: null,
+        pickupTypeId: null,
+        bridgeId: null,
+        tunerId: null,
+        hardwareFinishId: null,
+        controlLayoutId: null,
+      });
+      return;
+    }
+    update({ customerSuppliedParts: false });
+  };
+
   const selectFinishType = (finishTypeId) => {
     update({ finishTypeId });
   };
@@ -261,6 +333,10 @@ export function useCustomBuild() {
 
   const setContactMessage = (contactMessage) => {
     update({ contactMessage });
+  };
+
+  const setReferenceImages = (referenceImages) => {
+    update({ referenceImages });
   };
 
   const setAcknowledgement = (acknowledgement) => {
@@ -443,6 +519,10 @@ export function useCustomBuild() {
           return;
         }
         if (result?.code === INQUIRY_CODES.VALIDATION) {
+          const details = result?.details ?? [];
+          if (Object.keys(mappedContactErrors).length === 0) {
+            setConfigIssueStep(firstIssueStep(details));
+          }
           setSubmitStatus(
             Object.keys(mappedContactErrors).length > 0
               ? "invalid"
@@ -460,6 +540,29 @@ export function useCustomBuild() {
 
     await attempt(true);
   };
+
+  useEffect(() => {
+    if (submitStatus !== "invalid-config") return;
+    const catalog = catalogRef.current;
+    if (!catalog) return;
+    const mapped = buildInquiryPayload({
+      selections,
+      language: "en",
+      catalog,
+      finishSheen: getFinishTypeById(selections.finishTypeId)?.sheen,
+    }).configuration.selections;
+    const nextIssues = evaluateMappedSelections(mapped, catalog);
+    const incompleteStep = getFirstIncompleteStep(selections);
+    setSubmitIssues((previous) => {
+      const prevKey = (previous || []).map((item) => `${item.field}:${item.code}`).join("|");
+      const nextKey = nextIssues.map((item) => `${item.field}:${item.code}`).join("|");
+      return prevKey === nextKey ? previous : nextIssues;
+    });
+    setConfigIssueStep(incompleteStep || firstIssueStep(nextIssues));
+    if (!incompleteStep && nextIssues.length === 0) {
+      setSubmitStatus("idle");
+    }
+  }, [selections, submitStatus]);
 
   useEffect(() => {
     setContactErrors((previous) => {
@@ -518,6 +621,10 @@ export function useCustomBuild() {
     currentStepMeta,
     totalSteps,
     steps: BUILDER_STEPS,
+    instrumentTypes: getWizardLists()?.instrumentTypes || [],
+    catalogTick,
+    catalogSource,
+    reloadCatalog,
     selections,
     instrumentType: getInstrumentTypeById(selections.instrumentTypeId),
     series: getSeriesById(selections.seriesId),
@@ -603,6 +710,7 @@ export function useCustomBuild() {
     selectTuner,
     selectHardwareFinish,
     selectControlLayout,
+    setCustomerSuppliedParts,
     selectFinishType,
     selectFinishColor,
     setCustomColorNote,
@@ -614,6 +722,7 @@ export function useCustomBuild() {
     setContactCountry,
     setContactPhone,
     setContactMessage,
+    setReferenceImages,
     setAcknowledgement,
     goNext,
     goBack,

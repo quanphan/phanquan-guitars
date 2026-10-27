@@ -9,8 +9,11 @@ import StepNeckFingerboard from "../components/custom-build/steps/StepNeckFinger
 import StepReviewSubmit from "../components/custom-build/steps/StepReviewSubmit.jsx";
 import StepNav from "../components/custom-build/StepNav.jsx";
 import PageHeader from "../components/PageHeader.jsx";
+import { wizardOptionLabel } from "../data/wizardCatalog.js";
+import { visibleSummaryRows } from "../data/wizardDisplay.js";
 import { useCustomBuild } from "../hooks/useCustomBuild.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
+import { isMissingRequiredConfig } from "../services/customBuildPayload.js";
 
 export default function CustomBuild() {
   const { t, language } = useLanguage();
@@ -26,27 +29,21 @@ export default function CustomBuild() {
     alert.focus({ preventScroll: true });
   }, [builder.submitStatus, builder.submitAttempt, builder.currentStep]);
 
-  const summaryRows = [
+  const summaryRows = visibleSummaryRows([
     {
       key: "instrument",
       label: t("customBuild.summary.instrument"),
-      value: builder.instrumentType
-        ? t(`customBuild.types.${builder.instrumentType.id}`)
-        : null,
+      value: wizardOptionLabel(builder.instrumentType, language, t, "types") || null,
     },
     {
       key: "series",
       label: t("customBuild.summary.series"),
-      value: builder.series
-        ? t(`customBuild.series.${builder.series.id}.name`)
-        : null,
+      value: wizardOptionLabel(builder.series, language, t, "series") || null,
     },
     {
       key: "shape",
       label: t("customBuild.summary.shape"),
-      value: builder.shape
-        ? t(`customBuild.shapes.${builder.shape.id}.name`)
-        : null,
+      value: wizardOptionLabel(builder.shape, language, t, "shapes") || null,
     },
     {
       key: "scale",
@@ -72,55 +69,37 @@ export default function CustomBuild() {
     {
       key: "bodyWood",
       label: t("customBuild.summary.bodyWood"),
-      value: builder.bodyWood
-        ? t(`customBuild.woods.${builder.bodyWood.id}.name`)
-        : null,
+      value: wizardOptionLabel(builder.bodyWood, language, t, "woods") || null,
     },
     {
       key: "topWood",
       label: t("customBuild.summary.topWood"),
-      value: builder.topApplicable
-        ? builder.topWood
-          ? t(`customBuild.woods.${builder.topWood.id}.name`)
-          : null
-        : builder.bodyWood
-          ? t("customBuild.step2.topNotApplicable")
-          : null,
+      value: wizardOptionLabel(builder.topWood, language, t, "woods") || null,
     },
     {
       key: "neckWood",
       label: t("customBuild.summary.neckWood"),
-      value: builder.neckWood
-        ? t(`customBuild.neckWoods.${builder.neckWood.id}.name`)
-        : null,
+      value: wizardOptionLabel(builder.neckWood, language, t, "neckWoods") || null,
     },
     {
       key: "neckConstruction",
       label: t("customBuild.summary.neckConstruction"),
-      value: builder.neckConstruction
-        ? t(`customBuild.constructions.${builder.neckConstruction.id}.name`)
-        : null,
+      value: wizardOptionLabel(builder.neckConstruction, language, t, "constructions") || null,
     },
     {
       key: "fingerboard",
       label: t("customBuild.summary.fingerboard"),
-      value: builder.fingerboardWood
-        ? t(`customBuild.fingerboards.${builder.fingerboardWood.id}.name`)
-        : null,
+      value: wizardOptionLabel(builder.fingerboardWood, language, t, "fingerboards") || null,
     },
     {
       key: "neckProfile",
       label: t("customBuild.summary.neckProfile"),
-      value: builder.neckProfile
-        ? t(`customBuild.profiles.${builder.neckProfile.id}.name`)
-        : null,
+      value: wizardOptionLabel(builder.neckProfile, language, t, "profiles") || null,
     },
     {
       key: "frets",
       label: t("customBuild.summary.frets"),
-      value: builder.fretSpec
-        ? t(`customBuild.frets.${builder.fretSpec.id}.name`)
-        : null,
+      value: wizardOptionLabel(builder.fretSpec, language, t, "frets") || null,
     },
     {
       key: "fretCount",
@@ -133,63 +112,55 @@ export default function CustomBuild() {
             )
           : null,
     },
-    {
-      key: "pickupConfig",
-      label: t("customBuild.summary.pickupConfig"),
-      value: builder.pickupConfig
-        ? t(`customBuild.pickupConfigs.${builder.pickupConfig.id}.name`)
-        : null,
-    },
-    {
-      key: "pickupType",
-      label: t("customBuild.summary.pickupType"),
-      value: builder.pickupType
-        ? t(`customBuild.pickupTypes.${builder.pickupType.id}.name`)
-        : null,
-    },
-    {
-      key: "bridge",
-      label: t("customBuild.summary.bridge"),
-      value: builder.bridge
-        ? t(`customBuild.bridges.${builder.bridge.id}.name`)
-        : null,
-    },
-    {
-      key: "tuners",
-      label: t("customBuild.summary.tuners"),
-      value: !builder.tunersApplicable
-        ? t("customBuild.step4.tunersNotApplicable")
-        : builder.tuner
-          ? t(`customBuild.tuners.${builder.tuner.id}.name`)
-          : null,
-    },
-    {
-      key: "hardwareFinish",
-      label: t("customBuild.summary.hardwareFinish"),
-      value: builder.hardwareFinish
-        ? t(`customBuild.hardwareFinishes.${builder.hardwareFinish.id}.name`)
-        : null,
-    },
-    {
-      key: "controls",
-      label: t("customBuild.summary.controls"),
-      value: builder.controlLayout
-        ? t(`customBuild.controls.${builder.controlLayout.id}.name`)
-        : null,
-    },
+    ...(builder.selections.customerSuppliedParts
+      ? [
+          {
+            key: "customerSuppliedParts",
+            label: t("customBuild.summary.customerSuppliedParts"),
+            value: t("customBuild.step4.customerSuppliedSummary"),
+          },
+        ]
+      : [
+          {
+            key: "pickupConfig",
+            label: t("customBuild.summary.pickupConfig"),
+            value: wizardOptionLabel(builder.pickupConfig, language, t, "pickupConfigs") || null,
+          },
+          {
+            key: "pickupType",
+            label: t("customBuild.summary.pickupType"),
+            value: wizardOptionLabel(builder.pickupType, language, t, "pickupTypes") || null,
+          },
+          {
+            key: "bridge",
+            label: t("customBuild.summary.bridge"),
+            value: wizardOptionLabel(builder.bridge, language, t, "bridges") || null,
+          },
+          {
+            key: "tuners",
+            label: t("customBuild.summary.tuners"),
+            value: wizardOptionLabel(builder.tuner, language, t, "tuners") || null,
+          },
+          {
+            key: "hardwareFinish",
+            label: t("customBuild.summary.hardwareFinish"),
+            value: wizardOptionLabel(builder.hardwareFinish, language, t, "hardwareFinishes") || null,
+          },
+          {
+            key: "controls",
+            label: t("customBuild.summary.controls"),
+            value: wizardOptionLabel(builder.controlLayout, language, t, "controls") || null,
+          },
+        ]),
     {
       key: "finishType",
       label: t("customBuild.summary.finishType"),
-      value: builder.finishType
-        ? t(`customBuild.finishTypes.${builder.finishType.id}.name`)
-        : null,
+      value: wizardOptionLabel(builder.finishType, language, t, "finishTypes") || null,
     },
     {
       key: "finishColor",
       label: t("customBuild.summary.finishColor"),
-      value: builder.finishColor
-        ? t(`customBuild.finishColors.${builder.finishColor.id}.name`)
-        : null,
+      value: wizardOptionLabel(builder.finishColor, language, t, "finishColors") || null,
     },
     {
       key: "customColor",
@@ -201,16 +172,12 @@ export default function CustomBuild() {
     {
       key: "inlay",
       label: t("customBuild.summary.inlay"),
-      value: builder.inlay
-        ? t(`customBuild.inlays.${builder.inlay.id}.name`)
-        : null,
+      value: wizardOptionLabel(builder.inlay, language, t, "inlays") || null,
     },
     {
       key: "engraving",
       label: t("customBuild.summary.engraving"),
-      value: builder.engraving
-        ? t(`customBuild.engravings.${builder.engraving.id}.name`)
-        : null,
+      value: wizardOptionLabel(builder.engraving, language, t, "engravings") || null,
     },
     {
       key: "specialRequests",
@@ -226,7 +193,7 @@ export default function CustomBuild() {
         `customBuild.steps.${builder.currentStepMeta.key}`,
       )}`,
     },
-  ];
+  ]);
 
   return (
     <div className="pb-24 lg:pb-32">
@@ -237,6 +204,26 @@ export default function CustomBuild() {
       />
 
       <div className="mx-auto mt-10 max-w-7xl px-6 lg:px-10">
+        {builder.catalogSource === "loading" ? (
+          <p className="mt-8 text-sm text-muted" role="status">
+            {t("customBuild.catalogLoading")}
+          </p>
+        ) : null}
+        {builder.catalogSource === "error" ? (
+          <div className="mt-8 border border-gold/40 bg-gold/10 px-4 py-3" role="alert">
+            <p className="text-sm text-ivory">{t("customBuild.catalogError")}</p>
+            <button
+              type="button"
+              className="mt-3 text-[11px] uppercase tracking-[0.18em] text-gold"
+              onClick={builder.reloadCatalog}
+            >
+              {t("customBuild.catalogRetry")}
+            </button>
+          </div>
+        ) : null}
+
+        {builder.catalogSource === "live" ? (
+        <>
         <BuilderProgress
           steps={builder.steps}
           currentStep={builder.currentStep}
@@ -251,7 +238,7 @@ export default function CustomBuild() {
             role="alert"
             tabIndex={-1}
           >
-            {builder.configIssueStep
+            {isMissingRequiredConfig(builder.submitIssues, builder.configIssueStep)
               ? t("customBuild.step6.incompleteConfig").replace(
                   "{step}",
                   String(builder.configIssueStep),
@@ -265,6 +252,7 @@ export default function CustomBuild() {
             {builder.currentStep === 1 ? (
               <StepInstrumentShape
                 selections={builder.selections}
+                instrumentTypes={builder.instrumentTypes}
                 availableSeries={builder.availableSeries}
                 availableShapes={builder.availableShapes}
                 availableScales={builder.availableScales}
@@ -304,20 +292,19 @@ export default function CustomBuild() {
             ) : builder.currentStep === 4 ? (
               <StepElectronicsHardware
                 selections={builder.selections}
-                pickupConfig={builder.pickupConfig}
                 availablePickupConfigs={builder.availablePickupConfigs}
                 availablePickupTypes={builder.availablePickupTypes}
                 availableBridges={builder.availableBridges}
                 availableTuners={builder.availableTuners}
                 availableHardwareFinishes={builder.availableHardwareFinishes}
                 availableControlLayouts={builder.availableControlLayouts}
-                tunersApplicable={builder.tunersApplicable}
                 selectPickupConfig={builder.selectPickupConfig}
                 selectPickupType={builder.selectPickupType}
                 selectBridge={builder.selectBridge}
                 selectTuner={builder.selectTuner}
                 selectHardwareFinish={builder.selectHardwareFinish}
                 selectControlLayout={builder.selectControlLayout}
+                setCustomerSuppliedParts={builder.setCustomerSuppliedParts}
               />
             ) : builder.currentStep === 5 ? (
               <StepFinishDetails
@@ -327,7 +314,6 @@ export default function CustomBuild() {
                 availableFinishColors={builder.availableFinishColors}
                 availableInlays={builder.availableInlays}
                 availableEngravings={builder.availableEngravings}
-                headless={builder.headless}
                 customColorMax={builder.customColorMax}
                 specialRequestMax={builder.specialRequestMax}
                 selectFinishType={builder.selectFinishType}
@@ -357,6 +343,7 @@ export default function CustomBuild() {
                 setContactPhone={builder.setContactPhone}
                 setContactMessage={builder.setContactMessage}
                 setAcknowledgement={builder.setAcknowledgement}
+                setReferenceImages={builder.setReferenceImages}
               />
             )}
 
@@ -382,6 +369,8 @@ export default function CustomBuild() {
             t={t}
           />
         </div>
+        </>
+        ) : null}
       </div>
     </div>
   );

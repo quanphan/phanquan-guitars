@@ -7,31 +7,29 @@ import {
   CONTACT_COUNTRY_MAX,
   CONTACT_PHONE_MAX,
 } from "../../../data/customBuild.js";
+import { wizardOptionLabel } from "../../../data/wizardCatalog.js";
+import { visibleReviewRows } from "../../../data/wizardDisplay.js";
+import ReferenceImageField from "../ReferenceImageField.jsx";
 import { firstContactFieldId } from "../../../utils/customBuildSubmitFlow.js";
 import { debugSubmit } from "../../../utils/submitDebug.js";
+import {
+  formatSelectionIssueLabel,
+  isMissingRequiredConfig,
+  selectionIssueMeta,
+} from "../../../services/customBuildPayload.js";
 
-function display(value, t) {
-  if (value == null || value === "") return t("customBuild.step6.notSelected");
-  return value;
-}
-
-function serverIssueLabel(t, issue) {
-  const key = `customBuild.step6.serverCodes.${issue.code}`;
-  const label = t(key);
-  const codeLabel = label === key ? issue.code : label;
-  return `${issue.field}: ${codeLabel}`;
-}
-
-function ReviewRow({ label, value, t }) {
+function ReviewRow({ label, value }) {
   return (
     <div className="border-b border-white/8 py-3 last:border-b-0 last:pb-0 first:pt-0">
       <dt className="text-[11px] uppercase tracking-[0.16em] text-muted">{label}</dt>
-      <dd className="mt-1.5 text-sm text-ivory">{display(value, t)}</dd>
+      <dd className="mt-1.5 text-sm text-ivory">{value}</dd>
     </div>
   );
 }
 
-function ReviewSection({ title, onEdit, editLabel, children, locked }) {
+function ReviewSection({ title, onEdit, editLabel, rows, locked }) {
+  const visible = visibleReviewRows(rows);
+  if (!visible.length) return null;
   return (
     <section className="mt-10 border border-white/10 bg-panel/40 p-5 sm:p-6">
       <div className="flex items-start justify-between gap-4">
@@ -46,7 +44,11 @@ function ReviewSection({ title, onEdit, editLabel, children, locked }) {
           </button>
         )}
       </div>
-      <dl className="mt-4">{children}</dl>
+      <dl className="mt-4">
+        {visible.map((row) => (
+          <ReviewRow key={row.key} label={row.label} value={row.value} />
+        ))}
+      </dl>
     </section>
   );
 }
@@ -132,7 +134,7 @@ function SubmitAlerts({
       {submitStatus === "invalid-config" ? (
         <div className="border border-gold/40 bg-gold/10 px-4 py-3 text-sm text-ivory" role="alert">
           <p>
-            {configIssueStep
+            {isMissingRequiredConfig(issues, configIssueStep)
               ? t("customBuild.step6.incompleteConfig").replace(
                   "{step}",
                   String(configIssueStep),
@@ -150,11 +152,26 @@ function SubmitAlerts({
           ) : null}
           {issues.length > 0 ? (
             <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-muted">
-              {issues.map((issue, index) => (
-                <li key={`${issue.field}-${issue.code}-${index}`}>
-                  {serverIssueLabel(t, issue)}
-                </li>
-              ))}
+              {issues.map((issue, index) => {
+                const meta = selectionIssueMeta(issue.field);
+                const label = formatSelectionIssueLabel(t, issue);
+                if (meta?.step) {
+                  return (
+                    <li key={`${issue.field}-${issue.code}-${index}`}>
+                      <button
+                        type="button"
+                        onClick={() => onEditSection(meta.step)}
+                        className="text-left text-gold underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                      >
+                        {label}
+                      </button>
+                    </li>
+                  );
+                }
+                return (
+                  <li key={`${issue.field}-${issue.code}-${index}`}>{label}</li>
+                );
+              })}
             </ul>
           ) : null}
         </div>
@@ -186,9 +203,11 @@ export default function StepReviewSubmit({
   setContactPhone,
   setContactMessage,
   setAcknowledgement,
+  setReferenceImages,
 }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const selections = builder.selections;
+  const optionName = (option, group) => wizardOptionLabel(option, language, t, group) || null;
   const submitted = submitStatus === "success";
   const submitting = submitStatus === "submitting";
   const issues = Array.isArray(submitIssues) ? submitIssues : [];
@@ -225,20 +244,6 @@ export default function StepReviewSubmit({
       : builder.scale.display
     : null;
 
-  const tunersValue = !builder.tunersApplicable
-    ? t("customBuild.step4.tunersNotApplicable")
-    : builder.tuner
-      ? t(`customBuild.tuners.${builder.tuner.id}.name`)
-      : null;
-
-  const topValue = builder.topApplicable
-    ? builder.topWood
-      ? t(`customBuild.woods.${builder.topWood.id}.name`)
-      : null
-    : builder.bodyWood
-      ? t("customBuild.step2.topNotApplicable")
-      : null;
-
   return (
     <div>
       {submitted ? (
@@ -274,232 +279,95 @@ export default function StepReviewSubmit({
         onEdit={() => onEditSection(1)}
         editLabel={t("customBuild.step6.edit")}
         locked={submitted || submitting}
-      >
-        <ReviewRow
-          label={t("customBuild.summary.instrument")}
-          value={
-            builder.instrumentType
-              ? t(`customBuild.types.${builder.instrumentType.id}`)
-              : null
-          }
-          t={t}
-        />
-        <ReviewRow
-          label={t("customBuild.summary.series")}
-          value={
-            builder.series ? t(`customBuild.series.${builder.series.id}.name`) : null
-          }
-          t={t}
-        />
-        <ReviewRow
-          label={t("customBuild.summary.shape")}
-          value={
-            builder.shape ? t(`customBuild.shapes.${builder.shape.id}.name`) : null
-          }
-          t={t}
-        />
-        <ReviewRow label={t("customBuild.summary.scale")} value={scaleValue} t={t} />
-        <ReviewRow
-          label={t("customBuild.summary.strings")}
-          value={
-            selections.stringCount != null
-              ? t("customBuild.strings.count").replace(
-                  "{count}",
-                  String(selections.stringCount),
-                )
-              : null
-          }
-          t={t}
-        />
-        <ReviewRow
-          label={t("customBuild.summary.radius")}
-          value={builder.radius?.display ?? null}
-          t={t}
-        />
-      </ReviewSection>
+        rows={[
+          { key: "instrument", label: t("customBuild.summary.instrument"), value: optionName(builder.instrumentType, "types") },
+          { key: "series", label: t("customBuild.summary.series"), value: optionName(builder.series, "series") },
+          { key: "shape", label: t("customBuild.summary.shape"), value: optionName(builder.shape, "shapes") },
+          { key: "scale", label: t("customBuild.summary.scale"), value: scaleValue },
+          {
+            key: "strings",
+            label: t("customBuild.summary.strings"),
+            value:
+              selections.stringCount != null
+                ? t("customBuild.strings.count").replace("{count}", String(selections.stringCount))
+                : null,
+          },
+          { key: "radius", label: t("customBuild.summary.radius"), value: builder.radius?.display ?? null },
+        ]}
+      />
 
       <ReviewSection
         title={t("customBuild.steps.bodyTop")}
         onEdit={() => onEditSection(2)}
         editLabel={t("customBuild.step6.edit")}
         locked={submitted || submitting}
-      >
-        <ReviewRow
-          label={t("customBuild.summary.bodyWood")}
-          value={
-            builder.bodyWood ? t(`customBuild.woods.${builder.bodyWood.id}.name`) : null
-          }
-          t={t}
-        />
-        <ReviewRow label={t("customBuild.summary.topWood")} value={topValue} t={t} />
-      </ReviewSection>
+        rows={[
+          { key: "bodyWood", label: t("customBuild.summary.bodyWood"), value: optionName(builder.bodyWood, "woods") },
+          { key: "topWood", label: t("customBuild.summary.topWood"), value: optionName(builder.topWood, "woods") },
+        ]}
+      />
 
       <ReviewSection
         title={t("customBuild.steps.neckFingerboard")}
         onEdit={() => onEditSection(3)}
         editLabel={t("customBuild.step6.edit")}
         locked={submitted || submitting}
-      >
-        <ReviewRow
-          label={t("customBuild.summary.neckWood")}
-          value={
-            builder.neckWood
-              ? t(`customBuild.neckWoods.${builder.neckWood.id}.name`)
-              : null
-          }
-          t={t}
-        />
-        <ReviewRow
-          label={t("customBuild.summary.neckConstruction")}
-          value={
-            builder.neckConstruction
-              ? t(`customBuild.constructions.${builder.neckConstruction.id}.name`)
-              : null
-          }
-          t={t}
-        />
-        <ReviewRow
-          label={t("customBuild.summary.fingerboard")}
-          value={
-            builder.fingerboardWood
-              ? t(`customBuild.fingerboards.${builder.fingerboardWood.id}.name`)
-              : null
-          }
-          t={t}
-        />
-        <ReviewRow
-          label={t("customBuild.summary.neckProfile")}
-          value={
-            builder.neckProfile
-              ? t(`customBuild.profiles.${builder.neckProfile.id}.name`)
-              : null
-          }
-          t={t}
-        />
-        <ReviewRow
-          label={t("customBuild.summary.frets")}
-          value={
-            builder.fretSpec ? t(`customBuild.frets.${builder.fretSpec.id}.name`) : null
-          }
-          t={t}
-        />
-        <ReviewRow
-          label={t("customBuild.summary.fretCount")}
-          value={
-            builder.inheritedFretCount != null
-              ? t("customBuild.step3.fretCountValue").replace(
-                  "{count}",
-                  String(builder.inheritedFretCount),
-                )
-              : null
-          }
-          t={t}
-        />
-      </ReviewSection>
+        rows={[
+          { key: "neckWood", label: t("customBuild.summary.neckWood"), value: optionName(builder.neckWood, "neckWoods") },
+          { key: "neckConstruction", label: t("customBuild.summary.neckConstruction"), value: optionName(builder.neckConstruction, "constructions") },
+          { key: "fingerboard", label: t("customBuild.summary.fingerboard"), value: optionName(builder.fingerboardWood, "fingerboards") },
+          { key: "neckProfile", label: t("customBuild.summary.neckProfile"), value: optionName(builder.neckProfile, "profiles") },
+          { key: "frets", label: t("customBuild.summary.frets"), value: optionName(builder.fretSpec, "frets") },
+          {
+            key: "fretCount",
+            label: t("customBuild.summary.fretCount"),
+            value:
+              builder.inheritedFretCount != null
+                ? t("customBuild.step3.fretCountValue").replace("{count}", String(builder.inheritedFretCount))
+                : null,
+          },
+        ]}
+      />
 
       <ReviewSection
         title={t("customBuild.steps.electronicsHardware")}
         onEdit={() => onEditSection(4)}
         editLabel={t("customBuild.step6.edit")}
         locked={submitted || submitting}
-      >
-        <ReviewRow
-          label={t("customBuild.summary.pickupConfig")}
-          value={
-            builder.pickupConfig
-              ? t(`customBuild.pickupConfigs.${builder.pickupConfig.id}.name`)
-              : null
-          }
-          t={t}
-        />
-        <ReviewRow
-          label={t("customBuild.summary.pickupType")}
-          value={
-            builder.pickupType
-              ? t(`customBuild.pickupTypes.${builder.pickupType.id}.name`)
-              : null
-          }
-          t={t}
-        />
-        <ReviewRow
-          label={t("customBuild.summary.bridge")}
-          value={
-            builder.bridge ? t(`customBuild.bridges.${builder.bridge.id}.name`) : null
-          }
-          t={t}
-        />
-        <ReviewRow label={t("customBuild.summary.tuners")} value={tunersValue} t={t} />
-        <ReviewRow
-          label={t("customBuild.summary.hardwareFinish")}
-          value={
-            builder.hardwareFinish
-              ? t(`customBuild.hardwareFinishes.${builder.hardwareFinish.id}.name`)
-              : null
-          }
-          t={t}
-        />
-        <ReviewRow
-          label={t("customBuild.summary.controls")}
-          value={
-            builder.controlLayout
-              ? t(`customBuild.controls.${builder.controlLayout.id}.name`)
-              : null
-          }
-          t={t}
-        />
-      </ReviewSection>
+        rows={
+          selections.customerSuppliedParts
+            ? [
+                {
+                  key: "customerSuppliedParts",
+                  label: t("customBuild.summary.customerSuppliedParts"),
+                  value: t("customBuild.step4.customerSuppliedSummary"),
+                },
+              ]
+            : [
+                { key: "pickupConfig", label: t("customBuild.summary.pickupConfig"), value: optionName(builder.pickupConfig, "pickupConfigs") },
+                { key: "pickupType", label: t("customBuild.summary.pickupType"), value: optionName(builder.pickupType, "pickupTypes") },
+                { key: "bridge", label: t("customBuild.summary.bridge"), value: optionName(builder.bridge, "bridges") },
+                { key: "tuners", label: t("customBuild.summary.tuners"), value: optionName(builder.tuner, "tuners") },
+                { key: "hardwareFinish", label: t("customBuild.summary.hardwareFinish"), value: optionName(builder.hardwareFinish, "hardwareFinishes") },
+                { key: "controls", label: t("customBuild.summary.controls"), value: optionName(builder.controlLayout, "controls") },
+              ]
+        }
+      />
 
       <ReviewSection
         title={t("customBuild.steps.finishDetails")}
         onEdit={() => onEditSection(5)}
         editLabel={t("customBuild.step6.edit")}
         locked={submitted || submitting}
-      >
-        <ReviewRow
-          label={t("customBuild.summary.finishType")}
-          value={
-            builder.finishType
-              ? t(`customBuild.finishTypes.${builder.finishType.id}.name`)
-              : null
-          }
-          t={t}
-        />
-        <ReviewRow
-          label={t("customBuild.summary.finishColor")}
-          value={
-            builder.finishColor
-              ? t(`customBuild.finishColors.${builder.finishColor.id}.name`)
-              : null
-          }
-          t={t}
-        />
-        <ReviewRow
-          label={t("customBuild.summary.customColor")}
-          value={selections.customColorNote?.trim() || null}
-          t={t}
-        />
-        <ReviewRow
-          label={t("customBuild.summary.inlay")}
-          value={
-            builder.inlay ? t(`customBuild.inlays.${builder.inlay.id}.name`) : null
-          }
-          t={t}
-        />
-        <ReviewRow
-          label={t("customBuild.summary.engraving")}
-          value={
-            builder.engraving
-              ? t(`customBuild.engravings.${builder.engraving.id}.name`)
-              : null
-          }
-          t={t}
-        />
-        <ReviewRow
-          label={t("customBuild.summary.specialRequests")}
-          value={selections.specialRequests?.trim() || null}
-          t={t}
-        />
-      </ReviewSection>
+        rows={[
+          { key: "finishType", label: t("customBuild.summary.finishType"), value: optionName(builder.finishType, "finishTypes") },
+          { key: "finishColor", label: t("customBuild.summary.finishColor"), value: optionName(builder.finishColor, "finishColors") },
+          { key: "customColor", label: t("customBuild.summary.customColor"), value: selections.customColorNote?.trim() || null },
+          { key: "inlay", label: t("customBuild.summary.inlay"), value: optionName(builder.inlay, "inlays") },
+          { key: "engraving", label: t("customBuild.summary.engraving"), value: optionName(builder.engraving, "engravings") },
+          { key: "specialRequests", label: t("customBuild.summary.specialRequests"), value: selections.specialRequests?.trim() || null },
+        ]}
+      />
 
       {submitted ? null : (
       <section className="mt-12">
@@ -571,6 +439,7 @@ export default function StepReviewSubmit({
             value={selections.contactPhone}
             onChange={setContactPhone}
             type="tel"
+            required
             maxLength={CONTACT_PHONE_MAX}
             autoComplete="tel"
             disabled={submitting}
@@ -606,6 +475,12 @@ export default function StepReviewSubmit({
               </p>
             ) : null}
           </div>
+
+          <ReferenceImageField
+            images={selections.referenceImages}
+            onChange={setReferenceImages}
+            disabled={submitting}
+          />
 
           <div
             className={

@@ -56,6 +56,23 @@
  * Solid colours, transparent palettes, bursts beyond amber burst, and
  * headstock inlay menus are not listed.
  */
+import {
+  CONTACT_MESSAGE_MAX,
+  EMAIL_PATTERN,
+  PHONE_PATTERN,
+  validateContact,
+} from "./customBuildContact.js";
+import { pickDefaultOption } from "./wizardDefaults.js";
+import {
+  filterOptions as filterListedOptions,
+  findSelectedOption,
+  isHeadlessOption,
+  isNoneTopOption,
+  listedTuners,
+  isCustomerSuppliedParts,
+  optionMatches as optionMatchesListed,
+  pruneSelections as pruneListedSelections,
+} from "./wizardSelection.js";
 import featuredGrey from "../assets/guitars/optimized/featured-grey.jpg";
 import featuredHorizontal from "../assets/guitars/optimized/featured-horizontal.jpg";
 import featuredEngraved from "../assets/guitars/optimized/featured-engraved.jpg";
@@ -517,14 +534,53 @@ export const ENGRAVING_OPTIONS = [
   },
 ];
 
+/** Historical local option rows. Not used by the live wizard. */
+const FALLBACK_LISTS = {
+  instrumentTypes: INSTRUMENT_TYPES,
+  series: SERIES,
+  shapes: SHAPES,
+  scales: SCALES,
+  stringCounts: STRING_COUNTS,
+  radii: RADII,
+  bodyWoods: BODY_WOODS,
+  topWoods: TOP_WOODS,
+  neckWoods: NECK_WOODS,
+  neckConstructions: NECK_CONSTRUCTIONS,
+  fingerboardWoods: FINGERBOARD_WOODS,
+  neckProfiles: NECK_PROFILES,
+  fretSpecs: FRET_SPECS,
+  pickupConfigs: PICKUP_CONFIGS,
+  pickupTypes: PICKUP_TYPES,
+  bridges: BRIDGE_SYSTEMS,
+  tuners: TUNERS,
+  hardwareFinishes: HARDWARE_FINISHES,
+  controlLayouts: CONTROL_LAYOUTS,
+  finishTypes: FINISH_TYPES,
+  finishColors: FINISH_COLORS,
+  inlays: INLAYS,
+  engravings: ENGRAVING_OPTIONS,
+};
+
+let wizardLists = null;
+
+export function setWizardLists(lists) {
+  wizardLists = lists;
+}
+
+export function getWizardLists() {
+  return wizardLists;
+}
+
+function list(key) {
+  return wizardLists?.[key] || [];
+}
+
 export const CUSTOM_COLOR_MAX = 240;
 export const SPECIAL_REQUEST_MAX = 800;
 export const CONTACT_NAME_MAX = 80;
 export const CONTACT_COUNTRY_MAX = 80;
 export const CONTACT_PHONE_MAX = 24;
-export const CONTACT_MESSAGE_MAX = 800;
-export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-export const PHONE_PATTERN = /^[+0-9()\s.-]{7,24}$/;
+export { CONTACT_MESSAGE_MAX, EMAIL_PATTERN, PHONE_PATTERN, validateContact };
 
 export const EMPTY_SELECTIONS = {
   instrumentTypeId: null,
@@ -546,6 +602,7 @@ export const EMPTY_SELECTIONS = {
   tunerId: null,
   hardwareFinishId: null,
   controlLayoutId: null,
+  customerSuppliedParts: false,
   finishTypeId: null,
   finishColorId: null,
   customColorNote: "",
@@ -558,76 +615,61 @@ export const EMPTY_SELECTIONS = {
   contactPhone: "",
   contactMessage: "",
   acknowledgement: false,
+  referenceImages: [],
 };
 
-function matchesConstraint(allowed, selected) {
-  if (!allowed || allowed.length === 0) return true;
-  if (selected == null || selected === "") return true;
-  return allowed.includes(selected);
+function listsOrEmpty() {
+  return getWizardLists() || null;
 }
 
 export function optionMatches(option, selections) {
-  return (
-    matchesConstraint(option.instrumentTypeIds, selections.instrumentTypeId) &&
-    matchesConstraint(option.seriesIds, selections.seriesId) &&
-    matchesConstraint(option.shapeIds, selections.shapeId) &&
-    matchesConstraint(option.scaleIds, selections.scaleId) &&
-    matchesConstraint(option.stringCounts, selections.stringCount) &&
-    matchesConstraint(option.bodyWoodIds, selections.bodyWoodId) &&
-    matchesConstraint(option.topWoodIds, selections.topWoodId) &&
-    matchesConstraint(option.neckWoodIds, selections.neckWoodId) &&
-    matchesConstraint(option.neckConstructionIds, selections.neckConstructionId) &&
-    matchesConstraint(option.fingerboardWoodIds, selections.fingerboardWoodId) &&
-    matchesConstraint(option.pickupConfigIds, selections.pickupConfigId) &&
-    matchesConstraint(option.pickupTypeIds, selections.pickupTypeId) &&
-    matchesConstraint(option.bridgeIds, selections.bridgeId) &&
-    matchesConstraint(option.finishTypeIds, selections.finishTypeId)
-  );
+  const raw = String(option?.optionId || "");
+  const dot = raw.indexOf(".");
+  return optionMatchesListed(option, selections, getWizardLists() || {}, dot > 0 ? raw.slice(0, dot) : "");
 }
 
 export function filterOptions(options, selections) {
-  return options.filter((option) => optionMatches(option, selections));
+  return filterListedOptions(options, selections, getWizardLists() || {});
 }
 
 export function getInstrumentTypeById(id) {
-  return INSTRUMENT_TYPES.find((item) => item.id === id) ?? null;
+  return findSelectedOption(list("instrumentTypes"), id);
 }
 
 export function getSeriesById(id) {
-  return SERIES.find((item) => item.id === id) ?? null;
+  return findSelectedOption(list("series"), id);
 }
 
 export function getShapeById(id) {
-  return SHAPES.find((item) => item.id === id) ?? null;
+  return findSelectedOption(list("shapes"), id);
 }
 
 export function getScaleById(id) {
-  return SCALES.find((item) => item.id === id) ?? null;
+  return findSelectedOption(list("scales"), id);
 }
 
 export function getStringCountByValue(value, selections = EMPTY_SELECTIONS) {
+  const counts = list("stringCounts");
   return (
-    STRING_COUNTS.find(
-      (item) => item.value === value && optionMatches(item, selections),
-    ) ?? STRING_COUNTS.find((item) => item.value === value) ?? null
+    counts.find((item) => item.value === value && optionMatches(item, selections)) ??
+    findSelectedOption(counts, value)
   );
 }
 
 export function getRadiusById(id) {
-  return RADII.find((item) => item.id === id) ?? null;
+  return findSelectedOption(list("radii"), id);
 }
 
 export function getBodyWoodById(id) {
-  return BODY_WOODS.find((item) => item.id === id) ?? null;
+  return findSelectedOption(list("bodyWoods"), id);
 }
 
 export function getTopWoodById(id) {
-  if (id === NONE_TOP.id) return NONE_TOP;
-  return TOP_WOODS.find((item) => item.id === id) ?? null;
+  return findSelectedOption(list("topWoods"), id);
 }
 
 export function getAvailableBodyWoods(selections) {
-  return filterOptions(BODY_WOODS, selections);
+  return filterOptions(list("bodyWoods"), selections);
 }
 
 export function isTopApplicable(selections) {
@@ -638,103 +680,103 @@ export function isTopApplicable(selections) {
 
 export function getAvailableTopWoods(selections) {
   if (!isTopApplicable(selections)) return [];
-  const matched = filterOptions(TOP_WOODS, selections);
+  const matched = filterOptions(
+    list("topWoods").filter((item) => !isNoneTopOption(item)),
+    selections,
+  );
   const body = getBodyWoodById(selections.bodyWoodId);
   if (body?.noneTopAllowed) {
-    return [NONE_TOP, ...matched];
+    const none = list("topWoods").filter(isNoneTopOption);
+    return [...none, ...matched];
   }
   return matched;
 }
 
 export function getAvailableSeries(selections) {
-  return filterOptions(SERIES, selections);
+  return filterOptions(list("series"), selections);
+}
+
+export function applySeriesDefault(selections) {
+  if (selections.seriesId || !selections.instrumentTypeId) return selections;
+  const picked = pickDefaultOption(getAvailableSeries(selections), selections.instrumentTypeId);
+  if (!picked) return selections;
+  return pruneSelections({ ...selections, seriesId: picked.id });
 }
 
 export function getAvailableShapes(selections) {
-  return filterOptions(SHAPES, selections);
+  return filterOptions(list("shapes"), selections);
 }
 
 export function getAvailableScales(selections) {
-  return filterOptions(SCALES, selections);
+  return filterOptions(list("scales"), selections);
 }
 
 export function getAvailableStringCounts(selections) {
-  return filterOptions(STRING_COUNTS, selections);
+  return filterOptions(list("stringCounts"), selections);
 }
 
 export function getAvailableRadii(selections) {
-  return filterOptions(RADII, selections);
+  return filterOptions(list("radii"), selections);
 }
 
 export function getNeckWoodById(id) {
-  return NECK_WOODS.find((item) => item.id === id) ?? null;
+  return findSelectedOption(list("neckWoods"), id);
 }
 
 export function getNeckConstructionById(id) {
-  return NECK_CONSTRUCTIONS.find((item) => item.id === id) ?? null;
+  return findSelectedOption(list("neckConstructions"), id);
 }
 
 export function getFingerboardWoodById(id) {
-  return FINGERBOARD_WOODS.find((item) => item.id === id) ?? null;
+  return findSelectedOption(list("fingerboardWoods"), id);
 }
 
 export function getNeckProfileById(id) {
-  return NECK_PROFILES.find((item) => item.id === id) ?? null;
+  return findSelectedOption(list("neckProfiles"), id);
 }
 
 export function getFretSpecById(id) {
-  return FRET_SPECS.find((item) => item.id === id) ?? null;
+  return findSelectedOption(list("fretSpecs"), id);
 }
 
 export function getAvailableNeckWoods(selections) {
-  return filterOptions(NECK_WOODS, selections);
+  return filterOptions(list("neckWoods"), selections);
 }
 
 export function getAvailableNeckConstructions(selections) {
-  return filterOptions(NECK_CONSTRUCTIONS, selections);
+  return filterOptions(list("neckConstructions"), selections);
 }
 
 export function getAvailableFingerboardWoods(selections) {
   if (!selections.neckWoodId) return [];
-  return filterOptions(FINGERBOARD_WOODS, selections);
+  return filterOptions(list("fingerboardWoods"), selections);
 }
 
 export function getAvailableNeckProfiles(selections) {
-  return filterOptions(NECK_PROFILES, selections);
+  return filterOptions(list("neckProfiles"), selections);
 }
 
 export function getAvailableFretSpecs(selections) {
-  return filterOptions(FRET_SPECS, selections);
+  return filterOptions(list("fretSpecs"), selections);
 }
 
 export function getInheritedFretCount(selections) {
+  const type = getInstrumentTypeById(selections.instrumentTypeId);
+  const configured = type?.fretCount ?? type?.attributes?.fretCount;
+  if (configured != null && Number.isFinite(Number(configured))) return Number(configured);
   return INHERITED_FRET_COUNTS[selections.instrumentTypeId] ?? null;
 }
 
-function clearNeckSelections(next) {
-  next.neckWoodId = null;
-  next.neckConstructionId = null;
-  next.fingerboardWoodId = null;
-  next.neckProfileId = null;
-  next.fretSpecId = null;
-  clearElectronicsSelections(next);
-  clearFinishSelections(next);
-}
-
-function clearElectronicsSelections(next) {
-  next.pickupConfigId = null;
-  next.pickupTypeId = null;
-  next.bridgeId = null;
-  next.tunerId = null;
-  next.hardwareFinishId = null;
-  next.controlLayoutId = null;
-}
-
-function clearFinishSelections(next) {
-  next.finishTypeId = null;
-  next.finishColorId = null;
-  next.inlayId = null;
-  next.engravingId = null;
+function clampSelectionNotes(next) {
+  next.customColorNote = clampNote(next.customColorNote, CUSTOM_COLOR_MAX);
+  next.specialRequests = clampNote(next.specialRequests, SPECIAL_REQUEST_MAX);
+  next.contactName = clampNote(next.contactName, CONTACT_NAME_MAX);
+  next.contactEmail = clampNote(next.contactEmail, 120);
+  next.contactCountry = clampNote(next.contactCountry, CONTACT_COUNTRY_MAX);
+  next.contactPhone = clampNote(next.contactPhone, CONTACT_PHONE_MAX);
+  next.contactMessage = clampNote(next.contactMessage, CONTACT_MESSAGE_MAX);
+  next.acknowledgement = Boolean(next.acknowledgement);
+  return next;
 }
 
 export function clampNote(value, max) {
@@ -743,60 +785,63 @@ export function clampNote(value, max) {
 }
 
 export function isHeadlessSeries(selections) {
-  return selections.seriesId === "headless";
+  const series = getSeriesById(selections.seriesId);
+  if (series) return isHeadlessOption(series);
+  const id = String(selections.seriesId || "");
+  return id === "headless" || id.endsWith(".headless");
 }
 
 export function getPickupConfigById(id) {
-  return PICKUP_CONFIGS.find((item) => item.id === id) ?? null;
+  return findSelectedOption(list("pickupConfigs"), id);
 }
 
 export function getPickupTypeById(id) {
-  return PICKUP_TYPES.find((item) => item.id === id) ?? null;
+  return findSelectedOption(list("pickupTypes"), id);
 }
 
 export function getBridgeById(id) {
-  return BRIDGE_SYSTEMS.find((item) => item.id === id) ?? null;
+  return findSelectedOption(list("bridges"), id);
 }
 
 export function getTunerById(id) {
-  return TUNERS.find((item) => item.id === id) ?? null;
+  return findSelectedOption(list("tuners"), id);
 }
 
 export function getHardwareFinishById(id) {
-  return HARDWARE_FINISHES.find((item) => item.id === id) ?? null;
+  return findSelectedOption(list("hardwareFinishes"), id);
 }
 
 export function getControlLayoutById(id) {
-  return CONTROL_LAYOUTS.find((item) => item.id === id) ?? null;
+  return findSelectedOption(list("controlLayouts"), id);
 }
 
 export function getFinishTypeById(id) {
-  return FINISH_TYPES.find((item) => item.id === id) ?? null;
+  return findSelectedOption(list("finishTypes"), id);
 }
 
 export function getFinishColorById(id) {
-  return FINISH_COLORS.find((item) => item.id === id) ?? null;
+  return findSelectedOption(list("finishColors"), id);
 }
 
 export function getInlayById(id) {
-  return INLAYS.find((item) => item.id === id) ?? null;
+  return findSelectedOption(list("inlays"), id);
 }
 
 export function getEngravingById(id) {
-  return ENGRAVING_OPTIONS.find((item) => item.id === id) ?? null;
+  return findSelectedOption(list("engravings"), id);
 }
 
 export function getAvailablePickupConfigs(selections) {
-  return filterOptions(PICKUP_CONFIGS, selections);
+  return filterOptions(list("pickupConfigs"), selections);
 }
 
 export function getAvailablePickupTypes(selections) {
   if (!selections.pickupConfigId) return [];
-  return filterOptions(PICKUP_TYPES, selections);
+  return filterOptions(list("pickupTypes"), selections);
 }
 
 export function getAvailableBridges(selections) {
-  return filterOptions(BRIDGE_SYSTEMS, selections);
+  return filterOptions(list("bridges"), selections);
 }
 
 export function isTunersApplicable(selections) {
@@ -807,252 +852,40 @@ export function isTunersApplicable(selections) {
 }
 
 export function getAvailableTuners(selections) {
-  if (!isTunersApplicable(selections)) return [];
-  return filterOptions(TUNERS, selections);
+  return listedTuners(getWizardLists() || {}, selections);
 }
 
 export function getAvailableHardwareFinishes(selections) {
-  return filterOptions(HARDWARE_FINISHES, selections);
+  return filterOptions(list("hardwareFinishes"), selections);
 }
 
 export function getAvailableControlLayouts(selections) {
   if (!selections.pickupConfigId) return [];
-  return filterOptions(CONTROL_LAYOUTS, selections);
+  return filterOptions(list("controlLayouts"), selections);
 }
 
 export function getAvailableFinishTypes(selections) {
-  return filterOptions(FINISH_TYPES, selections);
+  return filterOptions(list("finishTypes"), selections);
 }
 
 export function getAvailableFinishColors(selections) {
   if (!selections.finishTypeId) return [];
-  return filterOptions(FINISH_COLORS, selections);
+  return filterOptions(list("finishColors"), selections);
 }
 
 export function getAvailableInlays(selections) {
-  if (!selections.fingerboardWoodId) return [];
-  return filterOptions(INLAYS, selections);
+  return filterOptions(list("inlays"), selections);
 }
 
 export function getAvailableEngravings(selections) {
-  return filterOptions(ENGRAVING_OPTIONS, selections);
+  return filterOptions(list("engravings"), selections);
 }
 
 export function pruneSelections(selections) {
-  const next = { ...selections };
-
-  if (
-    next.seriesId &&
-    !getAvailableSeries(next).some((item) => item.id === next.seriesId)
-  ) {
-    next.seriesId = null;
-    next.shapeId = null;
-    next.scaleId = null;
-    next.stringCount = null;
-    next.radiusId = null;
-    next.bodyWoodId = null;
-    next.topWoodId = null;
-    clearNeckSelections(next);
-  }
-
-  if (
-    next.shapeId &&
-    !getAvailableShapes(next).some((item) => item.id === next.shapeId)
-  ) {
-    next.shapeId = null;
-    next.scaleId = null;
-    next.stringCount = null;
-    next.radiusId = null;
-    next.bodyWoodId = null;
-    next.topWoodId = null;
-    clearNeckSelections(next);
-  }
-
-  if (
-    next.scaleId &&
-    !getAvailableScales(next).some((item) => item.id === next.scaleId)
-  ) {
-    next.scaleId = null;
-    next.stringCount = null;
-    next.radiusId = null;
-    next.bodyWoodId = null;
-    next.topWoodId = null;
-    clearNeckSelections(next);
-  }
-
-  if (
-    next.stringCount != null &&
-    !getAvailableStringCounts(next).some((item) => item.value === next.stringCount)
-  ) {
-    next.stringCount = null;
-    next.radiusId = null;
-    next.bodyWoodId = null;
-    next.topWoodId = null;
-    clearNeckSelections(next);
-  }
-
-  if (
-    next.radiusId &&
-    !getAvailableRadii(next).some((item) => item.id === next.radiusId)
-  ) {
-    next.radiusId = null;
-    next.bodyWoodId = null;
-    next.topWoodId = null;
-    clearNeckSelections(next);
-  }
-
-  if (
-    next.bodyWoodId &&
-    !getAvailableBodyWoods(next).some((item) => item.id === next.bodyWoodId)
-  ) {
-    next.bodyWoodId = null;
-    next.topWoodId = null;
-    clearNeckSelections(next);
-  }
-
-  if (!isTopApplicable(next)) {
-    next.topWoodId = null;
-  } else if (next.topWoodId === NONE_TOP.id) {
-    if (!getBodyWoodById(next.bodyWoodId)?.noneTopAllowed) {
-      next.topWoodId = null;
-    }
-  } else if (
-    next.topWoodId &&
-    !getAvailableTopWoods(next).some((item) => item.id === next.topWoodId)
-  ) {
-    next.topWoodId = null;
-  }
-
-  if (
-    next.neckWoodId &&
-    !getAvailableNeckWoods(next).some((item) => item.id === next.neckWoodId)
-  ) {
-    next.neckWoodId = null;
-    next.fingerboardWoodId = null;
-  }
-
-  if (
-    next.neckConstructionId &&
-    !getAvailableNeckConstructions(next).some(
-      (item) => item.id === next.neckConstructionId,
-    )
-  ) {
-    next.neckConstructionId = null;
-  }
-
-  if (
-    next.fingerboardWoodId &&
-    !getAvailableFingerboardWoods(next).some(
-      (item) => item.id === next.fingerboardWoodId,
-    )
-  ) {
-    next.fingerboardWoodId = null;
-  }
-
-  if (
-    next.neckProfileId &&
-    !getAvailableNeckProfiles(next).some((item) => item.id === next.neckProfileId)
-  ) {
-    next.neckProfileId = null;
-  }
-
-  if (
-    next.fretSpecId &&
-    !getAvailableFretSpecs(next).some((item) => item.id === next.fretSpecId)
-  ) {
-    next.fretSpecId = null;
-  }
-
-  if (
-    next.pickupConfigId &&
-    !getAvailablePickupConfigs(next).some((item) => item.id === next.pickupConfigId)
-  ) {
-    next.pickupConfigId = null;
-    next.pickupTypeId = null;
-    next.controlLayoutId = null;
-  }
-
-  if (
-    next.pickupTypeId &&
-    !getAvailablePickupTypes(next).some((item) => item.id === next.pickupTypeId)
-  ) {
-    next.pickupTypeId = null;
-  }
-
-  if (
-    next.bridgeId &&
-    !getAvailableBridges(next).some((item) => item.id === next.bridgeId)
-  ) {
-    next.bridgeId = null;
-    next.tunerId = null;
-  }
-
-  if (!isTunersApplicable(next)) {
-    next.tunerId = null;
-  } else if (
-    next.tunerId &&
-    !getAvailableTuners(next).some((item) => item.id === next.tunerId)
-  ) {
-    next.tunerId = null;
-  }
-
-  if (
-    next.hardwareFinishId &&
-    !getAvailableHardwareFinishes(next).some(
-      (item) => item.id === next.hardwareFinishId,
-    )
-  ) {
-    next.hardwareFinishId = null;
-  }
-
-  if (
-    next.controlLayoutId &&
-    !getAvailableControlLayouts(next).some(
-      (item) => item.id === next.controlLayoutId,
-    )
-  ) {
-    next.controlLayoutId = null;
-  }
-
-  if (
-    next.finishTypeId &&
-    !getAvailableFinishTypes(next).some((item) => item.id === next.finishTypeId)
-  ) {
-    next.finishTypeId = null;
-    next.finishColorId = null;
-  }
-
-  if (
-    next.finishColorId &&
-    !getAvailableFinishColors(next).some((item) => item.id === next.finishColorId)
-  ) {
-    next.finishColorId = null;
-  }
-
-  if (
-    next.inlayId &&
-    !getAvailableInlays(next).some((item) => item.id === next.inlayId)
-  ) {
-    next.inlayId = null;
-  }
-
-  if (
-    next.engravingId &&
-    !getAvailableEngravings(next).some((item) => item.id === next.engravingId)
-  ) {
-    next.engravingId = null;
-  }
-
-  next.customColorNote = clampNote(next.customColorNote, CUSTOM_COLOR_MAX);
-  next.specialRequests = clampNote(next.specialRequests, SPECIAL_REQUEST_MAX);
-  next.contactName = clampNote(next.contactName, CONTACT_NAME_MAX);
-  next.contactEmail = clampNote(next.contactEmail, 120);
-  next.contactCountry = clampNote(next.contactCountry, CONTACT_COUNTRY_MAX);
-  next.contactPhone = clampNote(next.contactPhone, CONTACT_PHONE_MAX);
-  next.contactMessage = clampNote(next.contactMessage, CONTACT_MESSAGE_MAX);
-  next.acknowledgement = Boolean(next.acknowledgement);
-
-  return next;
+  const lists = listsOrEmpty();
+  const pruned = pruneListedSelections(selections, lists);
+  const next = pruned && typeof pruned === "object" ? { ...pruned } : { ...(selections || {}) };
+  return clampSelectionNotes(next);
 }
 
 export function isStepOneComplete(selections) {
@@ -1102,6 +935,7 @@ export function isStepThreeComplete(selections) {
 
 export function isStepFourComplete(selections) {
   if (!isStepThreeComplete(selections)) return false;
+  if (isCustomerSuppliedParts(selections)) return true;
   return (
     requiredIfOptions(
       getAvailablePickupConfigs(selections),
@@ -1119,34 +953,6 @@ export function isStepFourComplete(selections) {
       selections.controlLayoutId,
     )
   );
-}
-
-export function validateContact(selections) {
-  const errors = {};
-  const name = selections.contactName?.trim() ?? "";
-  const email = selections.contactEmail?.trim() ?? "";
-  const country = selections.contactCountry?.trim() ?? "";
-  const phone = selections.contactPhone?.trim() ?? "";
-  const message = selections.contactMessage ?? "";
-
-  if (!name) errors.contactName = "required";
-  else if (name.length < 2) errors.contactName = "nameShort";
-
-  if (!email) errors.contactEmail = "required";
-  else if (!EMAIL_PATTERN.test(email)) errors.contactEmail = "emailInvalid";
-
-  if (!country) errors.contactCountry = "required";
-  else if (country.length < 2) errors.contactCountry = "countryShort";
-
-  if (phone && !PHONE_PATTERN.test(phone)) errors.contactPhone = "phoneInvalid";
-
-  if (message.length > CONTACT_MESSAGE_MAX) {
-    errors.contactMessage = "messageLong";
-  }
-
-  if (!selections.acknowledgement) errors.acknowledgement = "required";
-
-  return errors;
 }
 
 export function getFirstIncompleteStep(selections) {
@@ -1177,28 +983,28 @@ export function isStepFiveComplete(selections) {
 export function getBuilderCatalog() {
   return {
     steps: BUILDER_STEPS,
-    instrumentTypes: INSTRUMENT_TYPES,
-    series: SERIES,
-    shapes: SHAPES,
-    scales: SCALES,
-    stringCounts: STRING_COUNTS,
-    radii: RADII,
-    bodyWoods: BODY_WOODS,
-    topWoods: TOP_WOODS,
-    neckWoods: NECK_WOODS,
-    neckConstructions: NECK_CONSTRUCTIONS,
-    fingerboardWoods: FINGERBOARD_WOODS,
-    neckProfiles: NECK_PROFILES,
-    fretSpecs: FRET_SPECS,
-    pickupConfigs: PICKUP_CONFIGS,
-    pickupTypes: PICKUP_TYPES,
-    bridges: BRIDGE_SYSTEMS,
-    tuners: TUNERS,
-    hardwareFinishes: HARDWARE_FINISHES,
-    controlLayouts: CONTROL_LAYOUTS,
-    finishTypes: FINISH_TYPES,
-    finishColors: FINISH_COLORS,
-    inlays: INLAYS,
-    engravingOptions: ENGRAVING_OPTIONS,
+    instrumentTypes: list("instrumentTypes"),
+    series: list("series"),
+    shapes: list("shapes"),
+    scales: list("scales"),
+    stringCounts: list("stringCounts"),
+    radii: list("radii"),
+    bodyWoods: list("bodyWoods"),
+    topWoods: list("topWoods"),
+    neckWoods: list("neckWoods"),
+    neckConstructions: list("neckConstructions"),
+    fingerboardWoods: list("fingerboardWoods"),
+    neckProfiles: list("neckProfiles"),
+    fretSpecs: list("fretSpecs"),
+    pickupConfigs: list("pickupConfigs"),
+    pickupTypes: list("pickupTypes"),
+    bridges: list("bridges"),
+    tuners: list("tuners"),
+    hardwareFinishes: list("hardwareFinishes"),
+    controlLayouts: list("controlLayouts"),
+    finishTypes: list("finishTypes"),
+    finishColors: list("finishColors"),
+    inlays: list("inlays"),
+    engravingOptions: list("engravings"),
   };
 }

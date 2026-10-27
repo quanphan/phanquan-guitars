@@ -3,18 +3,20 @@ import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import {
   catalogParentLabel,
+  catalogTermDescription,
+  catalogTermName,
   filterTerms,
   indexCatalogTerms,
   isCatalogKind,
   moveId,
   PARENT_KIND_SOURCES,
   resolvesExternalParents,
+  usesParentField,
 } from "../../auth/catalog.js";
 import { errorText } from "../../auth/errorText.js";
 import ConfirmDialog from "../../components/admin/ConfirmDialog.jsx";
 import Button from "../../components/Button.jsx";
 import PageHeader from "../../components/PageHeader.jsx";
-import { mediaUrl } from "../../config/api.js";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue.js";
 import { useLanguage } from "../../i18n/LanguageContext.jsx";
 import {
@@ -90,9 +92,6 @@ export default function CatalogKindPage() {
     () => (resolvesExternalParents(kind) ? indexCatalogTerms(parentLookup) : byId),
     [byId, kind, parentLookup],
   );
-  const dateFormatter = new Intl.DateTimeFormat(language === "vi" ? "vi-VN" : "en-GB", {
-    dateStyle: "medium",
-  });
 
   async function move(id, direction) {
     if (!canWrite) return;
@@ -222,13 +221,13 @@ export default function CatalogKindPage() {
             <table className="min-w-full text-left text-sm">
               <thead className="bg-ink text-[11px] uppercase tracking-[0.16em] text-gold">
                 <tr>
-                  <th className="px-4 py-3 font-medium">{t("admin.catalog.columns.image")}</th>
                   <th className="px-4 py-3 font-medium">{t("admin.catalog.columns.name")}</th>
-                  <th className="px-4 py-3 font-medium">{t("admin.catalog.columns.slug")}</th>
-                  <th className="px-4 py-3 font-medium">{t("admin.catalog.columns.parent")}</th>
+                  <th className="px-4 py-3 font-medium">{t("admin.catalog.columns.description")}</th>
+                  {usesParentField(kind) ? (
+                    <th className="px-4 py-3 font-medium">{t("admin.catalog.columns.parent")}</th>
+                  ) : null}
                   <th className="px-4 py-3 font-medium">{t("admin.catalog.columns.status")}</th>
                   <th className="px-4 py-3 font-medium">{t("admin.catalog.columns.sort")}</th>
-                  <th className="px-4 py-3 font-medium">{t("admin.catalog.columns.updated")}</th>
                   <th className="px-4 py-3 font-medium">
                     <span className="sr-only">{t("admin.catalog.columns.actions")}</span>
                   </th>
@@ -237,35 +236,37 @@ export default function CatalogKindPage() {
               <tbody>
                 {visible.map((item) => (
                   <tr key={item.id} className="border-t border-white/8">
-                    <td className="px-4 py-3">
-                      {item.imagePath ? (
-                        <img src={mediaUrl(item.imagePath)} alt="" className="h-12 w-12 object-cover" />
-                      ) : (
-                        <span className="text-muted">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 align-top">
                       <Link to={`/admin/catalog/${kind}/${item.id}`} className="text-gold hover:text-gold-light">
-                        {item.name}
+                        {catalogTermName(item)}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-muted">{item.slug}</td>
-                    <td className="px-4 py-3 text-muted">
-                      {resolvesExternalParents(kind)
-                        ? catalogParentLabel(item, parentById, language) || "—"
-                        : byId.get(item.parentId)?.name || "—"}
+                    <td className="max-w-xs px-4 py-3 align-top text-muted">
+                      <span className="line-clamp-2">
+                        {catalogTermDescription(item, language) || "—"}
+                      </span>
                     </td>
-                    <td className="px-4 py-3">
+                    {usesParentField(kind) ? (
+                      <td className="px-4 py-3 align-top text-muted">
+                        {resolvesExternalParents(kind)
+                          ? catalogParentLabel(item, parentById, language) || "—"
+                          : catalogTermName(byId.get(item.parentId)) || "—"}
+                      </td>
+                    ) : null}
+                    <td className="px-4 py-3 align-top">
                       {item.isActive === false ? t("admin.catalog.inactive") : t("admin.catalog.active")}
                     </td>
-                    <td className="px-4 py-3">{item.sortOrder}</td>
-                    <td className="px-4 py-3 text-muted">
-                      {item.updatedAt ? dateFormatter.format(new Date(item.updatedAt)) : "—"}
-                    </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 align-top">{item.sortOrder}</td>
+                    <td className="px-4 py-3 align-top">
                       <div className="flex flex-wrap gap-3">
                         {canWrite ? (
                           <>
+                            <Link
+                              to={`/admin/catalog/${kind}/${item.id}`}
+                              className="text-[11px] uppercase tracking-[0.16em] text-gold"
+                            >
+                              {t("admin.catalog.edit")}
+                            </Link>
                             <button type="button" disabled={busyId === item.id} onClick={() => void move(item.id, -1)} className="text-[11px] uppercase tracking-[0.16em] text-gold disabled:opacity-40">
                               {t("admin.catalog.up")}
                             </button>

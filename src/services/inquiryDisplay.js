@@ -1,3 +1,13 @@
+import { sanitizeReferenceImages } from "../data/referenceImages.js";
+import {
+  humanizeOptionId,
+  optionLabel,
+  optionMatchesAlias,
+  translatedLabel,
+} from "../data/wizardCatalog.js";
+
+export { humanizeOptionId };
+
 const SCALE_DISPLAY = {
   "24.75": "24.75″",
   "25.5": "25.5″",
@@ -114,8 +124,15 @@ export function parseInquiryNotes(notes) {
       metadata[key] = value || null;
       continue;
     }
-    if (inWizard || key.endsWith("Id") || key === "stringCount" || key === "customColorNote" || key === "specialRequests") {
-      wizard[key] = value;
+    if (
+      inWizard ||
+      key.endsWith("Id") ||
+      key === "stringCount" ||
+      key === "customColorNote" ||
+      key === "specialRequests" ||
+      key === "customerSuppliedParts"
+    ) {
+      wizard[key] = key === "customerSuppliedParts" ? value === "true" || value === "1" : value;
       continue;
     }
     extra.push(line);
@@ -124,22 +141,8 @@ export function parseInquiryNotes(notes) {
   return { metadata, wizard, extra };
 }
 
-export function humanizeOptionId(value) {
-  const text = String(value ?? "").trim();
-  if (!text) return "";
-  const leaf = text.includes(".") ? text.slice(text.lastIndexOf(".") + 1) : text;
-  return leaf
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
 function named(t, key) {
-  if (!t) return null;
-  const value = t(key);
-  if (!value || value === key) return null;
-  return value;
+  return translatedLabel(t, key) || null;
 }
 
 function wizardFromCatalog(selections) {
@@ -154,93 +157,90 @@ function wizardFromCatalog(selections) {
   return wizard;
 }
 
-function catalogName(catalog, optionId) {
-  if (!catalog || !optionId) return null;
+const CHOICE_I18N = {
+  instrumentTypeId: (id) => `customBuild.types.${id}`,
+  seriesId: (id) => `customBuild.series.${id}.name`,
+  shapeId: (id) => `customBuild.shapes.${id}.name`,
+  bodyWoodId: (id) => `customBuild.woods.${id}.name`,
+  topWoodId: (id) => `customBuild.woods.${id}.name`,
+  neckWoodId: (id) => `customBuild.neckWoods.${id}.name`,
+  neckConstructionId: (id) => `customBuild.constructions.${id}.name`,
+  fingerboardWoodId: (id) => `customBuild.fingerboards.${id}.name`,
+  neckProfileId: (id) => `customBuild.profiles.${id}.name`,
+  fretSpecId: (id) => `customBuild.frets.${id}.name`,
+  pickupConfigId: (id) => `customBuild.pickupConfigs.${id}.name`,
+  pickupTypeId: (id) => `customBuild.pickupTypes.${id}.name`,
+  bridgeId: (id) => `customBuild.bridges.${id}.name`,
+  tunerId: (id) => `customBuild.tuners.${id}.name`,
+  hardwareFinishId: (id) => `customBuild.hardwareFinishes.${id}.name`,
+  controlLayoutId: (id) => `customBuild.controls.${id}.name`,
+  finishTypeId: (id) => `customBuild.finishTypes.${id}.name`,
+  finishColorId: (id) => `customBuild.finishColors.${id}.name`,
+  inlayId: (id) => `customBuild.inlays.${id}.name`,
+  engravingId: (id) => `customBuild.engravings.${id}.name`,
+};
+
+function findCatalogOption(catalog, optionId) {
+  if (!catalog || optionId == null || optionId === "") return null;
   for (const category of catalog.categories || []) {
-    const option = (category.options || []).find((item) => item.id === optionId);
-    if (option?.name) return option.name;
+    const option = (category.options || []).find((item) => optionMatchesAlias(item, category.id, optionId));
+    if (option) return option;
   }
   return null;
 }
 
-function listCatalogNames(catalog, value) {
+function catalogName(catalog, optionId, t, language) {
+  const option = findCatalogOption(catalog, optionId);
+  if (!option) return null;
+  return optionLabel(option, language, t) || null;
+}
+
+function listCatalogNames(catalog, value, t, language) {
   const ids = Array.isArray(value) ? value : value ? [value] : [];
   const names = ids
-    .map((id) => catalogName(catalog, id) || humanizeOptionId(id))
+    .map((id) => catalogName(catalog, id, t, language) || humanizeOptionId(id))
     .filter(Boolean);
   return names.length ? names.join(", ") : null;
 }
 
-export function resolveChoiceLabel(t, field, raw, { catalog, selections } = {}) {
+export function resolveChoiceLabel(t, field, raw, { catalog, selections, language } = {}) {
   if (raw == null || String(raw).trim() === "") return null;
   const id = String(raw).trim();
 
-  switch (field) {
-    case "instrumentTypeId":
-      return named(t, `customBuild.types.${id}`) || humanizeOptionId(id);
-    case "seriesId":
-      return named(t, `customBuild.series.${id}.name`) || humanizeOptionId(id);
-    case "shapeId":
-      return named(t, `customBuild.shapes.${id}.name`) || humanizeOptionId(id);
-    case "scaleId": {
-      if (id === "25-25.5-multi") {
-        const hint = named(t, "customBuild.step1.multiscaleHint");
-        if (hint) {
-          return `${hint.replace("{bass}", "25″").replace("{treble}", "25.5″")} (${SCALE_DISPLAY[id]})`;
-        }
+  if (field === "customColorNote" || field === "specialRequests") return id;
+
+  if (field === "scaleId") {
+    if (id === "25-25.5-multi") {
+      const hint = named(t, "customBuild.step1.multiscaleHint");
+      if (hint) {
+        return `${hint.replace("{bass}", "25″").replace("{treble}", "25.5″")} (${SCALE_DISPLAY[id]})`;
       }
-      return SCALE_DISPLAY[id] || humanizeOptionId(id);
     }
-    case "stringCount": {
-      const count = Number(id);
-      if (!Number.isFinite(count)) return humanizeOptionId(id);
-      return (
-        named(t, "customBuild.strings.count")?.replace("{count}", String(count)) ||
-        `${count}`
-      );
-    }
-    case "radiusId":
-      return RADIUS_DISPLAY[id] || humanizeOptionId(id);
-    case "bodyWoodId":
-    case "topWoodId":
-      if (id === "none") return named(t, "customBuild.woods.none.name") || named(t, "customBuild.step2.topNotApplicable") || humanizeOptionId(id);
-      return named(t, `customBuild.woods.${id}.name`) || humanizeOptionId(id);
-    case "neckWoodId":
-      return named(t, `customBuild.neckWoods.${id}.name`) || humanizeOptionId(id);
-    case "neckConstructionId":
-      return named(t, `customBuild.constructions.${id}.name`) || humanizeOptionId(id);
-    case "fingerboardWoodId":
-      return named(t, `customBuild.fingerboards.${id}.name`) || humanizeOptionId(id);
-    case "neckProfileId":
-      return named(t, `customBuild.profiles.${id}.name`) || humanizeOptionId(id);
-    case "fretSpecId":
-      return named(t, `customBuild.frets.${id}.name`) || humanizeOptionId(id);
-    case "pickupConfigId":
-      return named(t, `customBuild.pickupConfigs.${id}.name`) || humanizeOptionId(id);
-    case "pickupTypeId":
-      return named(t, `customBuild.pickupTypes.${id}.name`) || humanizeOptionId(id);
-    case "bridgeId":
-      return named(t, `customBuild.bridges.${id}.name`) || humanizeOptionId(id);
-    case "tunerId":
-      return named(t, `customBuild.tuners.${id}.name`) || humanizeOptionId(id);
-    case "hardwareFinishId":
-      return named(t, `customBuild.hardwareFinishes.${id}.name`) || humanizeOptionId(id);
-    case "controlLayoutId":
-      return named(t, `customBuild.controls.${id}.name`) || humanizeOptionId(id);
-    case "finishTypeId":
-      return named(t, `customBuild.finishTypes.${id}.name`) || humanizeOptionId(id);
-    case "finishColorId":
-      return named(t, `customBuild.finishColors.${id}.name`) || humanizeOptionId(id);
-    case "inlayId":
-      return named(t, `customBuild.inlays.${id}.name`) || humanizeOptionId(id);
-    case "engravingId":
-      return named(t, `customBuild.engravings.${id}.name`) || humanizeOptionId(id);
-    case "customColorNote":
-    case "specialRequests":
-      return id;
-    default:
-      return catalogName(catalog, id) || listCatalogNames(catalog, selections?.[field]) || humanizeOptionId(id);
+    return SCALE_DISPLAY[id] || catalogName(catalog, id, t, language) || humanizeOptionId(id);
   }
+
+  if (field === "stringCount") {
+    const count = Number(id);
+    if (!Number.isFinite(count)) return humanizeOptionId(id);
+    return named(t, "customBuild.strings.count")?.replace("{count}", String(count)) || `${count}`;
+  }
+
+  if (field === "radiusId") {
+    return RADIUS_DISPLAY[id] || catalogName(catalog, id, t, language) || humanizeOptionId(id);
+  }
+
+  const i18nKey = CHOICE_I18N[field]?.(id);
+  const option = findCatalogOption(catalog, id);
+  if (option) {
+    const fromOption = optionLabel(option, language, t, i18nKey);
+    if (fromOption) return fromOption;
+  }
+
+  if ((field === "bodyWoodId" || field === "topWoodId") && id === "none") {
+    return named(t, "customBuild.woods.none.name") || named(t, "customBuild.step2.topNotApplicable") || humanizeOptionId(id);
+  }
+
+  return named(t, i18nKey) || listCatalogNames(catalog, selections?.[field], t, language) || humanizeOptionId(id);
 }
 
 function row(t, labelKey, value) {
@@ -257,72 +257,82 @@ function orHumanize(primary, fallbackId) {
   return humanizeOptionId(fallbackId);
 }
 
-export function buildInquiryDisplay(inquiry, t, { catalog } = {}) {
+export function buildInquiryDisplay(inquiry, t, { catalog, language } = {}) {
   const selections = inquiry?.configuration?.selections ?? {};
   const parsed = parseInquiryNotes(inquiry?.configuration?.notes);
   const wizard = {
     ...wizardFromCatalog(selections),
     ...parsed.wizard,
   };
+  const choiceOpts = { catalog, language };
 
-  const pickupList = listCatalogNames(catalog, selections.pickups);
+  const pickupList = listCatalogNames(catalog, selections.pickups, t, language);
+  const customerSuppliedParts = Boolean(wizard.customerSuppliedParts);
 
   const groups = [
     {
       id: "instrument",
       titleKey: "admin.detail.groups.instrument",
       rows: [
-        row(t, "customBuild.summary.instrument", resolveChoiceLabel(t, "instrumentTypeId", wizard.instrumentTypeId, { catalog })),
-        row(t, "customBuild.summary.series", resolveChoiceLabel(t, "seriesId", wizard.seriesId, { catalog })),
-        row(t, "customBuild.summary.shape", resolveChoiceLabel(t, "shapeId", wizard.shapeId, { catalog })),
-        row(t, "customBuild.summary.scale", resolveChoiceLabel(t, "scaleId", wizard.scaleId, { catalog })),
-        row(t, "customBuild.summary.strings", resolveChoiceLabel(t, "stringCount", wizard.stringCount, { catalog })),
-        row(t, "customBuild.summary.radius", resolveChoiceLabel(t, "radiusId", wizard.radiusId, { catalog })),
+        row(t, "customBuild.summary.instrument", resolveChoiceLabel(t, "instrumentTypeId", wizard.instrumentTypeId, choiceOpts)),
+        row(t, "customBuild.summary.series", resolveChoiceLabel(t, "seriesId", wizard.seriesId, choiceOpts)),
+        row(t, "customBuild.summary.shape", resolveChoiceLabel(t, "shapeId", wizard.shapeId, choiceOpts)),
+        row(t, "customBuild.summary.scale", resolveChoiceLabel(t, "scaleId", wizard.scaleId, choiceOpts)),
+        row(t, "customBuild.summary.strings", resolveChoiceLabel(t, "stringCount", wizard.stringCount, choiceOpts)),
+        row(t, "customBuild.summary.radius", resolveChoiceLabel(t, "radiusId", wizard.radiusId, choiceOpts)),
       ],
     },
     {
       id: "body",
       titleKey: "admin.detail.groups.body",
       rows: [
-        row(t, "customBuild.summary.bodyWood", resolveChoiceLabel(t, "bodyWoodId", wizard.bodyWoodId, { catalog })),
-        row(t, "customBuild.summary.topWood", resolveChoiceLabel(t, "topWoodId", wizard.topWoodId, { catalog })),
+        row(t, "customBuild.summary.bodyWood", resolveChoiceLabel(t, "bodyWoodId", wizard.bodyWoodId, choiceOpts)),
+        row(t, "customBuild.summary.topWood", resolveChoiceLabel(t, "topWoodId", wizard.topWoodId, choiceOpts)),
       ],
     },
     {
       id: "neck",
       titleKey: "admin.detail.groups.neck",
       rows: [
-        row(t, "customBuild.summary.neckWood", resolveChoiceLabel(t, "neckWoodId", wizard.neckWoodId, { catalog })),
-        row(t, "customBuild.summary.neckConstruction", resolveChoiceLabel(t, "neckConstructionId", wizard.neckConstructionId, { catalog })),
-        row(t, "customBuild.summary.fingerboard", resolveChoiceLabel(t, "fingerboardWoodId", wizard.fingerboardWoodId, { catalog })),
-        row(t, "customBuild.summary.neckProfile", resolveChoiceLabel(t, "neckProfileId", wizard.neckProfileId, { catalog })),
-        row(t, "customBuild.summary.frets", resolveChoiceLabel(t, "fretSpecId", wizard.fretSpecId, { catalog })),
+        row(t, "customBuild.summary.neckWood", resolveChoiceLabel(t, "neckWoodId", wizard.neckWoodId, choiceOpts)),
+        row(t, "customBuild.summary.neckConstruction", resolveChoiceLabel(t, "neckConstructionId", wizard.neckConstructionId, choiceOpts)),
+        row(t, "customBuild.summary.fingerboard", resolveChoiceLabel(t, "fingerboardWoodId", wizard.fingerboardWoodId, choiceOpts)),
+        row(t, "customBuild.summary.neckProfile", resolveChoiceLabel(t, "neckProfileId", wizard.neckProfileId, choiceOpts)),
+        row(t, "customBuild.summary.frets", resolveChoiceLabel(t, "fretSpecId", wizard.fretSpecId, choiceOpts)),
       ],
     },
     {
       id: "electronics",
       titleKey: "admin.detail.groups.electronics",
-      rows: [
-        row(t, "customBuild.summary.pickupConfig", resolveChoiceLabel(t, "pickupConfigId", wizard.pickupConfigId, { catalog })),
-        row(
-          t,
-          "customBuild.summary.pickupType",
-          resolveChoiceLabel(t, "pickupTypeId", wizard.pickupTypeId, { catalog }) || pickupList,
-        ),
-        row(
-          t,
-          "customBuild.summary.bridge",
-          resolveChoiceLabel(t, "bridgeId", wizard.bridgeId, { catalog }) ||
-            orHumanize(null, selections.bridge),
-        ),
-        row(t, "customBuild.summary.hardwareFinish", resolveChoiceLabel(t, "hardwareFinishId", wizard.hardwareFinishId, { catalog })),
-        row(
-          t,
-          "customBuild.summary.controls",
-          resolveChoiceLabel(t, "controlLayoutId", wizard.controlLayoutId, { catalog }) ||
-            orHumanize(null, selections.electronics),
-        ),
-      ],
+      rows: customerSuppliedParts
+        ? [
+            row(
+              t,
+              "customBuild.summary.customerSuppliedParts",
+              named(t, "customBuild.step4.customerSuppliedSummary"),
+            ),
+          ]
+        : [
+            row(t, "customBuild.summary.pickupConfig", resolveChoiceLabel(t, "pickupConfigId", wizard.pickupConfigId, choiceOpts)),
+            row(
+              t,
+              "customBuild.summary.pickupType",
+              resolveChoiceLabel(t, "pickupTypeId", wizard.pickupTypeId, choiceOpts) || pickupList,
+            ),
+            row(
+              t,
+              "customBuild.summary.bridge",
+              resolveChoiceLabel(t, "bridgeId", wizard.bridgeId, choiceOpts) ||
+                orHumanize(null, selections.bridge),
+            ),
+            row(t, "customBuild.summary.hardwareFinish", resolveChoiceLabel(t, "hardwareFinishId", wizard.hardwareFinishId, choiceOpts)),
+            row(
+              t,
+              "customBuild.summary.controls",
+              resolveChoiceLabel(t, "controlLayoutId", wizard.controlLayoutId, choiceOpts) ||
+                orHumanize(null, selections.electronics),
+            ),
+          ],
     },
     {
       id: "finish",
@@ -331,19 +341,19 @@ export function buildInquiryDisplay(inquiry, t, { catalog } = {}) {
         row(
           t,
           "customBuild.summary.finishType",
-          resolveChoiceLabel(t, "finishTypeId", wizard.finishTypeId, { catalog }) ||
+          resolveChoiceLabel(t, "finishTypeId", wizard.finishTypeId, choiceOpts) ||
             orHumanize(null, selections["finish-type"]),
         ),
         row(
           t,
           "customBuild.summary.finishColor",
-          resolveChoiceLabel(t, "finishColorId", wizard.finishColorId, { catalog }) ||
+          resolveChoiceLabel(t, "finishColorId", wizard.finishColorId, choiceOpts) ||
             orHumanize(null, selections["finish-color"]),
         ),
         row(
           t,
           "customBuild.summary.inlay",
-          resolveChoiceLabel(t, "inlayId", wizard.inlayId, { catalog }) ||
+          resolveChoiceLabel(t, "inlayId", wizard.inlayId, choiceOpts) ||
             orHumanize(null, Array.isArray(selections["custom-details"])
               ? selections["custom-details"].filter((id) => String(id).includes("inlay"))
               : null),
@@ -351,7 +361,7 @@ export function buildInquiryDisplay(inquiry, t, { catalog } = {}) {
         row(
           t,
           "customBuild.summary.engraving",
-          resolveChoiceLabel(t, "engravingId", wizard.engravingId, { catalog }) ||
+          resolveChoiceLabel(t, "engravingId", wizard.engravingId, choiceOpts) ||
             orHumanize(
               null,
               Array.isArray(selections["custom-details"])
@@ -363,13 +373,13 @@ export function buildInquiryDisplay(inquiry, t, { catalog } = {}) {
     },
   ];
 
-  if (wizard.tunerId) {
+  if (wizard.tunerId && !customerSuppliedParts) {
     groups
       .find((group) => group.id === "electronics")
       ?.rows.splice(
         3,
         0,
-        row(t, "customBuild.summary.tuners", resolveChoiceLabel(t, "tunerId", wizard.tunerId, { catalog })),
+        row(t, "customBuild.summary.tuners", resolveChoiceLabel(t, "tunerId", wizard.tunerId, choiceOpts)),
       );
   }
   if (wizard.customColorNote) {
@@ -409,6 +419,7 @@ export function buildInquiryDisplay(inquiry, t, { catalog } = {}) {
     },
     groups,
     hasConfiguration: groups.some((group) => group.rows.some((item) => item.value)),
+    referenceImages: sanitizeReferenceImages(inquiry?.referenceImages),
   };
 }
 

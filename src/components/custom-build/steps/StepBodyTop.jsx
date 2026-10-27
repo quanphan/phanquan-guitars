@@ -1,10 +1,12 @@
+import { mediaUrl } from "../../../config/api.js";
+import { choiceImageSrc, optionDescription, optionLabel } from "../../../data/wizardCatalog.js";
 import { useLanguage } from "../../../i18n/LanguageContext.jsx";
 import ChoiceButton from "../ChoiceButton.jsx";
 
-function WoodCard({ wood, selected, onSelect, t }) {
-  const name = t(`customBuild.woods.${wood.id}.name`);
-  const description = t(`customBuild.woods.${wood.id}.description`);
-  const hasDescription = description && !description.endsWith(`.${wood.id}.description`);
+function WoodCard({ wood, selected, onSelect, t, language }) {
+  const name = optionLabel(wood, language, t, `customBuild.woods.${wood.id}.name`);
+  const description = optionDescription(wood, language, t, `customBuild.woods.${wood.id}.description`);
+  const hasDescription = Boolean(description);
 
   return (
     <ChoiceButton
@@ -15,7 +17,7 @@ function WoodCard({ wood, selected, onSelect, t }) {
     >
       {wood.image ? (
         <img
-          src={wood.image}
+          src={choiceImageSrc(wood.image, mediaUrl)}
           alt=""
           className="aspect-[4/3] w-full object-cover"
         />
@@ -47,7 +49,7 @@ export default function StepBodyTop({
   selectBodyWood,
   selectTopWood,
 }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   return (
     <div>
@@ -61,16 +63,12 @@ export default function StepBodyTop({
         {t("customBuild.provisional")}
       </p>
 
+      {availableBodyWoods.length > 0 ? (
       <section className="mt-10">
         <h3 className="text-[11px] uppercase tracking-[0.22em] text-gold">
           {t("customBuild.step2.bodyLabel")}
         </h3>
         <div className="mt-4">
-          {availableBodyWoods.length === 0 ? (
-            <p className="text-sm leading-relaxed text-muted">
-              {t("customBuild.step2.bodyContact")}
-            </p>
-          ) : (
             <div
               role="radiogroup"
               aria-label={t("customBuild.step2.bodyLabel")}
@@ -83,28 +81,20 @@ export default function StepBodyTop({
                   selected={selections.bodyWoodId === wood.id}
                   onSelect={() => selectBodyWood(wood.id)}
                   t={t}
+                  language={language}
                 />
               ))}
             </div>
-          )}
         </div>
       </section>
+      ) : null}
 
-      {selections.bodyWoodId ? (
+      {topApplicable && availableTopWoods.length > 0 ? (
         <section className="mt-10">
           <h3 className="text-[11px] uppercase tracking-[0.22em] text-gold">
             {t("customBuild.step2.topLabel")}
           </h3>
           <div className="mt-4">
-            {!topApplicable ? (
-              <p className="text-sm leading-relaxed text-muted">
-                {t("customBuild.step2.topNotApplicable")}
-              </p>
-            ) : availableTopWoods.length === 0 ? (
-              <p className="text-sm leading-relaxed text-muted">
-                {t("customBuild.step2.topContact")}
-              </p>
-            ) : (
               <div
                 role="radiogroup"
                 aria-label={t("customBuild.step2.topLabel")}
@@ -117,10 +107,10 @@ export default function StepBodyTop({
                     selected={selections.topWoodId === wood.id}
                     onSelect={() => selectTopWood(wood.id)}
                     t={t}
+                    language={language}
                   />
                 ))}
               </div>
-            )}
           </div>
         </section>
       ) : null}

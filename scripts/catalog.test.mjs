@@ -5,6 +5,9 @@ import {
   buildProductPayload,
   buildTermPayload,
   catalogParentLabel,
+  catalogTermDescription,
+  catalogTermName,
+  catalogTermShortDescription,
   descendantIds,
   filterTerms,
   indexCatalogTerms,
@@ -13,6 +16,7 @@ import {
   readCatalogId,
   resolvesExternalParents,
   slugifyName,
+  usesParentField,
 } from "../src/auth/catalog.js";
 import { tFor } from "../src/i18n/translations.js";
 import { ADMIN_ASSIGNABLE, PERMISSIONS } from "../src/auth/permissions.js";
@@ -40,7 +44,7 @@ test("instrument type parent labels resolve category ids and populated objects",
   const byId = indexCatalogTerms([...categories, ...types]);
   assert.equal(readCatalogId({ $oid: "cat1" }), "cat1");
   assert.equal(catalogParentLabel(types[0], byId, "en"), "Guitars");
-  assert.equal(catalogParentLabel(types[0], byId, "vi"), "Guitar");
+  assert.equal(catalogParentLabel(types[0], byId, "vi"), "Guitars");
   assert.equal(catalogParentLabel(types[1], byId, "en"), "Guitars");
   assert.equal(catalogParentLabel(types[2], byId, "en"), "Guitars");
   assert.equal(catalogParentLabel(types[3], byId, "en"), "");
@@ -58,7 +62,7 @@ test("parent choices exclude self and descendants", () => {
   assert.deepEqual(parentChoices(items, "d").map((item) => item.id), ["a", "b", "c"]);
 });
 
-test("term payload omits empty translations and requires name/slug", () => {
+test("term payload writes a shared name into both locales and keeps separate descriptions", () => {
   assert.equal(buildTermPayload({ name: "", slug: "" }).ok, false);
   const next = buildTermPayload({
     name: "Offset",
@@ -67,12 +71,104 @@ test("term payload omits empty translations and requires name/slug", () => {
     sortOrder: 2,
     parentId: "",
     imagePath: "/uploads/categories/a.png",
-    viName: "Dáng offset",
+    viDescription: "Dáng offset",
+    enDescription: "Offset silhouette",
   });
   assert.equal(next.ok, true);
   assert.equal(next.body.parentId, null);
-  assert.equal(next.body.translations.vi.name, "Dáng offset");
-  assert.equal(next.body.translations.en, undefined);
+  assert.equal(next.body.description, undefined);
+  assert.equal(next.body.translations.vi.name, "Offset");
+  assert.equal(next.body.translations.en.name, "Offset");
+  assert.equal(next.body.translations.vi.description, "Dáng offset");
+  assert.equal(next.body.translations.en.description, "Offset silhouette");
+  const untitled = buildTermPayload({ name: "Strat", sortOrder: 0 });
+  assert.equal(untitled.ok, true);
+  assert.equal(untitled.body.slug, "strat");
+  assert.equal(untitled.body.translations.vi.description, null);
+  assert.equal(untitled.body.minPrice, undefined);
+  assert.equal(usesParentField("categories"), false);
+  assert.equal(usesParentField("series"), true);
+});
+
+test("series payload stores bilingual short descriptions and rejects inverted prices", () => {
+  const next = buildTermPayload(
+    {
+      name: "Player",
+      slug: "player",
+      sortOrder: 0,
+      viShortDescription: "Dong dan thuc dung.",
+      enShortDescription: "A practical playing instrument.",
+      viDescription: "Mo ta VI",
+      enDescription: "Full EN",
+      minPrice: "800",
+      maxPrice: "1500",
+      currency: "usd",
+    },
+    { kind: "series" },
+  );
+  assert.equal(next.ok, true);
+  assert.equal(next.body.shortDescription, undefined);
+  assert.equal(next.body.translations.vi.shortDescription, "Dong dan thuc dung.");
+  assert.equal(next.body.translations.en.shortDescription, "A practical playing instrument.");
+  assert.equal(next.body.translations.vi.description, "Mo ta VI");
+  assert.equal(next.body.translations.en.description, "Full EN");
+  assert.equal(next.body.minPrice, 800);
+  assert.equal(next.body.maxPrice, 1500);
+  assert.equal(next.body.currency, "USD");
+  const inverted = buildTermPayload(
+    { name: "Player", slug: "player", sortOrder: 0, minPrice: "2000", maxPrice: "1000" },
+    { kind: "series" },
+  );
+  assert.equal(inverted.ok, false);
+  assert.equal(inverted.errors.minPrice, "invalidRange");
+});
+
+test("catalog names prefer the shared name and descriptions follow the selected language", () => {
+  const item = {
+    name: "Offset",
+    description: "Fallback",
+    translations: {
+      vi: { name: "Dáng offset", description: "Thân lệch trục" },
+      en: { name: "Offset body", description: "Offset silhouette" },
+    },
+  };
+  assert.equal(catalogTermName(item, "vi"), "Offset");
+  assert.equal(catalogTermName(item, "en"), "Offset");
+  assert.equal(catalogTermDescription(item, "vi"), "Thân lệch trục");
+  assert.equal(catalogTermDescription(item, "en"), "Offset silhouette");
+  assert.equal(
+    catalogTermShortDescription(
+      {
+        shortDescription: "Compact intro",
+        translations: {
+          vi: { shortDescription: "Gioi thieu ngan" },
+          en: { shortDescription: "Short intro" },
+        },
+      },
+      "vi",
+    ),
+    "Gioi thieu ngan",
+  );
+  assert.equal(
+    catalogTermShortDescription(
+      {
+        shortDescription: "Compact intro",
+        translations: {
+          vi: { shortDescription: "Gioi thieu ngan" },
+          en: { shortDescription: "Short intro" },
+        },
+      },
+      "en",
+    ),
+    "Short intro",
+  );
+  assert.equal(
+    catalogTermShortDescription(
+      { shortDescription: "Legacy shared intro", translations: { vi: {}, en: {} } },
+      "vi",
+    ),
+    "Legacy shared intro",
+  );
 });
 
 test("product list query uses backend search and status names", () => {
@@ -129,5 +225,7 @@ test("frontend permissions include catalog and uploads from the backend contract
   assert.equal(PERMISSIONS.includes("catalog.read"), true);
   assert.equal(ADMIN_ASSIGNABLE.includes("uploads.write"), true);
   assert.equal(tFor("en", "admin.tabs.catalog"), "Catalog");
+  assert.equal(tFor("en", "admin.catalog.sections.settings"), "Catalog settings");
+  assert.equal(tFor("en", "admin.catalog.fields.viDescription"), "Description (Vietnamese)");
   assert.equal(tFor("vi", "admin.catalog.errors.IN_USE"), "Mục này vẫn được sản phẩm hoặc mục con dùng, nên chưa xóa.");
 });

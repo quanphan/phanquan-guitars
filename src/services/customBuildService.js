@@ -1,5 +1,5 @@
 import { isCustomBuildApiConfigured } from "../config/api.js";
-import { requestJson } from "./apiClient.js";
+import { requestForm, requestJson } from "./apiClient.js";
 import {
   buildInquiryPayload,
   mapServerFieldToContact,
@@ -14,6 +14,38 @@ export const INQUIRY_CODES = {
 
 export function isCustomBuildInquiryConfigured() {
   return isCustomBuildApiConfigured();
+}
+
+export async function uploadCustomBuildReferenceImage(file) {
+  if (!(file instanceof File)) {
+    return { ok: false, code: "BAD_REQUEST", path: null };
+  }
+  const formData = new FormData();
+  formData.append("file", file);
+  const result = await requestForm("/api/custom-build/uploads", { method: "POST", formData });
+  const path = result.payload?.data?.path || result.payload?.data?.url;
+  if (!result.ok || result.payload?.success !== true || typeof path !== "string") {
+    return {
+      ok: false,
+      code: result.payload?.error?.code || (result.network ? INQUIRY_CODES.NETWORK : "REJECTED"),
+      path: null,
+    };
+  }
+  return { ok: true, code: null, path };
+}
+
+export async function deleteCustomBuildReferenceImage(path) {
+  if (typeof path !== "string" || !path.trim()) {
+    return { ok: false, code: "BAD_REQUEST" };
+  }
+  const result = await requestJson(
+    `/api/custom-build/uploads?path=${encodeURIComponent(path.trim())}`,
+    { method: "DELETE" },
+  );
+  if (!result.ok || result.payload?.success !== true) {
+    return { ok: false, code: result.payload?.error?.code || "REJECTED" };
+  }
+  return { ok: true, code: null };
 }
 
 function detailsFrom(payload) {
@@ -153,7 +185,13 @@ export async function submitCustomBuildInquiry({
     for (const issue of details) {
       const field = mapServerFieldToContact(issue.field);
       if (field && !contactErrors[field]) {
-        contactErrors[field] = issue.code === "REQUIRED" ? "required" : "invalid";
+        if (issue.code === "REQUIRED") {
+          contactErrors[field] = field === "contactPhone" ? "phoneRequired" : "required";
+        } else if (field === "contactPhone") {
+          contactErrors[field] = "phoneInvalid";
+        } else {
+          contactErrors[field] = "invalid";
+        }
       }
     }
     return {

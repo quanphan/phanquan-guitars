@@ -16,9 +16,7 @@ export default function SelectionSummary({ rows, onReset, resetDisabled, t }) {
             <dt className="text-[11px] uppercase tracking-[0.16em] text-muted">
               {row.label}
             </dt>
-            <dd className="mt-1.5 text-sm text-ivory">
-              {row.value ?? t("customBuild.summary.empty")}
-            </dd>
+            <dd className="mt-1.5 text-sm text-ivory">{row.value}</dd>
           </div>
         ))}
       </dl>

@@ -14,23 +14,22 @@ function Section({ title, children }) {
 
 export default function StepElectronicsHardware({
   selections,
-  pickupConfig,
   availablePickupConfigs,
   availablePickupTypes,
   availableBridges,
   availableTuners,
   availableHardwareFinishes,
   availableControlLayouts,
-  tunersApplicable,
   selectPickupConfig,
   selectPickupType,
   selectBridge,
   selectTuner,
   selectHardwareFinish,
   selectControlLayout,
+  setCustomerSuppliedParts,
 }) {
   const { t } = useLanguage();
-  const contact = t("customBuild.step4.contact");
+  const customerSupplied = Boolean(selections.customerSuppliedParts);
 
   return (
     <div>
@@ -44,6 +43,26 @@ export default function StepElectronicsHardware({
         {t("customBuild.provisional")}
       </p>
 
+      <label className="mt-10 flex cursor-pointer items-start gap-3 border border-white/10 bg-panel/60 px-4 py-4">
+        <input
+          type="checkbox"
+          checked={customerSupplied}
+          onChange={(event) => setCustomerSuppliedParts(event.target.checked)}
+          className="mt-1 size-4 shrink-0 accent-gold"
+        />
+        <span>
+          <span className="block text-[11px] uppercase tracking-[0.16em] text-ivory">
+            {t("customBuild.step4.customerSuppliedLabel")}
+          </span>
+          <span className="mt-2 block text-sm leading-relaxed text-muted">
+            {t("customBuild.step4.customerSuppliedHint")}
+          </span>
+        </span>
+      </label>
+
+      {customerSupplied ? null : (
+        <>
+      {availablePickupConfigs.length > 0 ? (
       <Section title={t("customBuild.step4.configLabel")}>
         <OptionChips
           label={t("customBuild.step4.configLabel")}
@@ -51,12 +70,12 @@ export default function StepElectronicsHardware({
           selectedId={selections.pickupConfigId}
           onSelect={selectPickupConfig}
           nameKey="customBuild.pickupConfigs"
-          emptyMessage={contact}
           t={t}
         />
       </Section>
+      ) : null}
 
-      {selections.pickupConfigId ? (
+      {availablePickupTypes.length > 0 ? (
         <Section title={t("customBuild.step4.typeLabel")}>
           <OptionChips
             label={t("customBuild.step4.typeLabel")}
@@ -64,28 +83,12 @@ export default function StepElectronicsHardware({
             selectedId={selections.pickupTypeId}
             onSelect={selectPickupType}
             nameKey="customBuild.pickupTypes"
-            emptyMessage={contact}
             t={t}
           />
         </Section>
       ) : null}
 
-      <Section title={t("customBuild.step4.brandLabel")}>
-        <p className="text-sm leading-relaxed text-muted">
-          {t("customBuild.step4.brandUnknown")}
-        </p>
-      </Section>
-
-      {pickupConfig?.positions?.length ? (
-        <Section title={t("customBuild.step4.positionsLabel")}>
-          <p className="border border-white/10 bg-panel/60 px-4 py-3 text-sm text-ivory">
-            {pickupConfig.positions
-              .map((position) => t(`customBuild.step4.positions.${position}`))
-              .join(" · ")}
-          </p>
-        </Section>
-      ) : null}
-
+      {availableBridges.length > 0 ? (
       <Section title={t("customBuild.step4.bridgeLabel")}>
         <OptionChips
           label={t("customBuild.step4.bridgeLabel")}
@@ -93,29 +96,25 @@ export default function StepElectronicsHardware({
           selectedId={selections.bridgeId}
           onSelect={selectBridge}
           nameKey="customBuild.bridges"
-          emptyMessage={contact}
           t={t}
         />
       </Section>
+      ) : null}
 
-      <Section title={t("customBuild.step4.tunerLabel")}>
-        {!tunersApplicable ? (
-          <p className="text-sm leading-relaxed text-muted">
-            {t("customBuild.step4.tunersNotApplicable")}
-          </p>
-        ) : (
+      {availableTuners.length > 0 ? (
+        <Section title={t("customBuild.step4.tunerLabel")}>
           <OptionChips
             label={t("customBuild.step4.tunerLabel")}
             options={availableTuners}
             selectedId={selections.tunerId}
             onSelect={selectTuner}
             nameKey="customBuild.tuners"
-            emptyMessage={contact}
             t={t}
           />
-        )}
-      </Section>
+        </Section>
+      ) : null}
 
+      {availableHardwareFinishes.length > 0 ? (
       <Section title={t("customBuild.step4.hardwareFinishLabel")}>
         <OptionChips
           label={t("customBuild.step4.hardwareFinishLabel")}
@@ -123,12 +122,12 @@ export default function StepElectronicsHardware({
           selectedId={selections.hardwareFinishId}
           onSelect={selectHardwareFinish}
           nameKey="customBuild.hardwareFinishes"
-          emptyMessage={contact}
           t={t}
         />
       </Section>
+      ) : null}
 
-      {selections.pickupConfigId ? (
+      {availableControlLayouts.length > 0 ? (
         <Section title={t("customBuild.step4.controlsLabel")}>
           <OptionChips
             label={t("customBuild.step4.controlsLabel")}
@@ -136,11 +135,12 @@ export default function StepElectronicsHardware({
             selectedId={selections.controlLayoutId}
             onSelect={selectControlLayout}
             nameKey="customBuild.controls"
-            emptyMessage={contact}
             t={t}
           />
         </Section>
       ) : null}
+        </>
+      )}
     </div>
   );
 }

@@ -10,17 +10,28 @@ import {
 import { tFor } from "../src/i18n/translations.js";
 
 test("unauthenticated admin pages redirect to login", () => {
-  const result = resolveAdminView({ pathname: "/admin/inquiries", session: null });
-  assert.equal(result.view, "redirect");
-  assert.equal(result.redirectTo, "/admin/login?from=%2Fadmin%2Finquiries");
+  const inquiries = resolveAdminView({ pathname: "/admin/inquiries/inq_123", session: null });
+  const messages = resolveAdminView({ pathname: "/admin/messages/abc123", session: null });
+  assert.equal(inquiries.view, "redirect");
+  assert.equal(inquiries.redirectTo, "/admin/login?from=%2Fadmin%2Finquiries%2Finq_123");
+  assert.equal(messages.view, "redirect");
+  assert.equal(messages.redirectTo, "/admin/login?from=%2Fadmin%2Fmessages%2Fabc123");
+  assert.equal(safeAdminRedirect("/admin/inquiries/inq_123"), "/admin/inquiries/inq_123");
+  assert.equal(safeAdminRedirect("/admin/messages/abc123"), "/admin/messages/abc123");
+  assert.equal(safeAdminRedirect("https://evil.example/admin/messages/abc123"), "/admin");
 });
 
 test("authenticated customers are denied instead of seeing inquiries", () => {
-  const result = resolveAdminView({
-    pathname: "/admin/inquiries",
+  const inquiries = resolveAdminView({
+    pathname: "/admin/inquiries/inq_123",
     session: { accessToken: "token", user: { role: "customer" } },
   });
-  assert.equal(result.view, "forbidden");
+  const messages = resolveAdminView({
+    pathname: "/admin/messages/abc123",
+    session: { accessToken: "token", user: { role: "customer" } },
+  });
+  assert.equal(inquiries.view, "forbidden");
+  assert.equal(messages.view, "forbidden");
 });
 
 test("admins can open inquiry and brand settings routes", () => {
@@ -32,7 +43,12 @@ test("admins can open inquiry and brand settings routes", () => {
     pathname: "/admin/settings/brand",
     session: { accessToken: "token", user: { role: "admin" } },
   });
+  const wizardSetup = resolveAdminView({
+    pathname: "/admin/custom-build-setup",
+    session: { accessToken: "token", user: { role: "admin" } },
+  });
   assert.equal(brand.view, "allow");
+  assert.equal(wizardSetup.view, "allow");
   const superadmin = resolveAdminView({
     pathname: "/admin/inquiries",
     session: { accessToken: "token", user: { role: "superadmin" } },

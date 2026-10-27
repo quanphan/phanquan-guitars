@@ -3,6 +3,7 @@ import {
   EMPTY_SELECTIONS,
   pruneSelections,
 } from "./customBuild.js";
+import { sanitizeReferenceImages } from "./referenceImages.js";
 
 export const DRAFT_STORAGE_KEY = "phanquan-guitars-custom-build-draft-v1";
 export const DRAFT_SCHEMA_VERSION = 1;
@@ -48,8 +49,14 @@ function sanitizeSelections(raw) {
         const count = Number(raw[key]);
         next[key] = Number.isFinite(count) ? count : null;
       }
-    } else if (key === "acknowledgement") {
+    } else if (key === "acknowledgement" || key === "customerSuppliedParts") {
       next[key] = Boolean(raw[key]);
+    } else if (key === "referenceImages") {
+      next[key] = sanitizeReferenceImages(raw[key]);
+    } else if (EMPTY_SELECTIONS[key] == null) {
+      const value = raw[key];
+      if (typeof value === "string" && value.trim()) next[key] = value;
+      else if (typeof value === "number" && Number.isFinite(value)) next[key] = value;
     } else {
       next[key] = raw[key];
     }

@@ -1,3 +1,4 @@
+import { humanizeOptionId, optionLabel, translatedLabel } from "../../../data/wizardCatalog.js";
 import { useLanguage } from "../../../i18n/LanguageContext.jsx";
 import ChoiceButton from "../ChoiceButton.jsx";
 import OptionChips from "../OptionChips.jsx";
@@ -51,7 +52,6 @@ export default function StepFinishDetails({
   availableFinishColors,
   availableInlays,
   availableEngravings,
-  headless,
   customColorMax,
   specialRequestMax,
   selectFinishType,
@@ -61,10 +61,9 @@ export default function StepFinishDetails({
   selectEngraving,
   setSpecialRequests,
 }) {
-  const { t } = useLanguage();
-  const contact = t("customBuild.step5.contact");
+  const { t, language } = useLanguage();
   const sheenKey = finishType?.sheen
-    ? t(`customBuild.sheens.${finishType.sheen}`)
+    ? translatedLabel(t, `customBuild.sheens.${finishType.sheen}`) || humanizeOptionId(finishType.sheen)
     : null;
 
   return (
@@ -79,6 +78,7 @@ export default function StepFinishDetails({
         {t("customBuild.provisional")}
       </p>
 
+      {availableFinishTypes.length > 0 ? (
       <Section title={t("customBuild.step5.finishTypeLabel")}>
         <OptionChips
           label={t("customBuild.step5.finishTypeLabel")}
@@ -86,10 +86,10 @@ export default function StepFinishDetails({
           selectedId={selections.finishTypeId}
           onSelect={selectFinishType}
           nameKey="customBuild.finishTypes"
-          emptyMessage={contact}
           t={t}
         />
       </Section>
+      ) : null}
 
       {sheenKey ? (
         <Section title={t("customBuild.step5.sheenLabel")}>
@@ -99,18 +99,15 @@ export default function StepFinishDetails({
         </Section>
       ) : null}
 
-      {selections.finishTypeId ? (
+      {availableFinishColors.length > 0 ? (
         <Section title={t("customBuild.step5.colorLabel")}>
-          {availableFinishColors.length === 0 ? (
-            <p className="text-sm leading-relaxed text-muted">{contact}</p>
-          ) : (
             <div
               role="radiogroup"
               aria-label={t("customBuild.step5.colorLabel")}
               className="flex flex-wrap gap-3"
             >
               {availableFinishColors.map((color) => {
-                const name = t(`customBuild.finishColors.${color.id}.name`);
+                const name = optionLabel(color, language, t, `customBuild.finishColors.${color.id}.name`);
                 return (
                   <ChoiceButton
                     key={color.id}
@@ -129,7 +126,6 @@ export default function StepFinishDetails({
                 );
               })}
             </div>
-          )}
           <p className="mt-4 text-xs leading-relaxed text-muted">
             {t("customBuild.step5.customColorHint")}
           </p>
@@ -147,6 +143,7 @@ export default function StepFinishDetails({
         </Section>
       ) : null}
 
+      {availableInlays.length > 0 ? (
       <Section title={t("customBuild.step5.inlayLabel")}>
         <OptionChips
           label={t("customBuild.step5.inlayLabel")}
@@ -154,18 +151,10 @@ export default function StepFinishDetails({
           selectedId={selections.inlayId}
           onSelect={selectInlay}
           nameKey="customBuild.inlays"
-          emptyMessage={contact}
           t={t}
         />
       </Section>
-
-      <Section title={t("customBuild.step5.headstockLabel")}>
-        <p className="text-sm leading-relaxed text-muted">
-          {headless
-            ? t("customBuild.step5.headstockNotApplicable")
-            : t("customBuild.step5.headstockUnknown")}
-        </p>
-      </Section>
+      ) : null}
 
       {availableEngravings.length > 0 ? (
         <Section title={t("customBuild.step5.engravingLabel")}>
@@ -177,20 +166,13 @@ export default function StepFinishDetails({
               selectEngraving(id === selections.engravingId ? null : id)
             }
             nameKey="customBuild.engravings"
-            emptyMessage={contact}
             t={t}
           />
           <p className="mt-3 text-xs leading-relaxed text-muted">
             {t("customBuild.step5.engravingOptional")}
           </p>
         </Section>
-      ) : (
-        <Section title={t("customBuild.step5.engravingLabel")}>
-          <p className="text-sm leading-relaxed text-muted">
-            {t("customBuild.step5.engravingUnknown")}
-          </p>
-        </Section>
-      )}
+      ) : null}
 
       <Section title={t("customBuild.step5.requestsLabel")}>
         <p className="mb-3 text-xs leading-relaxed text-muted">

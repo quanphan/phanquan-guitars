@@ -6,6 +6,14 @@ function failure(result) {
   return { ok: false, code: result.payload?.error?.code || "failure", items: [] };
 }
 
+export async function listPublicCatalogTerms(kind) {
+  const result = await requestJson(`/api/catalog/${kind}`);
+  if (!result.ok || result.payload?.success !== true || !Array.isArray(result.payload.data)) {
+    return { ...failure(result), items: [] };
+  }
+  return { ok: true, code: null, items: result.payload.data };
+}
+
 export async function listPublicProducts(productType) {
   const items = [];
   let page = 1;

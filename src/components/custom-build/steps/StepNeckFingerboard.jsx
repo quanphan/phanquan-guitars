@@ -1,11 +1,12 @@
+import { mediaUrl } from "../../../config/api.js";
+import { choiceImageSrc, optionDescription, optionLabel } from "../../../data/wizardCatalog.js";
 import { useLanguage } from "../../../i18n/LanguageContext.jsx";
 import ChoiceButton from "../ChoiceButton.jsx";
 
-function WoodCard({ option, selected, onSelect, nameKey, t }) {
-  const name = t(`${nameKey}.${option.id}.name`);
-  const description = t(`${nameKey}.${option.id}.description`);
-  const hasDescription =
-    description && !description.endsWith(`.${option.id}.description`);
+function WoodCard({ option, selected, onSelect, nameKey, t, language }) {
+  const name = optionLabel(option, language, t, `${nameKey}.${option.id}.name`);
+  const description = optionDescription(option, language, t, `${nameKey}.${option.id}.description`);
+  const hasDescription = Boolean(description);
 
   return (
     <ChoiceButton
@@ -16,7 +17,7 @@ function WoodCard({ option, selected, onSelect, nameKey, t }) {
     >
       {option.image ? (
         <img
-          src={option.image}
+          src={choiceImageSrc(option.image, mediaUrl)}
           alt=""
           className="aspect-[4/3] w-full object-cover"
         />
@@ -40,21 +41,15 @@ function WoodCard({ option, selected, onSelect, nameKey, t }) {
   );
 }
 
-function ChipGroup({ label, options, selectedId, onSelect, nameKey, t }) {
-  if (options.length === 0) {
-    return (
-      <p className="text-sm leading-relaxed text-muted">
-        {t("customBuild.step3.contact")}
-      </p>
-    );
-  }
+function ChipGroup({ label, options, selectedId, onSelect, nameKey, t, language }) {
+  if (!options.length) return null;
 
   return (
     <div role="radiogroup" aria-label={label} className="flex flex-wrap gap-3">
       {options.map((option) => {
-        const name = t(`${nameKey}.${option.id}.name`);
-        const detail = t(`${nameKey}.${option.id}.detail`);
-        const hasDetail = detail && !detail.endsWith(".detail");
+        const name = optionLabel(option, language, t, `${nameKey}.${option.id}.name`);
+        const detail = optionDescription(option, language, t, `${nameKey}.${option.id}.detail`);
+        const hasDetail = Boolean(detail);
         return (
           <ChoiceButton
             key={option.id}
@@ -90,7 +85,7 @@ export default function StepNeckFingerboard({
   selectNeckProfile,
   selectFretSpec,
 }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   return (
     <div>
@@ -104,16 +99,12 @@ export default function StepNeckFingerboard({
         {t("customBuild.provisional")}
       </p>
 
+      {availableNeckWoods.length > 0 ? (
       <section className="mt-10">
         <h3 className="text-[11px] uppercase tracking-[0.22em] text-gold">
           {t("customBuild.step3.neckWoodLabel")}
         </h3>
         <div className="mt-4">
-          {availableNeckWoods.length === 0 ? (
-            <p className="text-sm leading-relaxed text-muted">
-              {t("customBuild.step3.contact")}
-            </p>
-          ) : (
             <div
               role="radiogroup"
               aria-label={t("customBuild.step3.neckWoodLabel")}
@@ -127,13 +118,15 @@ export default function StepNeckFingerboard({
                   onSelect={() => selectNeckWood(wood.id)}
                   nameKey="customBuild.neckWoods"
                   t={t}
+                  language={language}
                 />
               ))}
             </div>
-          )}
         </div>
       </section>
+      ) : null}
 
+      {availableNeckConstructions.length > 0 ? (
       <section className="mt-10">
         <h3 className="text-[11px] uppercase tracking-[0.22em] text-gold">
           {t("customBuild.step3.constructionLabel")}
@@ -146,21 +139,18 @@ export default function StepNeckFingerboard({
             onSelect={selectNeckConstruction}
             nameKey="customBuild.constructions"
             t={t}
+            language={language}
           />
         </div>
       </section>
+      ) : null}
 
-      {selections.neckWoodId ? (
+      {availableFingerboardWoods.length > 0 ? (
         <section className="mt-10">
           <h3 className="text-[11px] uppercase tracking-[0.22em] text-gold">
             {t("customBuild.step3.fingerboardLabel")}
           </h3>
           <div className="mt-4">
-            {availableFingerboardWoods.length === 0 ? (
-              <p className="text-sm leading-relaxed text-muted">
-                {t("customBuild.step3.contact")}
-              </p>
-            ) : (
               <div
                 role="radiogroup"
                 aria-label={t("customBuild.step3.fingerboardLabel")}
@@ -174,14 +164,15 @@ export default function StepNeckFingerboard({
                     onSelect={() => selectFingerboardWood(wood.id)}
                     nameKey="customBuild.fingerboards"
                     t={t}
+                    language={language}
                   />
                 ))}
               </div>
-            )}
           </div>
         </section>
       ) : null}
 
+      {availableNeckProfiles.length > 0 ? (
       <section className="mt-10">
         <h3 className="text-[11px] uppercase tracking-[0.22em] text-gold">
           {t("customBuild.step3.profileLabel")}
@@ -194,10 +185,13 @@ export default function StepNeckFingerboard({
             onSelect={selectNeckProfile}
             nameKey="customBuild.profiles"
             t={t}
+            language={language}
           />
         </div>
       </section>
+      ) : null}
 
+      {availableFretSpecs.length > 0 ? (
       <section className="mt-10">
         <h3 className="text-[11px] uppercase tracking-[0.22em] text-gold">
           {t("customBuild.step3.fretLabel")}
@@ -210,29 +204,27 @@ export default function StepNeckFingerboard({
             onSelect={selectFretSpec}
             nameKey="customBuild.frets"
             t={t}
+            language={language}
           />
         </div>
       </section>
+      ) : null}
 
+      {inheritedFretCount != null ? (
       <section className="mt-10">
         <h3 className="text-[11px] uppercase tracking-[0.22em] text-gold">
           {t("customBuild.step3.fretCountLabel")}
         </h3>
         <div className="mt-4">
-          {inheritedFretCount != null ? (
             <p className="border border-white/10 bg-panel/60 px-4 py-3 text-sm text-ivory">
               {t("customBuild.step3.fretCountInherited").replace(
                 "{count}",
                 String(inheritedFretCount),
               )}
             </p>
-          ) : (
-            <p className="text-sm leading-relaxed text-muted">
-              {t("customBuild.step3.fretCountUnknown")}
-            </p>
-          )}
         </div>
       </section>
+      ) : null}
     </div>
   );
 }

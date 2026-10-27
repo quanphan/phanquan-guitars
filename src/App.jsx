@@ -18,6 +18,7 @@ import AdminInquiries from "./pages/admin/AdminInquiries.jsx";
 import AdminInquiryDetail from "./pages/admin/AdminInquiryDetail.jsx";
 import AdminBrandSettings from "./pages/admin/AdminBrandSettings.jsx";
 import AdminMessages from "./pages/admin/AdminMessages.jsx";
+import AdminMessageDetail from "./pages/admin/AdminMessageDetail.jsx";
 import AdminLogin from "./pages/admin/AdminLogin.jsx";
 import AdminUserDetail from "./pages/admin/AdminUserDetail.jsx";
 import AdminUsers from "./pages/admin/AdminUsers.jsx";
@@ -26,6 +27,8 @@ import CatalogKindPage from "./pages/admin/CatalogKindPage.jsx";
 import CatalogProductEditor from "./pages/admin/CatalogProductEditor.jsx";
 import CatalogProductsPage from "./pages/admin/CatalogProductsPage.jsx";
 import CatalogTermEditor from "./pages/admin/CatalogTermEditor.jsx";
+import AdminCustomBuildSetup from "./pages/admin/AdminCustomBuildSetup.jsx";
+import WizardOptionEditor from "./pages/admin/WizardOptionEditor.jsx";
 import Contact from "./pages/Contact.jsx";
 import StockDetail from "./pages/StockDetail.jsx";
 
@@ -56,7 +59,11 @@ export default function App() {
           <Route path="/admin/inquiries" element={<AdminInquiries />} />
           <Route path="/admin/inquiries/:id" element={<AdminInquiryDetail />} />
           <Route path="/admin/messages" element={<AdminMessages />} />
+          <Route path="/admin/messages/:id" element={<AdminMessageDetail />} />
           <Route path="/admin/settings/brand" element={<AdminBrandSettings />} />
+          <Route path="/admin/custom-build-setup" element={<AdminCustomBuildSetup />} />
+          <Route path="/admin/custom-build-setup/:categoryId/new" element={<WizardOptionEditor />} />
+          <Route path="/admin/custom-build-setup/:categoryId/:optionId" element={<WizardOptionEditor />} />
           <Route path="/admin/catalog" element={<AdminCatalog />}>
             <Route index element={<Navigate to="categories" replace />} />
             <Route path="products" element={<CatalogProductsPage />} />

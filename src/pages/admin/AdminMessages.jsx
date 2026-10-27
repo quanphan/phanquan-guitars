@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import ConfirmDialog from "../../components/admin/ConfirmDialog.jsx";
 import PageHeader from "../../components/PageHeader.jsx";
@@ -116,7 +116,14 @@ export default function AdminMessages() {
               <tbody>
                 {items.map((item) => (
                   <tr key={item.id} className="border-t border-white/8 text-ivory/90">
-                    <td className="px-4 py-4 align-top">{item.name || "—"}</td>
+                    <td className="px-4 py-4 align-top">
+                      <Link
+                        to={`/admin/messages/${encodeURIComponent(item.id)}`}
+                        className="text-gold hover:text-gold-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                      >
+                        {item.name || "—"}
+                      </Link>
+                    </td>
                     <td className="px-4 py-4 align-top">{item.email || "—"}</td>
                     <td className="px-4 py-4 align-top">
                       {item.inquiryType

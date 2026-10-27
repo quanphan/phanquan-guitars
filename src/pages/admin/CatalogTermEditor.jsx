@@ -3,10 +3,12 @@ import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import {
   buildTermPayload,
+  catalogTermName,
   isCatalogKind,
   parentChoices,
   PARENT_KIND_SOURCES,
   slugifyName,
+  usesParentField,
 } from "../../auth/catalog.js";
 import { errorText } from "../../auth/errorText.js";
 import { fieldErrorsFromPayload } from "../../auth/registerPayload.js";
@@ -26,16 +28,27 @@ import {
 const emptyForm = {
   name: "",
   slug: "",
-  description: "",
   parentId: "",
   imagePath: "",
   isActive: true,
   sortOrder: 0,
-  viName: "",
   viDescription: "",
-  enName: "",
   enDescription: "",
+  viShortDescription: "",
+  enShortDescription: "",
+  minPrice: "",
+  maxPrice: "",
+  currency: "USD",
 };
+
+function FormSection({ title, children }) {
+  return (
+    <section className="space-y-4 border-b border-white/10 pb-8 last:border-b-0 last:pb-0">
+      <h2 className="text-[11px] uppercase tracking-[0.22em] text-gold">{title}</h2>
+      {children}
+    </section>
+  );
+}
 
 export default function CatalogTermEditor() {
   const { kind, id } = useParams();
@@ -44,7 +57,7 @@ export default function CatalogTermEditor() {
   const navigate = useNavigate();
   const { authorizedRequest, authorizedFormRequest, hasPermission } = useAuth();
   const [form, setForm] = useState(emptyForm);
-  const [slugTouched, setSlugTouched] = useState(false);
+  const [slugLocked, setSlugLocked] = useState(false);
   const [parents, setParents] = useState([]);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
@@ -53,15 +66,17 @@ export default function CatalogTermEditor() {
   const canRead = hasPermission("catalog.read");
   const canWrite = hasPermission("catalog.write");
   const canUpload = hasPermission("uploads.write");
+  const showParent = usesParentField(kind);
+  const isSeries = kind === "series";
 
   const setField = useCallback((key, value) => {
     setForm((current) => ({ ...current, [key]: value }));
   }, []);
 
   useEffect(() => {
-    if (slugTouched) return;
+    if (slugLocked) return;
     setForm((current) => ({ ...current, slug: slugifyName(current.name) }));
-  }, [form.name, slugTouched]);
+  }, [form.name, slugLocked]);
 
   const load = useCallback(async () => {
     if (!isCatalogKind(kind)) return;
@@ -100,17 +115,19 @@ export default function CatalogTermEditor() {
       setForm({
         name: item.name || "",
         slug: item.slug || "",
-        description: item.description || "",
         parentId: item.parentId || "",
         imagePath: item.imagePath || "",
         isActive: item.isActive !== false,
         sortOrder: item.sortOrder || 0,
-        viName: item.translations?.vi?.name || "",
         viDescription: item.translations?.vi?.description || "",
-        enName: item.translations?.en?.name || "",
         enDescription: item.translations?.en?.description || "",
+        viShortDescription: item.translations?.vi?.shortDescription || "",
+        enShortDescription: item.translations?.en?.shortDescription || "",
+        minPrice: item.minPrice == null ? "" : String(item.minPrice),
+        maxPrice: item.maxPrice == null ? "" : String(item.maxPrice),
+        currency: item.currency || "USD",
       });
-      setSlugTouched(true);
+      setSlugLocked(true);
       setParents(parentChoices(combined, item.id));
     } else {
       setParents(parentChoices(combined, null));
@@ -125,7 +142,7 @@ export default function CatalogTermEditor() {
   async function onSubmit(event) {
     event.preventDefault();
     if (!canWrite || saving) return;
-    const next = buildTermPayload(form);
+    const next = buildTermPayload(form, { kind });
     if (!next.ok) {
       setFieldErrors(
         Object.fromEntries(Object.entries(next.errors).map(([key, code]) => [key, t(`admin.catalog.fieldErrors.${code}`)])),
@@ -180,89 +197,170 @@ export default function CatalogTermEditor() {
         {loading ? (
           <p className="text-sm text-muted">{t("admin.loadingBody")}</p>
         ) : (
-          <form className="space-y-5 border border-white/10 bg-panel/40 p-6" onSubmit={onSubmit} noValidate>
+          <form className="space-y-8 border border-white/10 bg-panel/40 p-5 sm:p-8" onSubmit={onSubmit} noValidate>
             {error ? (
               <p className="border border-gold/40 bg-gold/10 px-4 py-3 text-sm" role="alert">
                 {error === "invalid" ? t("auth.formIncomplete") : errorText(t, "admin.catalog", error)}
               </p>
             ) : null}
-            <Field
-              id="term-name"
-              label={t("admin.catalog.fields.name")}
-              value={form.name}
-              onChange={(value) => setField("name", value)}
-              disabled={saving || !canWrite}
-              required
-              error={fieldErrors.name || fieldErrors.slug}
-            />
-            <div>
-              <label htmlFor="term-description" className="text-[11px] uppercase tracking-[0.18em] text-gold">
-                {t("admin.catalog.fields.description")}
-              </label>
-              <textarea
-                id="term-description"
-                value={form.description}
-                onChange={(event) => setField("description", event.target.value)}
+
+            <FormSection title={t("admin.catalog.sections.basic")}>
+              <Field
+                id="term-name"
+                label={t("admin.catalog.fields.name")}
+                value={form.name}
+                onChange={(value) => setField("name", value)}
                 disabled={saving || !canWrite}
+                required
+                maxLength={120}
+                error={fieldErrors.name || fieldErrors.slug}
+              />
+              {isSeries ? (
+                <>
+                  <Field
+                    id="term-vi-short-desc"
+                    label={t("admin.catalog.fields.viShortDescription")}
+                    value={form.viShortDescription}
+                    onChange={(value) => setField("viShortDescription", value)}
+                    disabled={saving || !canWrite}
+                    multiline
+                    rows={2}
+                    maxLength={200}
+                    error={fieldErrors.viShortDescription}
+                  />
+                  <Field
+                    id="term-en-short-desc"
+                    label={t("admin.catalog.fields.enShortDescription")}
+                    value={form.enShortDescription}
+                    onChange={(value) => setField("enShortDescription", value)}
+                    disabled={saving || !canWrite}
+                    multiline
+                    rows={2}
+                    maxLength={200}
+                    error={fieldErrors.enShortDescription}
+                  />
+                </>
+              ) : null}
+              <Field
+                id="term-vi-desc"
+                label={isSeries ? t("admin.catalog.fields.viFullDescription") : t("admin.catalog.fields.viDescription")}
+                value={form.viDescription}
+                onChange={(value) => setField("viDescription", value)}
+                disabled={saving || !canWrite}
+                multiline
                 rows={4}
-                className={fieldErrors.description ? errorFieldClass : fieldClass}
+                maxLength={500}
+                error={fieldErrors.viDescription}
               />
-            </div>
-            {kind !== "categories" ? (
-              <label className="block text-[11px] uppercase tracking-[0.18em] text-gold">
-                {t("admin.catalog.fields.parent")}
-                <select
-                  value={form.parentId}
-                  onChange={(event) => setField("parentId", event.target.value)}
-                  disabled={saving || !canWrite}
-                  className={fieldClass}
-                >
-                  <option value="">{t("admin.catalog.noParent")}</option>
-                  {parentOptions.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name} ({item.kind})
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
-            <Field
-              id="term-sort"
-              label={t("admin.catalog.fields.sortOrder")}
-              type="number"
-              value={String(form.sortOrder)}
-              onChange={(value) => setField("sortOrder", value === "" ? 0 : Number(value))}
-              disabled={saving || !canWrite}
-              error={fieldErrors.sortOrder}
-            />
-            <label className="flex items-center gap-3 text-sm text-ivory">
-              <input
-                type="checkbox"
-                checked={form.isActive}
-                onChange={(event) => setField("isActive", event.target.checked)}
+              <Field
+                id="term-en-desc"
+                label={isSeries ? t("admin.catalog.fields.enFullDescription") : t("admin.catalog.fields.enDescription")}
+                value={form.enDescription}
+                onChange={(value) => setField("enDescription", value)}
                 disabled={saving || !canWrite}
-                className="size-4 accent-gold"
+                multiline
+                rows={4}
+                maxLength={500}
+                error={fieldErrors.enDescription}
               />
-              {t("admin.catalog.active")}
-            </label>
-            <ImageUploadField
-              label={t("admin.catalog.fields.image")}
-              storedPath={form.imagePath}
-              canUpload={canUpload && canWrite}
-              disabled={saving}
-              onUploaded={(path) => setField("imagePath", path)}
-              onClear={() => setField("imagePath", "")}
-              upload={(file) => uploadAdminImage(authorizedFormRequest, { file, scope: "categories" })}
-            />
-            <h2 className="pt-2 text-[11px] uppercase tracking-[0.22em] text-gold">{t("admin.catalog.translations")}</h2>
-            <Field id="term-vi-name" label={t("admin.catalog.fields.viName")} value={form.viName} onChange={(value) => setField("viName", value)} disabled={saving || !canWrite} />
-            <Field id="term-en-name" label={t("admin.catalog.fields.enName")} value={form.enName} onChange={(value) => setField("enName", value)} disabled={saving || !canWrite} />
-            <Field id="term-vi-desc" label={t("admin.catalog.fields.viDescription")} value={form.viDescription} onChange={(value) => setField("viDescription", value)} disabled={saving || !canWrite} />
-            <Field id="term-en-desc" label={t("admin.catalog.fields.enDescription")} value={form.enDescription} onChange={(value) => setField("enDescription", value)} disabled={saving || !canWrite} />
+            </FormSection>
+
+            {isSeries ? (
+              <FormSection title={t("admin.catalog.sections.priceRange")}>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field
+                    id="term-min-price"
+                    label={t("admin.catalog.fields.minPrice")}
+                    type="number"
+                    value={form.minPrice}
+                    onChange={(value) => setField("minPrice", value)}
+                    disabled={saving || !canWrite}
+                    error={fieldErrors.minPrice}
+                  />
+                  <Field
+                    id="term-max-price"
+                    label={t("admin.catalog.fields.maxPrice")}
+                    type="number"
+                    value={form.maxPrice}
+                    onChange={(value) => setField("maxPrice", value)}
+                    disabled={saving || !canWrite}
+                    error={fieldErrors.maxPrice}
+                  />
+                </div>
+                <Field
+                  id="term-currency"
+                  label={t("admin.catalog.fields.unit")}
+                  value={form.currency}
+                  onChange={(value) => setField("currency", value.toUpperCase())}
+                  disabled={saving || !canWrite}
+                  maxLength={3}
+                  error={fieldErrors.currency}
+                />
+              </FormSection>
+            ) : null}
+
+            <FormSection title={t("admin.catalog.sections.settings")}>
+              {showParent ? (
+                <div>
+                  <label htmlFor="term-parent" className="text-[11px] uppercase tracking-[0.18em] text-gold">
+                    {t("admin.catalog.fields.parent")}
+                  </label>
+                  <select
+                    id="term-parent"
+                    value={form.parentId}
+                    onChange={(event) => setField("parentId", event.target.value)}
+                    disabled={saving || !canWrite}
+                    className={fieldErrors.parentId ? errorFieldClass : fieldClass}
+                  >
+                    <option value="">{t("admin.catalog.noParent")}</option>
+                    {parentOptions.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {catalogTermName(item)}
+                      </option>
+                    ))}
+                  </select>
+                  {fieldErrors.parentId ? <p className="mt-2 text-xs text-gold">{fieldErrors.parentId}</p> : null}
+                </div>
+              ) : null}
+              <Field
+                id="term-sort"
+                label={t("admin.catalog.fields.sortOrder")}
+                type="number"
+                value={String(form.sortOrder)}
+                onChange={(value) => setField("sortOrder", value === "" ? 0 : Number(value))}
+                disabled={saving || !canWrite}
+                error={fieldErrors.sortOrder}
+              />
+              <label className="flex items-center gap-3 text-sm text-ivory">
+                <input
+                  type="checkbox"
+                  checked={form.isActive}
+                  onChange={(event) => setField("isActive", event.target.checked)}
+                  disabled={saving || !canWrite}
+                  className="size-4 accent-gold"
+                />
+                {form.isActive ? t("admin.catalog.active") : t("admin.catalog.inactive")}
+              </label>
+              <ImageUploadField
+                label={t("admin.catalog.fields.image")}
+                storedPath={form.imagePath}
+                canUpload={canUpload && canWrite}
+                disabled={saving}
+                onUploaded={(path) => setField("imagePath", path)}
+                onClear={() => setField("imagePath", "")}
+                upload={(file) => uploadAdminImage(authorizedFormRequest, { file, scope: "categories" })}
+              />
+            </FormSection>
+
             {canWrite ? (
-              <Button type="submit" disabled={saving}>
-                {saving ? t("admin.catalog.saving") : t("admin.catalog.save")}
-              </Button>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <Button type="submit" disabled={saving}>
+                  {saving ? t("admin.catalog.saving") : t("admin.catalog.save")}
+                </Button>
+                <Button to={`/admin/catalog/${kind}`} variant="outline" disabled={saving}>
+                  {t("admin.cancel")}
+                </Button>
+              </div>
             ) : (
               <p className="text-sm text-muted">{t("admin.catalog.readOnly")}</p>
             )}

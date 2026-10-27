@@ -7,6 +7,7 @@ import {
   parseInquiryNotes,
   phoneHref,
 } from "../src/services/inquiryDisplay.js";
+import { buildInquiryPayload } from "../src/services/customBuildPayload.js";
 
 const sampleInquiry = {
   id: "inq_demo-1",
@@ -93,6 +94,15 @@ test("humanizes unknown catalog ids instead of showing raw keys", () => {
   assert.equal(humanizeOptionId("compound-12-16"), "Compound 12 16");
 });
 
+test("inquiry details do not invent a pickup positions section", () => {
+  const display = buildInquiryDisplay(sampleInquiry, t("vi"));
+  const blob = JSON.stringify(display);
+  assert.equal(blob.includes("Vị trí pickup"), false);
+  assert.equal(blob.includes("positionsLabel"), false);
+  assert.equal(blob.includes("Cần: Bridge"), false);
+  assert.equal(rowValue(display, "electronics", "customBuild.summary.pickupConfig"), "HH");
+});
+
 test("English labels prefer wizard catalog translations over API ids", () => {
   const display = buildInquiryDisplay(sampleInquiry, t("en"));
   assert.equal(rowValue(display, "instrument", "customBuild.summary.instrument"), "Electric Guitar");
@@ -129,6 +139,101 @@ test("missing optional fields stay empty for Not provided UI", () => {
   assert.equal(rowValue(display, "body", "customBuild.summary.bodyWood"), null);
   assert.equal(display.metadata.country, null);
   assert.equal(phoneHref(null), null);
+});
+
+test("inquiry labels use catalog names when locale keys are missing", () => {
+  const catalog = {
+    categories: [
+      {
+        id: "hardware",
+        options: [{ id: "hardware.none", code: "none", name: "None", translations: { vi: { name: "Không" } } }],
+      },
+      {
+        id: "finish-type",
+        options: [{ id: "finish-type.gloss", code: "gloss", name: "Gloss" }],
+      },
+      {
+        id: "finish-color",
+        options: [{ id: "finish-color.discuss-custom", code: "discuss-custom", name: "Discuss custom" }],
+      },
+    ],
+  };
+  const inquiry = {
+    configuration: {
+      selections: {},
+      notes: [
+        "wizard:",
+        "hardwareFinishId=none",
+        "finishTypeId=gloss",
+        "finishColorId=discuss-custom",
+      ].join("\n"),
+    },
+  };
+  const english = buildInquiryDisplay(inquiry, t("en"), { catalog, language: "en" });
+  assert.equal(rowValue(english, "electronics", "customBuild.summary.hardwareFinish"), "None");
+  assert.equal(rowValue(english, "finish", "customBuild.summary.finishType"), "Gloss");
+  assert.equal(rowValue(english, "finish", "customBuild.summary.finishColor"), "Discuss custom");
+  const blob = JSON.stringify(english.groups);
+  assert.equal(blob.includes("customBuild.hardwareFinishes.none.name"), false);
+  assert.equal(blob.includes("customBuild.finishTypes.gloss.name"), false);
+  assert.equal(blob.includes("customBuild.finishColors.discuss-custom.name"), false);
+  const vietnamese = buildInquiryDisplay(inquiry, t("vi"), { catalog, language: "vi" });
+  assert.equal(rowValue(vietnamese, "electronics", "customBuild.summary.hardwareFinish"), "Không");
+});
+
+test("customer-supplied parts is parsed and shown instead of step 4 options", () => {
+  const parsed = parseInquiryNotes("wizard:\npickupConfigId=hh\ncustomerSuppliedParts=true");
+  assert.equal(parsed.wizard.customerSuppliedParts, true);
+  const display = buildInquiryDisplay(
+    {
+      configuration: {
+        selections: { hardware: "hardware.black", pickups: ["pickups.neck-humbucker"] },
+        notes: "wizard:\nhardwareFinishId=black\npickupConfigId=hh\ncustomerSuppliedParts=true",
+      },
+    },
+    t("en"),
+  );
+  assert.equal(
+    rowValue(display, "electronics", "customBuild.summary.customerSuppliedParts"),
+    "Customer will supply electronics and hardware",
+  );
+  assert.equal(rowValue(display, "electronics", "customBuild.summary.hardwareFinish"), undefined);
+  assert.equal(rowValue(display, "electronics", "customBuild.summary.pickupConfig"), undefined);
+});
+
+test("customer-supplied parts payload keeps the flag in notes and omits step 4 catalog ids", () => {
+  const payload = buildInquiryPayload({
+    selections: {
+      contactName: "Lan Pham",
+      contactEmail: "lan@example.com",
+      contactPhone: "",
+      contactMessage: "",
+      customerSuppliedParts: true,
+      pickupConfigId: "hh",
+      pickupTypeId: "humbucker",
+      bridgeId: "hardtail",
+      hardwareFinishId: "black",
+      controlLayoutId: "vol-tone-3way",
+      instrumentTypeId: "electric-guitar",
+    },
+    language: "vi",
+    draftId: "draft-own-parts",
+    catalog: {
+      categories: [
+        { id: "hardware", options: [{ id: "hardware.black", code: "black", active: true }] },
+        { id: "bridge", options: [{ id: "bridge.hardtail", code: "hardtail", active: true }] },
+        { id: "electronics", options: [{ id: "electronics.passive", code: "passive", active: true }] },
+        { id: "pickups", options: [{ id: "pickups.neck-humbucker", active: true }, { id: "pickups.bridge-humbucker", active: true }] },
+      ],
+    },
+  });
+  assert.equal(payload.configuration.selections.hardware, undefined);
+  assert.equal(payload.configuration.selections.bridge, undefined);
+  assert.equal(payload.configuration.selections.electronics, undefined);
+  assert.equal(payload.configuration.selections.pickups, undefined);
+  assert.match(payload.configuration.notes, /customerSuppliedParts=true/);
+  assert.equal(payload.configuration.notes.includes("pickupConfigId="), false);
+  assert.equal(payload.configuration.notes.includes("hardwareFinishId="), false);
 });
 
 test("unknown API-only values are humanized", () => {

@@ -1,3 +1,8 @@
+import { sanitizeReferenceImages } from "../data/referenceImages.js";
+import { optionMatchesAlias, WIZARD_SETUP_GROUPS } from "../data/wizardCatalog.js";
+import { allowedCompatibilityFields, knownGroupStep } from "../data/wizardSetupLayout.js";
+import { isCustomerSuppliedParts, STEP4_OPTION_KEYS } from "../data/wizardSelection.js";
+
 const NOTES_MAX = 2000;
 
 const INSTRUMENT_TYPE_MAP = {
@@ -58,28 +63,77 @@ const CONTROL_TO_ELECTRONICS = {
   "vol-tone-3way": "electronics.passive",
 };
 
+export const SELECTION_CATEGORY_BINDINGS = [
+  { categoryId: "instrument-type", selectionKey: "instrumentTypeId", summaryKey: "customBuild.summary.instrument", legacy: INSTRUMENT_TYPE_MAP },
+  { categoryId: "series", selectionKey: "seriesId", summaryKey: "customBuild.summary.series" },
+  { categoryId: "body-shape", selectionKey: "shapeId", summaryKey: "customBuild.summary.shape", legacy: SHAPE_MAP },
+  { categoryId: "scale", selectionKey: "scaleId", summaryKey: "customBuild.summary.scale" },
+  { categoryId: "string-count", selectionKey: "stringCount", summaryKey: "customBuild.summary.strings" },
+  { categoryId: "radius", selectionKey: "radiusId", summaryKey: "customBuild.summary.radius" },
+  { categoryId: "body-wood", selectionKey: "bodyWoodId", summaryKey: "customBuild.summary.bodyWood", legacy: BODY_WOOD_MAP },
+  { categoryId: "top-wood", selectionKey: "topWoodId", summaryKey: "customBuild.summary.topWood", legacy: TOP_WOOD_MAP },
+  { categoryId: "neck-wood", selectionKey: "neckWoodId", summaryKey: "customBuild.summary.neckWood", legacy: NECK_WOOD_MAP },
+  { categoryId: "neck-construction", selectionKey: "neckConstructionId", summaryKey: "customBuild.summary.neckConstruction" },
+  { categoryId: "fingerboard", selectionKey: "fingerboardWoodId", summaryKey: "customBuild.summary.fingerboard", legacy: FINGERBOARD_MAP },
+  { categoryId: "neck-profile", selectionKey: "neckProfileId", summaryKey: "customBuild.summary.neckProfile" },
+  { categoryId: "fret-spec", selectionKey: "fretSpecId", summaryKey: "customBuild.summary.frets" },
+  { categoryId: "pickup-config", selectionKey: "pickupConfigId", summaryKey: "customBuild.summary.pickupConfig", stepFour: true },
+  { categoryId: "pickups", selectionKey: "pickupTypeId", summaryKey: "customBuild.summary.pickupType", stepFour: true },
+  { categoryId: "bridge", selectionKey: "bridgeId", summaryKey: "customBuild.summary.bridge", legacy: BRIDGE_MAP, stepFour: true },
+  { categoryId: "tuners", selectionKey: "tunerId", summaryKey: "customBuild.summary.tuners", stepFour: true },
+  { categoryId: "hardware", selectionKey: "hardwareFinishId", summaryKey: "customBuild.summary.hardwareFinish", legacy: HARDWARE_MAP, stepFour: true },
+  { categoryId: "electronics", selectionKey: "controlLayoutId", summaryKey: "customBuild.summary.controls", legacy: CONTROL_TO_ELECTRONICS, stepFour: true },
+  { categoryId: "finish-type", selectionKey: "finishTypeId", summaryKey: "customBuild.summary.finishType" },
+  { categoryId: "finish-color", selectionKey: "finishColorId", summaryKey: "customBuild.summary.finishColor", legacy: FINISH_COLOR_MAP },
+  { categoryId: "inlay", selectionKey: "inlayId", summaryKey: "customBuild.summary.inlay" },
+  { categoryId: "engraving", selectionKey: "engravingId", summaryKey: "customBuild.summary.engraving" },
+];
+
+const BINDING_BY_CATEGORY = new Map(
+  SELECTION_CATEGORY_BINDINGS.map((item) => [item.categoryId, item]),
+);
+
 function findCategory(catalog, categoryId) {
   return catalog?.categories?.find((category) => category.id === categoryId) ?? null;
 }
 
-function activeOptionId(catalog, categoryId, optionId) {
-  if (!optionId) return undefined;
-  const category = findCategory(catalog, categoryId);
-  const option = category?.options?.find((item) => item.id === optionId);
-  if (!option?.active) return undefined;
-  return option.id;
+function optionMatchesNeedle(option, categoryId, needle) {
+  if (!option || needle == null || needle === "") return false;
+  const value = String(needle);
+  if (option.id === value) return true;
+  if (option.code === value) return true;
+  if (option.id === `${categoryId}.${value}`) return true;
+  return optionMatchesAlias(option, categoryId, value);
 }
 
-function activeOptionIds(catalog, categoryId, optionIds) {
-  const selected = [];
-  const seen = new Set();
-  for (const optionId of optionIds) {
-    const resolved = activeOptionId(catalog, categoryId, optionId);
-    if (!resolved || seen.has(resolved)) continue;
-    seen.add(resolved);
-    selected.push(resolved);
+function resolveCatalogOption(catalog, categoryId, code, mappedId) {
+  const category = findCategory(catalog, categoryId);
+  if (!category) return null;
+  const options = category.options || [];
+  if (code != null && code !== "") {
+    const direct = options.find((item) => optionMatchesNeedle(item, categoryId, code));
+    if (direct) return direct;
   }
-  return selected;
+  if (mappedId) {
+    return options.find((item) => optionMatchesNeedle(item, categoryId, mappedId)) ?? null;
+  }
+  return null;
+}
+
+function catalogHint(categoryId, code) {
+  if (code == null || code === "") return undefined;
+  const value = String(code);
+  if (value.includes(".")) return value;
+  return `${categoryId}.${value}`;
+}
+
+function resolveSelectionId(catalog, categoryId, code, mappedId) {
+  if (code == null || code === "") return undefined;
+  const category = findCategory(catalog, categoryId);
+  if (!category) return undefined;
+  const option = resolveCatalogOption(catalog, categoryId, code, mappedId);
+  if (option?.id) return option.id;
+  return catalogHint(categoryId, code);
 }
 
 function setIfPresent(selections, categoryId, optionId) {
@@ -107,6 +161,7 @@ function wizardLines(selections) {
     "tunerId",
     "hardwareFinishId",
     "controlLayoutId",
+    "customerSuppliedParts",
     "finishTypeId",
     "finishColorId",
     "customColorNote",
@@ -114,8 +169,10 @@ function wizardLines(selections) {
     "engravingId",
     "specialRequests",
   ];
+  const skipStepFour = isCustomerSuppliedParts(selections);
   return keys
     .map((key) => {
+      if (skipStepFour && STEP4_OPTION_KEYS.includes(key)) return null;
       const value = selections[key];
       if (value == null || value === false) return null;
       const text = String(value).trim();
@@ -142,33 +199,242 @@ function buildNotes({ selections, language, draftId }) {
   return notes.slice(0, NOTES_MAX);
 }
 
-function pickupSelections(catalog, selections) {
-  if (selections.pickupConfigId !== "hh") return [];
-  if (selections.pickupTypeId === "humbucker") {
-    return activeOptionIds(catalog, "pickups", [
-      "pickups.neck-humbucker",
-      "pickups.bridge-humbucker",
-    ]);
+export function encodeCatalogSelection(category, optionId) {
+  if (optionId == null || optionId === "") return undefined;
+  if (category?.selectionMode === "multiple") {
+    return Array.isArray(optionId) ? optionId : [optionId];
   }
-  return [];
+  return optionId;
 }
 
 function customDetailSelections(catalog, selections) {
   const ids = [];
   if (selections.inlayId === "offset-dots" || selections.inlayId === "side-dots") {
-    ids.push("custom-details.dot-inlays");
+    const option = resolveCatalogOption(
+      catalog,
+      "custom-details",
+      "custom-details.dot-inlays",
+      "custom-details.dot-inlays",
+    );
+    if (option?.id) ids.push(option.id);
   }
   if (selections.engravingId === "optional-top") {
-    ids.push("custom-details.engraved-ornament");
+    const option = resolveCatalogOption(
+      catalog,
+      "custom-details",
+      "custom-details.engraved-ornament",
+      "custom-details.engraved-ornament",
+    );
+    if (option?.id) ids.push(option.id);
   }
-  return activeOptionIds(catalog, "custom-details", ids);
+  return ids;
+}
+
+function legacyId(binding, selected) {
+  if (!binding?.legacy || selected == null) return undefined;
+  return binding.legacy[selected];
+}
+
+function mapCatalogSelections(catalog, selections, finishSheen) {
+  const mapped = {};
+  const skipStepFour = isCustomerSuppliedParts(selections);
+
+  for (const binding of SELECTION_CATEGORY_BINDINGS) {
+    if (skipStepFour && binding.stepFour) continue;
+    const selected = selections[binding.selectionKey];
+    if (binding.categoryId === "finish-type") {
+      if (!findCategory(catalog, "finish-type")) continue;
+      const option = resolveCatalogOption(
+        catalog,
+        "finish-type",
+        selected,
+        FINISH_TYPE_BY_SHEEN[finishSheen],
+      );
+      if (option?.id) {
+        mapped["finish-type"] = option.id;
+      } else if (selected) {
+        mapped["finish-type"] = catalogHint("finish-type", selected);
+      }
+      continue;
+    }
+    const category = findCategory(catalog, binding.categoryId);
+    setIfPresent(
+      mapped,
+      binding.categoryId,
+      encodeCatalogSelection(
+        category,
+        resolveSelectionId(catalog, binding.categoryId, selected, legacyId(binding, selected)),
+      ),
+    );
+  }
+
+  const details = customDetailSelections(catalog, selections);
+  if (details.length > 0) mapped["custom-details"] = details;
+  return mapped;
+}
+
+function optionAliases(option, categoryId) {
+  const aliases = new Set();
+  if (!option) return aliases;
+  if (option.id) aliases.add(String(option.id));
+  if (option.code) aliases.add(String(option.code));
+  const prefix = `${categoryId}.`;
+  if (typeof option.id === "string" && option.id.startsWith(prefix)) {
+    aliases.add(option.id.slice(prefix.length));
+  }
+  if (option.attributes?.wizardId) aliases.add(String(option.attributes.wizardId));
+  if (option.attributes?.value != null && option.attributes.value !== "") {
+    aliases.add(String(option.attributes.value));
+  }
+  return aliases;
+}
+
+function findOptionInCategory(category, value) {
+  if (!category || value == null || value === "") return null;
+  return (
+    (category.options || []).find((item) => item.id === value) ||
+    (category.options || []).find((item) => optionMatchesNeedle(item, category.id, value)) ||
+    null
+  );
+}
+
+function constraintAllows(allowed, selectedAliases) {
+  if (!Array.isArray(allowed) || allowed.length === 0) return true;
+  if (!selectedAliases || selectedAliases.size === 0) return true;
+  return allowed.some((value) => selectedAliases.has(String(value)));
+}
+
+function validateSingleValue(category, value, field) {
+  if (typeof value !== "string" && typeof value !== "number") {
+    return { ok: false, issue: { field, code: "INVALID_TYPE" } };
+  }
+  const option = findOptionInCategory(category, value);
+  if (!option) return { ok: false, issue: { field, code: "UNKNOWN_OPTION" } };
+  if (option.active === false) return { ok: false, issue: { field, code: "INACTIVE_OPTION" } };
+  return { ok: true, value: option.id, option };
+}
+
+/**
+ * Mirror backend inquiry selection rules for the mapped catalog payload.
+ * Backend remains the final gate on submit.
+ */
+export function evaluateMappedSelections(mapped, catalog) {
+  const issues = [];
+  const categories = catalog?.categories || [];
+  const normalized = {};
+
+  for (const category of categories) {
+    const value = mapped?.[category.id];
+    const field = `selections.${category.id}`;
+    if (value === undefined || value === null || value === "") {
+      if (category.required) issues.push({ field, code: "REQUIRED" });
+      continue;
+    }
+    if (category.selectionMode === "multiple") {
+      if (!Array.isArray(value)) {
+        issues.push({ field, code: "INVALID_TYPE" });
+        continue;
+      }
+      const ids = [];
+      for (const item of value) {
+        const result = validateSingleValue(category, item, field);
+        if (!result.ok) {
+          issues.push(result.issue);
+          break;
+        }
+        ids.push(result.value);
+      }
+      if (ids.length) normalized[category.id] = ids;
+      continue;
+    }
+    const result = validateSingleValue(category, value, field);
+    if (!result.ok) {
+      issues.push(result.issue);
+      continue;
+    }
+    normalized[category.id] = result.value;
+  }
+
+  if (issues.length > 0) return issues;
+
+  for (const category of categories) {
+    const step = category.step ?? knownGroupStep(category.id, categories);
+    if (Number(step) < 4) continue;
+    const selectedId = normalized[category.id];
+    if (!selectedId || Array.isArray(selectedId)) continue;
+    const option = findOptionInCategory(category, selectedId);
+    if (!option) continue;
+    const compatibility =
+      option.compatibility && typeof option.compatibility === "object"
+        ? option.compatibility
+        : {};
+    const allowedFields = allowedCompatibilityFields(category.id, categories);
+    for (const compatField of allowedFields) {
+      const target = categories.find((item) => item.id === compatField.categoryId);
+      const selectedTarget = normalized[compatField.categoryId];
+      const targetOption = findOptionInCategory(target, selectedTarget);
+      const aliases = optionAliases(targetOption, compatField.categoryId);
+      if (selectedTarget && aliases.size === 0) aliases.add(String(selectedTarget));
+      if (!constraintAllows(compatibility[compatField.key], aliases)) {
+        issues.push({
+          field: `selections.${category.id}`,
+          code: "INCOMPATIBLE_OPTION",
+        });
+        break;
+      }
+    }
+  }
+
+  return issues;
+}
+
+export function selectionIssueMeta(field) {
+  if (typeof field !== "string" || !field.startsWith("selections.")) return null;
+  const categoryId = field.slice("selections.".length);
+  const binding = BINDING_BY_CATEGORY.get(categoryId);
+  const group = WIZARD_SETUP_GROUPS.find((item) => item.id === categoryId);
+  return {
+    categoryId,
+    selectionKey: binding?.selectionKey || null,
+    summaryKey: binding?.summaryKey || null,
+    step: group?.step ?? binding?.step ?? null,
+  };
+}
+
+export function isMissingRequiredConfig(issues, configIssueStep) {
+  if (!configIssueStep) return false;
+  const list = Array.isArray(issues) ? issues : [];
+  if (list.length === 0) return true;
+  return list.some((issue) => issue.code === "REQUIRED");
+}
+
+export function firstIssueStep(issues) {
+  let step = null;
+  for (const issue of issues || []) {
+    const meta = selectionIssueMeta(issue.field);
+    if (meta?.step == null) continue;
+    if (step == null || meta.step < step) step = meta.step;
+  }
+  return step;
+}
+
+export function formatSelectionIssueLabel(t, issue) {
+  const meta = selectionIssueMeta(issue?.field);
+  const codeKey = `customBuild.step6.serverCodes.${issue?.code}`;
+  const codeLabel = t(codeKey);
+  const resolvedCode = codeLabel === codeKey ? issue?.code || "" : codeLabel;
+  let name = issue?.field || "";
+  if (meta?.summaryKey) {
+    const label = t(meta.summaryKey);
+    if (label && label !== meta.summaryKey) name = label;
+  }
+  return `${name}: ${resolvedCode}`.trim();
 }
 
 /**
  * Map wizard state onto the backend inquiry contract.
- * Only catalog-active option IDs are sent. Unmapped wizard fields go in notes.
- * Extra top-level fields (language, country, draftId, prices) are not sent:
- * the API rejects unknown and calculated-value keys.
+ * Selected wizard codes are resolved to catalog option IDs, including inactive
+ * rows so the API can return INACTIVE_OPTION instead of a false REQUIRED.
  */
 export function buildInquiryPayload({
   selections,
@@ -177,100 +443,13 @@ export function buildInquiryPayload({
   catalog,
   finishSheen,
 }) {
-  const mapped = {};
-
-  setIfPresent(
-    mapped,
-    "instrument-type",
-    activeOptionId(
-      catalog,
-      "instrument-type",
-      INSTRUMENT_TYPE_MAP[selections.instrumentTypeId],
-    ),
-  );
-  setIfPresent(
-    mapped,
-    "body-shape",
-    activeOptionId(catalog, "body-shape", SHAPE_MAP[selections.shapeId]),
-  );
-  setIfPresent(
-    mapped,
-    "body-wood",
-    activeOptionId(catalog, "body-wood", BODY_WOOD_MAP[selections.bodyWoodId]),
-  );
-  setIfPresent(
-    mapped,
-    "top-wood",
-    activeOptionId(catalog, "top-wood", TOP_WOOD_MAP[selections.topWoodId]),
-  );
-  setIfPresent(
-    mapped,
-    "neck-wood",
-    activeOptionId(catalog, "neck-wood", NECK_WOOD_MAP[selections.neckWoodId]),
-  );
-  setIfPresent(
-    mapped,
-    "fingerboard",
-    activeOptionId(
-      catalog,
-      "fingerboard",
-      FINGERBOARD_MAP[selections.fingerboardWoodId],
-    ),
-  );
-  setIfPresent(
-    mapped,
-    "bridge",
-    activeOptionId(catalog, "bridge", BRIDGE_MAP[selections.bridgeId]),
-  );
-  setIfPresent(
-    mapped,
-    "hardware",
-    activeOptionId(
-      catalog,
-      "hardware",
-      HARDWARE_MAP[selections.hardwareFinishId],
-    ),
-  );
-  setIfPresent(
-    mapped,
-    "electronics",
-    activeOptionId(
-      catalog,
-      "electronics",
-      CONTROL_TO_ELECTRONICS[selections.controlLayoutId],
-    ),
-  );
-  setIfPresent(
-    mapped,
-    "finish-type",
-    activeOptionId(
-      catalog,
-      "finish-type",
-      FINISH_TYPE_BY_SHEEN[finishSheen],
-    ),
-  );
-  setIfPresent(
-    mapped,
-    "finish-color",
-    activeOptionId(
-      catalog,
-      "finish-color",
-      FINISH_COLOR_MAP[selections.finishColorId],
-    ),
-  );
-
-  const pickups = pickupSelections(catalog, selections);
-  if (pickups.length > 0) mapped.pickups = pickups;
-
-  const details = customDetailSelections(catalog, selections);
-  if (details.length > 0) mapped["custom-details"] = details;
+  const mapped = mapCatalogSelections(catalog, selections, finishSheen);
 
   const customer = {
     name: selections.contactName.trim(),
     email: selections.contactEmail.trim(),
+    phone: (selections.contactPhone ?? "").trim(),
   };
-  const phone = selections.contactPhone.trim();
-  if (phone) customer.phone = phone;
 
   const configuration = {
     selections: mapped,
@@ -281,6 +460,8 @@ export function buildInquiryPayload({
   const payload = { customer, configuration };
   const message = selections.contactMessage.trim();
   if (message) payload.message = message;
+  const referenceImages = sanitizeReferenceImages(selections.referenceImages);
+  if (referenceImages.length) payload.referenceImages = referenceImages;
   return payload;
 }
 

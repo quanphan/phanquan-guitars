@@ -1,4 +1,5 @@
-import { INSTRUMENT_TYPES } from "../../../data/customBuild.js";
+import { optionDescription, optionLabel } from "../../../data/wizardCatalog.js";
+import { mediaUrl } from "../../../config/api.js";
 import { useLanguage } from "../../../i18n/LanguageContext.jsx";
 import ChoiceButton from "../ChoiceButton.jsx";
 import InstrumentTypeIcon from "../InstrumentTypeIcon.jsx";
@@ -18,12 +19,9 @@ function Section({ title, children }) {
   );
 }
 
-function EmptyState({ message }) {
-  return <p className="text-sm leading-relaxed text-muted">{message}</p>;
-}
-
 export default function StepInstrumentShape({
   selections,
+  instrumentTypes = [],
   availableSeries,
   availableShapes,
   availableScales,
@@ -36,7 +34,7 @@ export default function StepInstrumentShape({
   selectStringCount,
   selectRadius,
 }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const hasType = Boolean(selections.instrumentTypeId);
   const hasSeries = Boolean(selections.seriesId);
   const hasShape = Boolean(selections.shapeId);
@@ -55,15 +53,16 @@ export default function StepInstrumentShape({
         {t("customBuild.provisional")}
       </p>
 
+      {instrumentTypes.length > 0 ? (
       <Section title={t("customBuild.step1.instrumentLabel")}>
         <div
           role="radiogroup"
           aria-label={t("customBuild.step1.instrumentLabel")}
           className="flex flex-wrap gap-3"
         >
-          {INSTRUMENT_TYPES.map((type) => {
+          {instrumentTypes.map((type) => {
             const selected = selections.instrumentTypeId === type.id;
-            const name = t(`customBuild.types.${type.id}`);
+            const name = optionLabel(type, language, t, `customBuild.types.${type.id}`);
             return (
               <ChoiceButton
                 key={type.id}
@@ -72,10 +71,14 @@ export default function StepInstrumentShape({
                 label={name}
                 className="flex w-[7.25rem] flex-col items-center gap-2 px-3 py-3"
               >
+                {type.image ? (
+                  <img src={mediaUrl(type.image)} alt="" className="h-9 w-8 object-contain" />
+                ) : (
                 <InstrumentTypeIcon
-                  id={type.icon}
+                  id={type.icon || type.id}
                   className={`h-9 w-8 ${selected ? "text-gold" : "text-ivory/55"}`}
                 />
+                )}
                 <span className="text-center text-[10px] uppercase tracking-[0.14em] text-current">
                   {name}
                 </span>
@@ -84,39 +87,36 @@ export default function StepInstrumentShape({
           })}
         </div>
       </Section>
+      ) : null}
 
-      {hasType ? (
+      {hasType && availableSeries.length > 0 ? (
         <Section title={t("customBuild.step1.seriesLabel")}>
-          {availableSeries.length === 0 ? (
-            <EmptyState message={t("customBuild.step1.seriesContact")} />
-          ) : (
             <div
               role="radiogroup"
               aria-label={t("customBuild.step1.seriesLabel")}
               className="flex flex-wrap gap-3"
             >
-              {availableSeries.map((series) => (
+              {availableSeries.map((series) => {
+                const name = optionLabel(series, language, t, `customBuild.series.${series.id}.name`);
+                return (
                 <ChoiceButton
                   key={series.id}
                   selected={selections.seriesId === series.id}
                   onSelect={() => selectSeries(series.id)}
-                  label={t(`customBuild.series.${series.id}.name`)}
-                  description={t(`customBuild.series.${series.id}.description`)}
+                  label={name}
+                  description={optionDescription(series, language, t, `customBuild.series.${series.id}.description`)}
                   className={chipClass}
                 >
-                  {t(`customBuild.series.${series.id}.name`)}
+                  {name}
                 </ChoiceButton>
-              ))}
+                );
+              })}
             </div>
-          )}
         </Section>
       ) : null}
 
-      {hasSeries ? (
+      {hasSeries && availableShapes.length > 0 ? (
         <Section title={t("customBuild.step1.shapeLabel")}>
-          {availableShapes.length === 0 ? (
-            <EmptyState message={t("customBuild.step1.shapeContact")} />
-          ) : (
             <div
               role="radiogroup"
               aria-label={t("customBuild.step1.shapeLabel")}
@@ -124,7 +124,7 @@ export default function StepInstrumentShape({
             >
               {availableShapes.map((shape) => {
                 const selected = selections.shapeId === shape.id;
-                const name = t(`customBuild.shapes.${shape.id}.name`);
+                const name = optionLabel(shape, language, t, `customBuild.shapes.${shape.id}.name`);
                 return (
                   <ChoiceButton
                     key={shape.id}
@@ -144,29 +144,27 @@ export default function StepInstrumentShape({
                 );
               })}
             </div>
-          )}
         </Section>
       ) : null}
 
-      {hasShape ? (
+      {hasShape && availableScales.length > 0 ? (
         <Section title={t("customBuild.step1.scaleLabel")}>
-          {availableScales.length === 0 ? (
-            <EmptyState message={t("customBuild.step1.scaleContact")} />
-          ) : (
             <div
               role="radiogroup"
               aria-label={t("customBuild.step1.scaleLabel")}
               className="flex flex-wrap gap-3"
             >
-              {availableScales.map((scale) => (
+              {availableScales.map((scale) => {
+                const label = scale.display || optionLabel(scale, language, t, `customBuild.scales.${scale.id}`);
+                return (
                 <ChoiceButton
                   key={scale.id}
                   selected={selections.scaleId === scale.id}
                   onSelect={() => selectScale(scale.id)}
-                  label={scale.display}
+                  label={label}
                   className={chipClass}
                 >
-                  {scale.display}
+                  {label}
                   {scale.type === "multiscale" ? (
                     <span className="mt-1 block text-[10px] font-normal normal-case tracking-normal text-muted">
                       {t("customBuild.step1.multiscaleHint")
@@ -175,67 +173,66 @@ export default function StepInstrumentShape({
                     </span>
                   ) : null}
                 </ChoiceButton>
-              ))}
+                );
+              })}
             </div>
-          )}
         </Section>
       ) : null}
 
-      {hasScale ? (
+      {hasScale && availableStringCounts.length > 0 ? (
         <Section title={t("customBuild.step1.stringsLabel")}>
-          {availableStringCounts.length === 0 ? (
-            <EmptyState message={t("customBuild.step1.stringsContact")} />
-          ) : (
             <div
               role="radiogroup"
               aria-label={t("customBuild.step1.stringsLabel")}
               className="flex flex-wrap gap-3"
             >
-              {availableStringCounts.map((option) => (
+              {availableStringCounts.map((option) => {
+                const countTemplate = t("customBuild.strings.count");
+                const fromOption = optionLabel(option, language, t);
+                const label =
+                  fromOption && !fromOption.includes("{count}")
+                    ? fromOption
+                    : countTemplate.includes("{count}")
+                      ? countTemplate.replace("{count}", String(option.value))
+                      : fromOption || String(option.value);
+                return (
                 <ChoiceButton
                   key={option.id}
                   selected={selections.stringCount === option.value}
                   onSelect={() => selectStringCount(option.value)}
-                  label={t("customBuild.strings.count").replace(
-                    "{count}",
-                    String(option.value),
-                  )}
+                  label={label}
                   className={chipClass}
                 >
-                  {t("customBuild.strings.count").replace(
-                    "{count}",
-                    String(option.value),
-                  )}
+                  {label}
                 </ChoiceButton>
-              ))}
+                );
+              })}
             </div>
-          )}
         </Section>
       ) : null}
 
-      {hasStrings ? (
+      {hasStrings && availableRadii.length > 0 ? (
         <Section title={t("customBuild.step1.radiusLabel")}>
-          {availableRadii.length === 0 ? (
-            <EmptyState message={t("customBuild.step1.radiusContact")} />
-          ) : (
             <div
               role="radiogroup"
               aria-label={t("customBuild.step1.radiusLabel")}
               className="flex flex-wrap gap-3"
             >
-              {availableRadii.map((radius) => (
+              {availableRadii.map((radius) => {
+                const label = radius.display || optionLabel(radius, language, t);
+                return (
                 <ChoiceButton
                   key={radius.id}
                   selected={selections.radiusId === radius.id}
                   onSelect={() => selectRadius(radius.id)}
-                  label={radius.display}
+                  label={label}
                   className={chipClass}
                 >
-                  {radius.display}
+                  {label}
                 </ChoiceButton>
-              ))}
+                );
+              })}
             </div>
-          )}
         </Section>
       ) : null}
     </div>

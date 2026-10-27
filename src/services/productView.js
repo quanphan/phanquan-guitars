@@ -6,6 +6,7 @@ import {
   readProductType,
   specsToTabs,
 } from "../auth/productSpecs.js";
+import { readProductSeriesId } from "./guitarSeries.js";
 
 export function publicInstrumentsOfType(items, productType, catalogNames = {}) {
   return productsOfType(items, productType)
@@ -26,6 +27,7 @@ export function toPublicInstrument(product, catalogNames = {}) {
     slug: product.slug || product.id,
     source: "api",
     name: product.name,
+    seriesId: readProductSeriesId(product),
     typeLabel: product.instrumentType?.name || product.series?.name || product.bodyShape?.name || "",
     description: product.description || "",
     descriptionDetail: product.descriptionDetail || "",

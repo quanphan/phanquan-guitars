@@ -80,10 +80,36 @@ export function readCatalogId(value) {
 
 export function catalogTermName(item, language) {
   if (!item || typeof item !== "object") return "";
+  if (typeof item.name === "string" && item.name.trim()) return item.name.trim();
   const translated = language ? item.translations?.[language]?.name : "";
   if (typeof translated === "string" && translated.trim()) return translated.trim();
-  if (typeof item.name === "string" && item.name.trim()) return item.name.trim();
+  const other = language === "vi" ? item.translations?.en?.name : item.translations?.vi?.name;
+  if (typeof other === "string" && other.trim()) return other.trim();
   return "";
+}
+
+export function catalogTermDescription(item, language) {
+  if (!item || typeof item !== "object") return "";
+  const translated = language ? item.translations?.[language]?.description : "";
+  if (typeof translated === "string" && translated.trim()) return translated.trim();
+  if (typeof item.description === "string" && item.description.trim()) return item.description.trim();
+  return "";
+}
+
+export function catalogTermShortDescription(item, language) {
+  if (!item || typeof item !== "object") return "";
+  const translated = language ? item.translations?.[language]?.shortDescription : "";
+  if (typeof translated === "string" && translated.trim()) return translated.trim();
+  if (typeof item.shortDescription === "string" && item.shortDescription.trim()) {
+    return item.shortDescription.trim();
+  }
+  const other = language === "vi" ? item.translations?.en?.shortDescription : item.translations?.vi?.shortDescription;
+  if (typeof other === "string" && other.trim()) return other.trim();
+  return "";
+}
+
+export function usesParentField(kind) {
+  return kind !== "categories";
 }
 
 export function catalogParentLabel(item, byId, language) {
@@ -124,7 +150,18 @@ export function filterTerms(items, { q = "", status = "" } = {}) {
     if (status === "active" && item.isActive === false) return false;
     if (status === "inactive" && item.isActive !== false) return false;
     if (!search) return true;
-    const haystack = [item.name, item.slug, item.translations?.vi?.name, item.translations?.en?.name]
+    const haystack = [
+      item.name,
+      item.slug,
+      item.translations?.vi?.name,
+      item.translations?.en?.name,
+      item.translations?.vi?.description,
+      item.translations?.en?.description,
+      item.translations?.vi?.shortDescription,
+      item.translations?.en?.shortDescription,
+      item.description,
+      item.shortDescription,
+    ]
       .filter(Boolean)
       .join(" ")
       .toLowerCase();
@@ -132,30 +169,67 @@ export function filterTerms(items, { q = "", status = "" } = {}) {
   });
 }
 
-function localeBlock(name, description) {
-  const next = {};
+function localeBlock(name, description, shortDescription) {
   const trimmedName = typeof name === "string" ? name.trim() : "";
   const trimmedDescription = typeof description === "string" ? description.trim() : "";
-  if (trimmedName) next.name = trimmedName;
-  if (trimmedDescription) next.description = trimmedDescription;
-  return Object.keys(next).length ? next : null;
+  const trimmedShort = typeof shortDescription === "string" ? shortDescription.trim() : "";
+  const block = {
+    name: trimmedName || null,
+    description: trimmedDescription || null,
+  };
+  if (shortDescription !== undefined) {
+    block.shortDescription = trimmedShort || null;
+  }
+  return block;
 }
 
-export function buildTermPayload(form, { includeImagePath = true } = {}) {
+function readOptionalPrice(value) {
+  if (value === "" || value == null) return null;
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount < 0) return { error: "invalid" };
+  return amount;
+}
+
+export function buildTermPayload(form, { includeImagePath = true, kind } = {}) {
   const errors = {};
   const name = typeof form.name === "string" ? form.name.trim() : "";
-  const slug = typeof form.slug === "string" ? form.slug.trim().toLowerCase() : "";
+  const providedSlug = typeof form.slug === "string" ? form.slug.trim().toLowerCase() : "";
+  const slug = providedSlug || slugifyName(name);
   if (!name) errors.name = "required";
   else if (name.length > 120) errors.name = "tooLong";
   if (!slug) errors.slug = "required";
   else if (!isValidSlug(slug)) errors.slug = "invalidSlug";
 
-  const description = typeof form.description === "string" ? form.description.trim() : "";
-  if (description.length > 500) errors.description = "tooLong";
+  const viDescription = typeof form.viDescription === "string" ? form.viDescription.trim() : "";
+  const enDescription = typeof form.enDescription === "string" ? form.enDescription.trim() : "";
+  const viShortDescription = typeof form.viShortDescription === "string" ? form.viShortDescription.trim() : "";
+  const enShortDescription = typeof form.enShortDescription === "string" ? form.enShortDescription.trim() : "";
+  if (viDescription.length > 500) errors.viDescription = "tooLong";
+  if (enDescription.length > 500) errors.enDescription = "tooLong";
+  if (viShortDescription.length > 200) errors.viShortDescription = "tooLong";
+  if (enShortDescription.length > 200) errors.enShortDescription = "tooLong";
 
   const sortOrder = Number(form.sortOrder);
   if (!Number.isInteger(sortOrder) || sortOrder < 0 || sortOrder > 10000) {
     errors.sortOrder = "invalid";
+  }
+
+  const isSeries = kind === "series";
+  let minPrice = null;
+  let maxPrice = null;
+  let currency = null;
+  if (isSeries) {
+    minPrice = readOptionalPrice(form.minPrice);
+    maxPrice = readOptionalPrice(form.maxPrice);
+    if (minPrice && typeof minPrice === "object") errors.minPrice = minPrice.error;
+    if (maxPrice && typeof maxPrice === "object") errors.maxPrice = maxPrice.error;
+    if (typeof minPrice === "number" && typeof maxPrice === "number" && minPrice > maxPrice) {
+      errors.minPrice = "invalidRange";
+      errors.maxPrice = "invalidRange";
+    }
+    const rawCurrency = typeof form.currency === "string" ? form.currency.trim().toUpperCase() : "";
+    currency = rawCurrency || "USD";
+    if (!/^[A-Z]{3}$/.test(currency)) errors.currency = "invalid";
   }
 
   if (Object.keys(errors).length) {
@@ -167,8 +241,11 @@ export function buildTermPayload(form, { includeImagePath = true } = {}) {
     slug,
     isActive: form.isActive !== false,
     sortOrder,
+    translations: {
+      vi: localeBlock(name, viDescription, isSeries ? viShortDescription : undefined),
+      en: localeBlock(name, enDescription, isSeries ? enShortDescription : undefined),
+    },
   };
-  if (description || form.description === "") body.description = description || null;
   if (form.parentId) body.parentId = form.parentId;
   else body.parentId = null;
 
@@ -176,12 +253,11 @@ export function buildTermPayload(form, { includeImagePath = true } = {}) {
     body.imagePath = form.imagePath || null;
   }
 
-  const translations = {};
-  const vi = localeBlock(form.viName, form.viDescription);
-  const en = localeBlock(form.enName, form.enDescription);
-  if (vi) translations.vi = vi;
-  if (en) translations.en = en;
-  if (Object.keys(translations).length) body.translations = translations;
+  if (isSeries) {
+    body.minPrice = typeof minPrice === "number" ? minPrice : null;
+    body.maxPrice = typeof maxPrice === "number" ? maxPrice : null;
+    body.currency = currency;
+  }
 
   return { ok: true, errors: {}, body };
 }

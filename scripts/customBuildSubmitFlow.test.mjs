@@ -55,6 +55,18 @@ test("blocks invalid contact fields without calling the API", () => {
   assert.equal(firstContactFieldId(result.contactErrorKeys), "contact-email");
 });
 
+test("blocks a missing phone number without calling the API and focuses the phone field", () => {
+  const result = nextSubmitAction({
+    locked: false,
+    status: "idle",
+    incompleteStep: null,
+    contactErrorKeys: ["contactPhone"],
+    configured: true,
+  });
+  assert.equal(result.action, "invalid");
+  assert.equal(firstContactFieldId(result.contactErrorKeys), "contact-phone");
+});
+
 test("proceeds to submit only when config, contact, and API are ready", () => {
   assert.equal(
     nextSubmitAction({

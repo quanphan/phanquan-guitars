@@ -7,6 +7,10 @@ export default function ConfirmDialog({
   confirmLabel,
   cancelLabel,
   busy = false,
+  busyLabel,
+  extraActionLabel,
+  onExtraAction,
+  hideConfirm = false,
   onConfirm,
   onCancel,
 }) {
@@ -54,6 +58,7 @@ export default function ConfirmDialog({
           >
             {cancelLabel}
           </button>
+          {hideConfirm ? null : (
           <button
             ref={confirmRef}
             type="button"
@@ -61,8 +66,19 @@ export default function ConfirmDialog({
             disabled={busy}
             className="border border-gold bg-gold px-5 py-3 text-[11px] uppercase tracking-[0.22em] text-charcoal transition-colors hover:bg-gold-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold disabled:opacity-40"
           >
-            {busy ? confirmLabel : confirmLabel}
+            {busy ? busyLabel || confirmLabel : confirmLabel}
           </button>
+          )}
+          {extraActionLabel && onExtraAction ? (
+            <button
+              type="button"
+              onClick={onExtraAction}
+              disabled={busy}
+              className="border border-gold/70 px-5 py-3 text-[11px] uppercase tracking-[0.22em] text-gold transition-colors hover:bg-gold/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold disabled:opacity-40"
+            >
+              {extraActionLabel}
+            </button>
+          ) : null}
         </div>
       </div>
     </div>
