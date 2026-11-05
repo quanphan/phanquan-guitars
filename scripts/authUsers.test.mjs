@@ -5,7 +5,14 @@ import { canChangeTarget, SUPERADMIN_ONLY, userHasPermission } from "../src/auth
 import { buildCreateAdminPayload } from "../src/auth/createAdminPayload.js";
 import { buildRegisterPayload, fieldErrorsFromPayload } from "../src/auth/registerPayload.js";
 import { postLoginPath, safeAppRedirect } from "../src/auth/redirects.js";
-import { parseAuthData } from "../src/auth/session.js";
+import {
+  parseAuthData,
+  SESSION_IDLE_MS,
+  SESSION_MAX_AGE_MS,
+  sessionIsExpired,
+  stampSessionTimes,
+  touchSessionActivity,
+} from "../src/auth/session.js";
 
 test("register payload omits role and defaults marketing consent off", () => {
   const next = buildRegisterPayload({
@@ -96,6 +103,29 @@ test("session restore keeps marketing consent and permissions, not password", ()
   });
   assert.equal(session.user.marketingConsent, true);
   assert.equal(Object.prototype.hasOwnProperty.call(session.user, "password"), false);
+});
+
+test("a login session expires after 24 hours or 30 minutes idle", () => {
+  const now = 1_700_000_000_000;
+  const fresh = stampSessionTimes(
+    { accessToken: "access", refreshToken: "refresh", user: { id: "u1" } },
+    null,
+    now,
+  );
+  assert.equal(sessionIsExpired(fresh, now), false);
+  assert.equal(sessionIsExpired(fresh, now + SESSION_IDLE_MS - 1), false);
+  assert.equal(sessionIsExpired(fresh, now + SESSION_IDLE_MS), true);
+  assert.equal(sessionIsExpired(fresh, now + SESSION_MAX_AGE_MS), true);
+
+  const stillWorking = stampSessionTimes(fresh, fresh, now + SESSION_IDLE_MS - 1_000);
+  assert.equal(stillWorking.issuedAt, now);
+  assert.equal(sessionIsExpired(stillWorking, now + SESSION_IDLE_MS), false);
+  assert.equal(sessionIsExpired(stillWorking, now + SESSION_MAX_AGE_MS), true);
+
+  const touched = touchSessionActivity(fresh, now + 6_000);
+  assert.equal(touched.lastActivityAt, now + 6_000);
+  assert.equal(touchSessionActivity(fresh, now + 1_000), fresh);
+  assert.equal(sessionIsExpired({ accessToken: "access" }, now), true);
 });
 
 test("backend validation details map onto fields", () => {

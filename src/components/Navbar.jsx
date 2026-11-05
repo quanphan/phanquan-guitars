@@ -4,16 +4,8 @@ import brandLogo from "../assets/guitars/logo/Screenshot 2026-10-16 at 15.56.04.
 import { useAuth } from "../auth/AuthContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import { accountMenuLinks } from "../auth/accountMenu.js";
+import { PRIMARY_NAV_LINKS } from "../data/nav.js";
 import AccountMenu from "./AccountMenu.jsx";
-
-const links = [
-  { to: "/guitars", key: "nav.guitars" },
-  { to: "/in-stock", key: "nav.inStock" },
-  { to: "/gallery", key: "nav.gallery" },
-  { to: "/build-process", key: "nav.buildProcess" },
-  { to: "/about", key: "nav.about" },
-  { to: "/contact", key: "nav.contact" },
-];
 
 function LanguageSwitcher({ className = "" }) {
   const { language, setLanguage, t } = useLanguage();
@@ -82,7 +74,7 @@ export default function Navbar() {
         </Link>
 
         <nav className="hidden items-center gap-8 lg:flex" aria-label="Primary">
-          {links.map((link) => (
+          {PRIMARY_NAV_LINKS.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
@@ -127,7 +119,7 @@ export default function Navbar() {
           aria-label="Mobile"
         >
           <ul className="flex flex-col gap-5">
-            {links.map((link) => (
+            {PRIMARY_NAV_LINKS.map((link) => (
               <li key={link.to}>
                 <NavLink
                   to={link.to}

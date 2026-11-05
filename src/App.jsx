@@ -11,13 +11,20 @@ import GuitarDetail from "./pages/GuitarDetail.jsx";
 import Guitars from "./pages/Guitars.jsx";
 import Home from "./pages/Home.jsx";
 import InStock from "./pages/InStock.jsx";
+import Services from "./pages/Services.jsx";
+import ServiceCategory from "./pages/ServiceCategory.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import AdminIndex from "./pages/admin/AdminIndex.jsx";
 import AdminInquiries from "./pages/admin/AdminInquiries.jsx";
 import AdminInquiryDetail from "./pages/admin/AdminInquiryDetail.jsx";
 import AdminBrandSettings from "./pages/admin/AdminBrandSettings.jsx";
+import AdminFooterQuickLinks from "./pages/admin/AdminFooterQuickLinks.jsx";
+import FooterQuickLinkEditor from "./pages/admin/FooterQuickLinkEditor.jsx";
 import AdminPageContent from "./pages/admin/AdminPageContent.jsx";
+import AdminServices from "./pages/admin/AdminServices.jsx";
+import ServiceCategoryEditor from "./pages/admin/ServiceCategoryEditor.jsx";
+import ServiceItemEditor from "./pages/admin/ServiceItemEditor.jsx";
 import AdminMessages from "./pages/admin/AdminMessages.jsx";
 import AdminMessageDetail from "./pages/admin/AdminMessageDetail.jsx";
 import AdminLogin from "./pages/admin/AdminLogin.jsx";
@@ -42,6 +49,8 @@ export default function App() {
         <Route path="/guitars/:id" element={<GuitarDetail />} />
         <Route path="/in-stock" element={<InStock />} />
         <Route path="/in-stock/:slug" element={<StockDetail />} />
+        <Route path="/services" element={<Services />} />
+        <Route path="/services/:slug" element={<ServiceCategory />} />
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/custom-build" element={<CustomBuild />} />
         <Route path="/build-process" element={<BuildProcess />} />
@@ -62,7 +71,15 @@ export default function App() {
           <Route path="/admin/messages" element={<AdminMessages />} />
           <Route path="/admin/messages/:id" element={<AdminMessageDetail />} />
           <Route path="/admin/settings/brand" element={<AdminBrandSettings />} />
+          <Route path="/admin/settings/footer-links" element={<AdminFooterQuickLinks />} />
+          <Route path="/admin/settings/footer-links/new" element={<FooterQuickLinkEditor />} />
+          <Route path="/admin/settings/footer-links/:id" element={<FooterQuickLinkEditor />} />
           <Route path="/admin/page-content" element={<AdminPageContent />} />
+          <Route path="/admin/services" element={<AdminServices />} />
+          <Route path="/admin/services/categories/new" element={<ServiceCategoryEditor />} />
+          <Route path="/admin/services/categories/:id" element={<ServiceCategoryEditor />} />
+          <Route path="/admin/services/items/new" element={<ServiceItemEditor />} />
+          <Route path="/admin/services/items/:id" element={<ServiceItemEditor />} />
           <Route path="/admin/custom-build-setup" element={<AdminCustomBuildSetup />} />
           <Route path="/admin/custom-build-setup/:categoryId/new" element={<WizardOptionEditor />} />
           <Route path="/admin/custom-build-setup/:categoryId/:optionId" element={<WizardOptionEditor />} />

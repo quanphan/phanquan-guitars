@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { isAdminRole, resolveAdminView, safeAdminRedirect } from "../src/auth/adminAccess.js";
+import { adminLoginPath, isAdminRole, resolveAdminView, safeAdminRedirect } from "../src/auth/adminAccess.js";
 import { buildLoginPayload } from "../src/auth/loginPayload.js";
 import { parseAuthData } from "../src/auth/session.js";
 import {
@@ -19,6 +19,9 @@ test("unauthenticated admin pages redirect to login", () => {
   assert.equal(safeAdminRedirect("/admin/inquiries/inq_123"), "/admin/inquiries/inq_123");
   assert.equal(safeAdminRedirect("/admin/messages/abc123"), "/admin/messages/abc123");
   assert.equal(safeAdminRedirect("https://evil.example/admin/messages/abc123"), "/admin");
+  assert.equal(adminLoginPath("/admin/users"), "/admin/login?from=%2Fadmin%2Fusers");
+  assert.equal(adminLoginPath("/admin/login"), "/admin/login");
+  assert.equal(adminLoginPath("/about"), "/admin/login");
 });
 
 test("authenticated customers are denied instead of seeing inquiries", () => {

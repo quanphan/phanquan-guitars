@@ -1,6 +1,9 @@
 import { isAdminRole } from "./adminAccess.js";
 
 export const ADMIN_SESSION_KEY = "phanquan-guitars-admin-session";
+export const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+export const SESSION_IDLE_MS = 30 * 60 * 1000;
+export const SESSION_ACTIVITY_THROTTLE_MS = 5 * 1000;
 
 function publicAddress(address) {
   if (!address || typeof address !== "object") return null;
@@ -53,6 +56,40 @@ export function parseAuthData(payload) {
   };
 }
 
+function asTimestamp(value) {
+  const time = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(time) && time > 0 ? time : null;
+}
+
+export function stampSessionTimes(session, previous, now = Date.now()) {
+  if (!session) return null;
+  const issuedAt = asTimestamp(previous?.issuedAt) ?? asTimestamp(session.issuedAt) ?? now;
+  return {
+    ...session,
+    issuedAt,
+    lastActivityAt: now,
+  };
+}
+
+export function touchSessionActivity(session, now = Date.now()) {
+  if (!session) return null;
+  const lastActivityAt = asTimestamp(session.lastActivityAt);
+  if (lastActivityAt != null && now - lastActivityAt < SESSION_ACTIVITY_THROTTLE_MS) {
+    return session;
+  }
+  return { ...session, lastActivityAt: now };
+}
+
+export function sessionIsExpired(session, now = Date.now()) {
+  if (!session?.accessToken) return true;
+  const issuedAt = asTimestamp(session.issuedAt);
+  const lastActivityAt = asTimestamp(session.lastActivityAt);
+  if (issuedAt == null || lastActivityAt == null) return true;
+  if (now - issuedAt >= SESSION_MAX_AGE_MS) return true;
+  if (now - lastActivityAt >= SESSION_IDLE_MS) return true;
+  return false;
+}
+
 export function sessionIsAdmin(session) {
   return Boolean(session?.accessToken && isAdminRole(session.user?.role));
 }
@@ -74,6 +111,8 @@ export function readAdminSession(storage = globalThis.sessionStorage) {
       accessToken: parsed.accessToken,
       refreshToken: parsed.refreshToken,
       expiresIn: parsed.expiresIn ?? null,
+      issuedAt: asTimestamp(parsed.issuedAt),
+      lastActivityAt: asTimestamp(parsed.lastActivityAt),
       user,
     };
   } catch {
@@ -90,6 +129,8 @@ export function writeAdminSession(session, storage = globalThis.sessionStorage) 
         accessToken: session.accessToken,
         refreshToken: session.refreshToken,
         expiresIn: session.expiresIn ?? null,
+        issuedAt: asTimestamp(session.issuedAt),
+        lastActivityAt: asTimestamp(session.lastActivityAt),
         user: publicUser(session.user),
       }),
     );

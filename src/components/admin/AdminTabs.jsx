@@ -8,7 +8,9 @@ const tabs = [
   { to: "/admin/inquiries", key: "admin.tabs.inquiries" },
   { to: "/admin/messages", key: "admin.tabs.messages" },
   { to: "/admin/settings/brand", key: "admin.tabs.brandSettings" },
+  { to: "/admin/settings/footer-links", key: "admin.tabs.footerLinks" },
   { to: "/admin/page-content", key: "admin.tabs.pageContent" },
+  { to: "/admin/services", key: "admin.tabs.services" },
 ];
 
 export default function AdminTabs() {

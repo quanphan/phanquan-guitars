@@ -32,6 +32,16 @@ export function resolveAdminView({ pathname, session }) {
   return { view: "allow", redirectTo: null };
 }
 
+export function adminLoginPath(pathname) {
+  if (typeof pathname !== "string" || !pathname.startsWith("/admin")) {
+    return "/admin/login";
+  }
+  if (pathname === "/admin/login" || pathname.startsWith("/admin/login?")) {
+    return "/admin/login";
+  }
+  return `/admin/login?from=${encodeURIComponent(pathname)}`;
+}
+
 export function safeAdminRedirect(from) {
   if (typeof from !== "string" || !from.startsWith("/admin")) return "/admin";
   if (from === "/admin/login") return "/admin";

@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   fetchCurrentUser,
   loginWithGoogleCredential,
@@ -10,14 +11,20 @@ import {
   updateAccountProfile,
 } from "../services/authService.js";
 import { requestForm, requestJson } from "../services/apiClient.js";
+import { adminLoginPath } from "./adminAccess.js";
 import { userHasPermission } from "./permissions.js";
 import {
   clearAdminSession,
   publicUser,
   readAdminSession,
   sessionIsAdmin,
+  sessionIsExpired,
+  stampSessionTimes,
+  touchSessionActivity,
   writeAdminSession,
 } from "./session.js";
+
+const ACTIVITY_EVENTS = ["pointerdown", "keydown", "touchstart", "scroll"];
 
 const AuthContext = createContext(null);
 
@@ -26,11 +33,19 @@ export function AuthProvider({ children }) {
   const [ready, setReady] = useState(false);
   const sessionRef = useRef(null);
   const refreshPromiseRef = useRef(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const locationRef = useRef(location);
 
-  const persist = useCallback((next) => {
-    sessionRef.current = next;
-    setSession(next);
-    if (next) writeAdminSession(next);
+  locationRef.current = location;
+
+  const persist = useCallback((next, { resetClock = false } = {}) => {
+    const stamped = next
+      ? stampSessionTimes(next, resetClock ? null : sessionRef.current)
+      : null;
+    sessionRef.current = stamped;
+    setSession(stamped);
+    if (stamped) writeAdminSession(stamped);
     else clearAdminSession();
   }, []);
 
@@ -38,9 +53,26 @@ export function AuthProvider({ children }) {
     persist(null);
   }, [persist]);
 
+  const expireSession = useCallback(async () => {
+    const current = sessionRef.current;
+    if (!current) return;
+    const wasAdmin = sessionIsAdmin(current);
+    const pathname = locationRef.current?.pathname || "";
+    const token = current.refreshToken;
+    clear();
+    await logoutRemote(token);
+    if (wasAdmin && pathname !== "/admin/login") {
+      navigate(adminLoginPath(pathname), { replace: true });
+    }
+  }, [clear, navigate]);
+
   const refreshAccessToken = useCallback(async () => {
     const current = sessionRef.current;
     if (!current?.refreshToken) return null;
+    if (sessionIsExpired(current)) {
+      await expireSession();
+      return null;
+    }
     if (refreshPromiseRef.current) return refreshPromiseRef.current;
 
     refreshPromiseRef.current = refreshSession(current.refreshToken)
@@ -57,10 +89,14 @@ export function AuthProvider({ children }) {
       });
 
     return refreshPromiseRef.current;
-  }, [clear, persist]);
+  }, [clear, expireSession, persist]);
 
   const authorizedRequest = useCallback(
     async (path, options = {}) => {
+      if (sessionRef.current && sessionIsExpired(sessionRef.current)) {
+        await expireSession();
+        return { ok: false, status: 401, payload: null, network: false };
+      }
       const token = sessionRef.current?.accessToken;
       let result = await requestJson(path, { ...options, token });
       if (result.status !== 401) return result;
@@ -68,11 +104,15 @@ export function AuthProvider({ children }) {
       if (!nextToken) return result;
       return requestJson(path, { ...options, token: nextToken });
     },
-    [refreshAccessToken],
+    [expireSession, refreshAccessToken],
   );
 
   const authorizedFormRequest = useCallback(
     async (path, options = {}) => {
+      if (sessionRef.current && sessionIsExpired(sessionRef.current)) {
+        await expireSession();
+        return { ok: false, status: 401, payload: null, network: false };
+      }
       const token = sessionRef.current?.accessToken;
       let result = await requestForm(path, { ...options, token });
       if (result.status !== 401) return result;
@@ -80,7 +120,7 @@ export function AuthProvider({ children }) {
       if (!nextToken) return result;
       return requestForm(path, { ...options, token: nextToken });
     },
-    [refreshAccessToken],
+    [expireSession, refreshAccessToken],
   );
 
   useEffect(() => {
@@ -88,8 +128,18 @@ export function AuthProvider({ children }) {
 
     async function restore() {
       const stored = readAdminSession();
-      if (!stored) {
-        if (!cancelled) setReady(true);
+      if (!stored || sessionIsExpired(stored)) {
+        const wasAdmin = Boolean(stored && sessionIsAdmin(stored));
+        if (stored) {
+          clearAdminSession();
+          void logoutRemote(stored.refreshToken);
+        }
+        if (!cancelled) {
+          setReady(true);
+          if (wasAdmin) {
+            navigate(adminLoginPath(locationRef.current?.pathname), { replace: true });
+          }
+        }
         return;
       }
       sessionRef.current = stored;
@@ -124,12 +174,12 @@ export function AuthProvider({ children }) {
     return () => {
       cancelled = true;
     };
-  }, [clear, persist, refreshAccessToken]);
+  }, [clear, navigate, persist, refreshAccessToken]);
 
   const login = useCallback(
     async (body) => {
       const result = await loginWithPassword(body);
-      if (result.ok) persist(result.session);
+      if (result.ok) persist(result.session, { resetClock: true });
       return result;
     },
     [persist],
@@ -138,7 +188,7 @@ export function AuthProvider({ children }) {
   const register = useCallback(
     async (body) => {
       const result = await registerWithPassword(body);
-      if (result.ok) persist(result.session);
+      if (result.ok) persist(result.session, { resetClock: true });
       return result;
     },
     [persist],
@@ -147,11 +197,44 @@ export function AuthProvider({ children }) {
   const loginWithGoogle = useCallback(
     async (credential) => {
       const result = await loginWithGoogleCredential(credential);
-      if (result.ok) persist(result.session);
+      if (result.ok) persist(result.session, { resetClock: true });
       return result;
     },
     [persist],
   );
+
+  useEffect(() => {
+    function onActivity() {
+      const current = sessionRef.current;
+      if (!current) return;
+      if (sessionIsExpired(current)) {
+        void expireSession();
+        return;
+      }
+      const next = touchSessionActivity(current);
+      if (next === current) return;
+      sessionRef.current = next;
+      writeAdminSession(next);
+    }
+
+    function onVisibility() {
+      if (document.visibilityState === "visible") onActivity();
+    }
+
+    const timer = window.setInterval(() => {
+      const current = sessionRef.current;
+      if (current && sessionIsExpired(current)) void expireSession();
+    }, 15_000);
+
+    ACTIVITY_EVENTS.forEach((event) => window.addEventListener(event, onActivity, { passive: true }));
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      window.clearInterval(timer);
+      ACTIVITY_EVENTS.forEach((event) => window.removeEventListener(event, onActivity));
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [expireSession]);
 
   const logout = useCallback(async () => {
     const token = sessionRef.current?.refreshToken;
