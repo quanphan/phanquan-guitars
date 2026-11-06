@@ -1,4 +1,4 @@
-const ROLES = ["customer", "admin", "superadmin"];
+const ROLES = ["customer", "admin", "editor", "custom", "superadmin"];
 const STATUSES = ["active", "locked"];
 
 export function buildUserListQuery({ q, role, status, page, limit } = {}) {

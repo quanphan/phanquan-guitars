@@ -207,6 +207,20 @@ test("product payload requires product type and omits legacy slug/type/brand", (
   assert.equal(next.body.specs.bodyWood, "Ash");
 });
 
+test("product payload keeps unique image paths and uses the first as cover", () => {
+  const next = buildProductPayload({
+    name: "PQ T Custom",
+    productType: "custom-order",
+    sortOrder: 0,
+    status: "draft",
+    image: "/uploads/guitars/a.png",
+    images: ["/uploads/guitars/a.png", "/uploads/guitars/a.png", "/uploads/guitars/b.png"],
+  });
+  assert.equal(next.ok, true);
+  assert.deepEqual(next.body.images, ["/uploads/guitars/a.png", "/uploads/guitars/b.png"]);
+  assert.equal(next.body.image, "/uploads/guitars/a.png");
+});
+
 test("reorder helper swaps adjacent ids only", () => {
   assert.deepEqual(moveId(["a", "b", "c"], "b", -1), ["b", "a", "c"]);
   assert.equal(moveId(["a", "b"], "a", -1), null);

@@ -13,11 +13,10 @@ import {
   SPEC_TEXTAREA_KEYS,
 } from "../../auth/productSpecs.js";
 import { fieldErrorsFromPayload } from "../../auth/registerPayload.js";
-import ImageUploadField from "../../components/admin/ImageUploadField.jsx";
+import ProductImagesField from "../../components/admin/ProductImagesField.jsx";
 import Field, { fieldClass, errorFieldClass } from "../../components/auth/Field.jsx";
 import Button from "../../components/Button.jsx";
 import PageHeader from "../../components/PageHeader.jsx";
-import { mediaUrl } from "../../config/api.js";
 import { useLanguage } from "../../i18n/LanguageContext.jsx";
 import {
   createAdminCatalogProduct,
@@ -63,12 +62,11 @@ export default function CatalogProductEditor() {
   const [loading, setLoading] = useState(!isNew || Boolean(copyFrom));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
-  const [uploadError, setUploadError] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
   const [notice, setNotice] = useState(location.state?.saved ? "saved" : null);
   const canRead = hasPermission("catalog.read");
   const canWrite = hasPermission("catalog.write");
-  const canUpload = hasPermission("uploads.write");
+  const canUpload = hasPermission("uploads.write") || hasPermission("uploads.upload");
 
   const setField = useCallback((key, value) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -82,7 +80,6 @@ export default function CatalogProductEditor() {
     }
     setLoading(true);
     setError(null);
-    setUploadError(null);
     setFieldErrors({});
     setForm(emptyForm);
     setExistingSpecs(null);
@@ -185,43 +182,8 @@ export default function CatalogProductEditor() {
     }
   }
 
-  async function uploadMain(file) {
+  function uploadProductImage(file) {
     return uploadAdminImage(authorizedFormRequest, { file, scope: "guitars" });
-  }
-
-  async function uploadGallery(file) {
-    setUploadError(null);
-    const result = await uploadAdminImage(authorizedFormRequest, { file, scope: "guitars" });
-    if (result.ok) {
-      setForm((current) => {
-        const images = current.images.includes(result.path) ? current.images : [...current.images, result.path];
-        return { ...current, images, image: current.image || result.path };
-      });
-    } else {
-      setUploadError(result.code);
-    }
-    return result;
-  }
-
-  function moveImage(index, direction) {
-    setForm((current) => {
-      const images = current.images.slice();
-      const next = index + direction;
-      if (next < 0 || next >= images.length) return current;
-      [images[index], images[next]] = [images[next], images[index]];
-      return { ...current, images, image: images[0] || current.image };
-    });
-  }
-
-  function removeImage(path) {
-    setForm((current) => {
-      const images = current.images.filter((item) => item !== path);
-      return {
-        ...current,
-        images,
-        image: current.image === path ? images[0] || "" : current.image,
-      };
-    });
   }
 
   const disabled = saving || !canWrite;
@@ -252,12 +214,6 @@ export default function CatalogProductEditor() {
                 {error === "invalid" ? t("auth.formIncomplete") : errorText(t, "admin.catalog", error)}
               </p>
             ) : null}
-            {uploadError ? (
-              <p className="border border-gold/40 bg-gold/10 px-4 py-3 text-sm" role="alert">
-                {errorText(t, "admin.catalog", uploadError)}
-              </p>
-            ) : null}
-
             <Section title={t("admin.catalog.sections.basic")}>
               <div className="grid gap-5 md:grid-cols-2">
                 <Field id="product-name" label={t("admin.catalog.fields.name")} value={form.name} onChange={(value) => setField("name", value)} disabled={disabled} required error={fieldErrors.name} />
@@ -308,56 +264,13 @@ export default function CatalogProductEditor() {
             </Section>
 
             <Section title={t("admin.catalog.sections.images")}>
-              <ImageUploadField
-                label={t("admin.catalog.fields.image")}
-                storedPath={form.image}
+              <ProductImagesField
+                images={form.images}
                 canUpload={canUpload && canWrite}
-                disabled={saving}
-                onUploaded={(path) => {
-                  setForm((current) => ({
-                    ...current,
-                    image: path,
-                    images: current.images.includes(path) ? current.images : [path, ...current.images],
-                  }));
-                }}
-                upload={uploadMain}
+                disabled={disabled}
+                upload={uploadProductImage}
+                onChange={({ images, image }) => setForm((current) => ({ ...current, images, image }))}
               />
-              <div className="mt-6">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-gold">{t("admin.catalog.fields.gallery")}</p>
-                <ul className="mt-3 space-y-3">
-                  {form.images.map((path, index) => (
-                    <li key={path} className="flex flex-wrap items-center gap-3 border border-white/8 p-3">
-                      <img src={mediaUrl(path)} alt="" className="h-16 w-16 object-cover" />
-                      <p className="min-w-0 flex-1 break-all text-xs text-muted">{path}</p>
-                      <button type="button" disabled={disabled || index === 0} onClick={() => moveImage(index, -1)} className="text-[11px] uppercase tracking-[0.16em] text-gold disabled:opacity-40">
-                        {t("admin.catalog.up")}
-                      </button>
-                      <button type="button" disabled={disabled || index === form.images.length - 1} onClick={() => moveImage(index, 1)} className="text-[11px] uppercase tracking-[0.16em] text-gold disabled:opacity-40">
-                        {t("admin.catalog.down")}
-                      </button>
-                      <button type="button" disabled={disabled} onClick={() => removeImage(path)} className="text-[11px] uppercase tracking-[0.16em] text-gold">
-                        {t("admin.catalog.removeImage")}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-                {canUpload && canWrite ? (
-                  <label className="mt-3 inline-flex cursor-pointer border border-gold/70 px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-ivory hover:bg-gold/10">
-                    {t("admin.catalog.addGalleryImage")}
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,image/gif"
-                      className="sr-only"
-                      disabled={saving}
-                      onChange={(event) => {
-                        const file = event.target.files?.[0];
-                        event.target.value = "";
-                        if (file) void uploadGallery(file);
-                      }}
-                    />
-                  </label>
-                ) : null}
-              </div>
             </Section>
 
             <Section title={t("admin.catalog.sections.specs")}>

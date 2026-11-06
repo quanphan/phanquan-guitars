@@ -198,11 +198,14 @@ export default function PageContentSession({ pageKey, children }) {
           onPublish={() => setConfirm("publish")}
           onPreview={() => {
             setEditing(false);
-            setSearchParams({ preview: "1" });
+            const next = new URLSearchParams(searchParams);
+            next.set("preview", "1");
+            setSearchParams(next);
           }}
           onExitPreview={() => {
-            searchParams.delete("preview");
-            setSearchParams(searchParams);
+            const next = new URLSearchParams(searchParams);
+            next.delete("preview");
+            setSearchParams(next);
           }}
         />
       ) : null}

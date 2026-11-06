@@ -64,6 +64,8 @@ test("admins can open inquiry and brand settings routes", () => {
   assert.equal(admin.view, "allow");
   assert.equal(superadmin.view, "allow");
   assert.equal(isAdminRole("customer"), false);
+  assert.equal(isAdminRole("editor"), true);
+  assert.equal(isAdminRole("custom"), true);
 });
 
 test("signed-in admins are sent from login to the dashboard", () => {

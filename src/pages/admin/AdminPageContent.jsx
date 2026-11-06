@@ -29,7 +29,9 @@ export default function AdminPageContent() {
   const { t, language: uiLanguage } = useLanguage();
   const { authorizedRequest, authorizedFormRequest, hasPermission } = useAuth();
   const navigate = useNavigate();
-  const canUpload = hasPermission("uploads.write");
+  const canUpload = hasPermission("uploads.write") || hasPermission("uploads.upload");
+  const canUpdate = hasPermission("pages.update");
+  const canPublish = hasPermission("pages.publish");
   const [pageKey, setPageKey] = useState("about");
   const [language, setLanguage] = useState(uiLanguage === "vi" ? "vi" : "en");
   const [locale, setLocale] = useState(() => defaultLocaleContent("about", "en"));
@@ -212,13 +214,13 @@ export default function AdminPageContent() {
               upload={(file) => uploadAdminImage(authorizedFormRequest, { file, scope: "pages" })}
             />
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <Button type="submit" disabled={saving}>
+              <Button type="submit" disabled={saving || !canUpdate}>
                 {saving ? t("admin.pageContent.saving") : t("admin.pageContent.saveDraft")}
               </Button>
-              <Button type="button" variant="outline" disabled={saving} onClick={() => setConfirm("publish")}>
+              <Button type="button" variant="outline" disabled={saving || !canPublish} onClick={() => setConfirm("publish")}>
                 {t("admin.pageContent.publish")}
               </Button>
-              <Button type="button" variant="outline" disabled={saving || !hasPublished} onClick={() => setConfirm("revert")}>
+              <Button type="button" variant="outline" disabled={saving || !hasPublished || !canUpdate} onClick={() => setConfirm("revert")}>
                 {t("admin.pageContent.revert")}
               </Button>
               <Link

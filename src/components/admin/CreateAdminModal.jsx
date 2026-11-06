@@ -1,12 +1,23 @@
 import { useState } from "react";
-import { ADMIN_ASSIGNABLE } from "../../auth/permissions.js";
+import {
+  ADMIN_ASSIGNABLE,
+  DEFAULT_ADMIN_PERMISSIONS,
+  PERMISSION_GROUPS,
+  canonicalPermissions,
+} from "../../auth/permissions.js";
 import { buildCreateAdminPayload } from "../../auth/createAdminPayload.js";
 import { fieldErrorsFromPayload } from "../../auth/registerPayload.js";
 import { errorText } from "../../auth/errorText.js";
 import Field from "../auth/Field.jsx";
 import Button from "../Button.jsx";
+import PermissionMatrix from "./PermissionMatrix.jsx";
 import { useLanguage } from "../../i18n/LanguageContext.jsx";
 import { createAdminUser } from "../../services/adminUserService.js";
+
+const CREATE_GROUPS = PERMISSION_GROUPS.map((group) => ({
+  id: group.id,
+  keys: group.keys.filter((key) => ADMIN_ASSIGNABLE.includes(key)),
+}));
 
 export default function CreateAdminModal({ open, onClose, onCreated, request }) {
   const { t } = useLanguage();
@@ -16,20 +27,12 @@ export default function CreateAdminModal({ open, onClose, onCreated, request }) 
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [permissions, setPermissions] = useState(() => [...ADMIN_ASSIGNABLE]);
+  const [permissions, setPermissions] = useState(() => canonicalPermissions(DEFAULT_ADMIN_PERMISSIONS));
   const [fieldErrors, setFieldErrors] = useState({});
   const [formError, setFormError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   if (!open) return null;
-
-  function togglePermission(permission) {
-    setPermissions((current) =>
-      current.includes(permission)
-        ? current.filter((item) => item !== permission)
-        : [...current, permission],
-    );
-  }
 
   function resetAndClose() {
     if (submitting) return;
@@ -84,7 +87,7 @@ export default function CreateAdminModal({ open, onClose, onCreated, request }) 
       }}
     >
       <form
-        className="w-full max-w-lg space-y-5 border border-gold/40 bg-ink p-6"
+        className="w-full max-w-3xl space-y-5 border border-gold/40 bg-ink p-6"
         onSubmit={onSubmit}
         noValidate
         role="dialog"
@@ -111,22 +114,14 @@ export default function CreateAdminModal({ open, onClose, onCreated, request }) 
             {t("admin.users.assignablePermissions")}
           </legend>
           <p className="mt-2 text-xs text-muted">{t("admin.users.assignableHint")}</p>
-          <div className="mt-3 space-y-2">
-            {ADMIN_ASSIGNABLE.map((permission) => (
-              <label key={permission} className="flex items-start gap-3 text-sm text-ivory">
-                <input
-                  type="checkbox"
-                  checked={permissions.includes(permission)}
-                  onChange={() => togglePermission(permission)}
-                  disabled={submitting}
-                  className="mt-1 size-4 accent-gold"
-                />
-                <span>
-                  {t(`admin.permissions.${permission}`)}
-                  <span className="mt-0.5 block text-xs text-muted">{permission}</span>
-                </span>
-              </label>
-            ))}
+          <div className="mt-3">
+            <PermissionMatrix
+              value={permissions}
+              onChange={setPermissions}
+              disabled={submitting}
+              groups={CREATE_GROUPS}
+              t={t}
+            />
           </div>
         </fieldset>
         <div className="flex flex-wrap justify-end gap-3 pt-2">

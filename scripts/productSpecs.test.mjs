@@ -3,10 +3,12 @@ import test from "node:test";
 import {
   combinedPickupText,
   copyFormFromProduct,
+  emptySpecForm,
   mergeProductSpecs,
   PRODUCT_TYPES,
   productsOfType,
   readProductType,
+  RETIRED_SPEC_KEYS,
   specsToForm,
   specsToTabs,
 } from "../src/auth/productSpecs.js";
@@ -71,6 +73,29 @@ test("mergeProductSpecs preserves unknown keys and keeps product type off specs"
   assert.equal(next.bodyWood, "Ash");
   assert.equal(next.topWood, undefined);
   assert.equal(next.productType, undefined);
+});
+
+test("retired spec fields stay off the product form and are not cleared in stored specs", () => {
+  const form = emptySpecForm();
+  for (const key of RETIRED_SPEC_KEYS) {
+    assert.equal(Object.prototype.hasOwnProperty.call(form, key), false);
+  }
+  const merged = mergeProductSpecs(
+    {
+      bodyWood: "Ash",
+      bodyContour: "Arm contour",
+      neckConstruction: "Set neck",
+      nut: "Bone",
+    },
+    { bodyWood: "Alder" },
+  );
+  assert.equal(merged.bodyWood, "Alder");
+  assert.equal(merged.bodyContour, "Arm contour");
+  assert.equal(merged.neckConstruction, "Set neck");
+  assert.equal(merged.nut, "Bone");
+  const tabs = specsToTabs({ nut: "Bone", bodyContour: "" });
+  assert.equal(tabs.neck.nut, "Bone");
+  assert.equal(tabs.body.bodyContour, undefined);
 });
 
 test("combined pickup text keeps a saved configuration and appends leftover pickup parts", () => {

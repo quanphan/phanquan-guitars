@@ -1,20 +1,25 @@
 import { NavLink } from "react-router-dom";
+import { useAuth } from "../../auth/AuthContext.jsx";
 import { useLanguage } from "../../i18n/LanguageContext.jsx";
 
 const tabs = [
-  { to: "/admin/users", key: "admin.tabs.users" },
-  { to: "/admin/catalog", key: "admin.tabs.catalog" },
-  { to: "/admin/custom-build-setup", key: "admin.tabs.wizardSetup" },
-  { to: "/admin/inquiries", key: "admin.tabs.inquiries" },
-  { to: "/admin/messages", key: "admin.tabs.messages" },
-  { to: "/admin/settings/brand", key: "admin.tabs.brandSettings" },
-  { to: "/admin/settings/footer-links", key: "admin.tabs.footerLinks" },
-  { to: "/admin/page-content", key: "admin.tabs.pageContent" },
-  { to: "/admin/services", key: "admin.tabs.services" },
+  { to: "/admin/users", key: "admin.tabs.users", permission: "users.read" },
+  { to: "/admin/catalog", key: "admin.tabs.catalog", permission: "catalog.read" },
+  { to: "/admin/custom-build-setup", key: "admin.tabs.wizardSetup", permission: "customBuild.read" },
+  { to: "/admin/inquiries", key: "admin.tabs.inquiries", permission: "inquiries.read" },
+  { to: "/admin/messages", key: "admin.tabs.messages", permission: "messages.read" },
+  { to: "/admin/settings/brand", key: "admin.tabs.brandSettings", permission: "brand.read" },
+  { to: "/admin/settings/footer-links", key: "admin.tabs.footerLinks", permission: "footerLinks.read" },
+  { to: "/admin/page-content", key: "admin.tabs.pageContent", permission: "pages.read" },
+  { to: "/admin/services", key: "admin.tabs.services", permission: "services.read" },
 ];
 
 export default function AdminTabs() {
   const { t } = useLanguage();
+  const { hasPermission } = useAuth();
+  const visible = tabs.filter((tab) => hasPermission(tab.permission));
+
+  if (!visible.length) return null;
 
   return (
     <nav
@@ -22,7 +27,7 @@ export default function AdminTabs() {
       aria-label={t("admin.tabs.label")}
     >
       <div className="mx-auto flex max-w-7xl gap-6 overflow-x-auto px-6 py-3 lg:px-10">
-        {tabs.map((tab) => (
+        {visible.map((tab) => (
           <NavLink
             key={tab.to}
             to={tab.to}

@@ -1,7 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildUserListQuery } from "../src/auth/adminUserQuery.js";
-import { canChangeTarget, SUPERADMIN_ONLY, userHasPermission } from "../src/auth/permissions.js";
+import {
+  buildRoleUpdatePayload,
+  canChangeTarget,
+  canonicalPermissions,
+  PERMISSION_GROUPS,
+  presetForRole,
+  SUPERADMIN_ONLY,
+  userHasPermission,
+} from "../src/auth/permissions.js";
 import { buildCreateAdminPayload } from "../src/auth/createAdminPayload.js";
 import { buildRegisterPayload, fieldErrorsFromPayload } from "../src/auth/registerPayload.js";
 import { postLoginPath, safeAppRedirect } from "../src/auth/redirects.js";
@@ -73,9 +81,33 @@ test("admins cannot manage superadmin or themselves", () => {
   const actor = { id: "a1", role: "admin", permissions: ["users.update_role"] };
   assert.equal(canChangeTarget(actor, { id: "s1", role: "superadmin" }), false);
   assert.equal(canChangeTarget(actor, { id: "a1", role: "customer" }), false);
-  assert.equal(canChangeTarget(actor, { id: "c1", role: "customer" }), true);
+  assert.equal(canChangeTarget(actor, { id: "c1", role: "customer" }), false);
+  assert.equal(
+    canChangeTarget({ id: "s1", role: "superadmin" }, { id: "c1", role: "customer" }),
+    true,
+  );
   assert.equal(userHasPermission({ permissions: ["users.read"] }, "users.create_admin"), false);
+  assert.equal(userHasPermission({ permissions: ["catalog.write"] }, "catalog.create"), true);
   assert.equal(SUPERADMIN_ONLY.includes("users.create_admin"), true);
+  assert.equal(SUPERADMIN_ONLY.includes("roles.update"), true);
+  assert.equal(PERMISSION_GROUPS.some((group) => group.id === "roles"), true);
+  assert.equal(presetForRole("editor").includes("pages.update"), true);
+  assert.equal(presetForRole("admin").includes("users.create"), false);
+  assert.equal(presetForRole("admin").includes("roles.read"), false);
+  assert.equal(canonicalPermissions(["users.read", "catalog.write"]).includes("roles.read"), false);
+  assert.deepEqual(
+    canonicalPermissions(["catalog.write", "uploads.write"]).sort(),
+    ["catalog.create", "catalog.update", "uploads.upload"].sort(),
+  );
+  const payload = buildRoleUpdatePayload({
+    role: "admin",
+    permissions: ["users.read", "catalog.write"],
+  });
+  assert.equal(payload.role, "admin");
+  assert.equal(payload.permissions.includes("users.read"), true);
+  assert.equal(payload.permissions.includes("roles.read"), false);
+  assert.equal(payload.permissions.includes("catalog.create"), true);
+  assert.equal(userHasPermission({ role: "superadmin" }, "roles.update"), true);
 });
 
 test("customer login redirect stays on-site and skips admin unless admin", () => {
@@ -83,6 +115,9 @@ test("customer login redirect stays on-site and skips admin unless admin", () =>
   assert.equal(postLoginPath("/admin/users", false), "/account");
   assert.equal(postLoginPath("/admin/users", true), "/admin/users");
   assert.equal(postLoginPath("/custom-build", false), "/custom-build");
+  assert.equal(postLoginPath(null, true), "/admin");
+  assert.equal(postLoginPath("/account", true), "/admin");
+  assert.equal(postLoginPath("/custom-build", true), "/admin");
 });
 
 test("session restore keeps marketing consent and permissions, not password", () => {

@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext.jsx";
-import { canChangeTarget, ADMIN_ASSIGNABLE } from "../../auth/permissions.js";
+import {
+  buildRoleUpdatePayload,
+  canChangeTarget,
+  canonicalPermissions,
+  MANAGEABLE_ROLES,
+  presetForRole,
+} from "../../auth/permissions.js";
 import { errorText } from "../../auth/errorText.js";
 import ConfirmDialog from "../../components/admin/ConfirmDialog.jsx";
+import PermissionMatrix from "../../components/admin/PermissionMatrix.jsx";
 import Button from "../../components/Button.jsx";
 import PageHeader from "../../components/PageHeader.jsx";
 import { useLanguage } from "../../i18n/LanguageContext.jsx";
@@ -21,30 +28,41 @@ export default function AdminUserDetail() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [errorDetails, setErrorDetails] = useState([]);
   const [role, setRole] = useState("customer");
   const [permissions, setPermissions] = useState([]);
+  const [baseline, setBaseline] = useState({ role: "customer", permissions: [] });
   const [saving, setSaving] = useState(false);
   const [pendingStatus, setPendingStatus] = useState(null);
   const [statusBusy, setStatusBusy] = useState(false);
 
+  const applyUser = useCallback((nextUser) => {
+    const nextRole = nextUser.role || "customer";
+    const nextPermissions = canonicalPermissions(nextUser.permissions);
+    setUser(nextUser);
+    setRole(nextRole);
+    setPermissions(nextPermissions);
+    setBaseline({ role: nextRole, permissions: nextPermissions });
+  }, []);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setErrorDetails([]);
     const result = await getAdminUser(authorizedRequest, id);
     if (!result.ok) {
       setUser(null);
       setError(result.code);
+      setErrorDetails(Array.isArray(result.details) ? result.details : []);
       setLoading(false);
       if (result.code === "UNAUTHORIZED") {
         navigate(`/admin/login?from=${encodeURIComponent(`/admin/users/${id}`)}`, { replace: true });
       }
       return;
     }
-    setUser(result.user);
-    setRole(result.user.role === "admin" ? "admin" : result.user.role === "superadmin" ? "superadmin" : "customer");
-    setPermissions(result.user.permissions.filter((item) => ADMIN_ASSIGNABLE.includes(item)));
+    applyUser(result.user);
     setLoading(false);
-  }, [authorizedRequest, id, navigate]);
+  }, [applyUser, authorizedRequest, id, navigate]);
 
   useEffect(() => {
     void load();
@@ -52,29 +70,50 @@ export default function AdminUserDetail() {
 
   const actor = session?.user;
   const manageable = canChangeTarget(actor, user);
-  const canRole = manageable && hasPermission("users.update_role");
-  const canStatus = manageable && hasPermission("users.update_status");
+  const canRole = manageable && (hasPermission("roles.update") || hasPermission("users.update_role"));
+  const canStatus = manageable && (hasPermission("users.update") || hasPermission("users.update_status"));
+  const permissionsLocked = role !== "custom";
+  const dirty =
+    role !== baseline.role ||
+    permissions.join("|") !== baseline.permissions.join("|");
   const dateFormatter = new Intl.DateTimeFormat(language === "vi" ? "vi-VN" : "en-GB", {
     dateStyle: "medium",
     timeStyle: "short",
   });
+
+  function changeRole(nextRole) {
+    setRole(nextRole);
+    const preset = presetForRole(nextRole);
+    if (preset) {
+      setPermissions(preset);
+    } else if (nextRole === "custom") {
+      setPermissions(permissions.length ? permissions : canonicalPermissions(baseline.permissions));
+    }
+  }
+
+  function cancelChanges() {
+    setRole(baseline.role);
+    setPermissions(baseline.permissions);
+  }
 
   async function saveRole(event) {
     event.preventDefault();
     if (!user || !canRole || saving || role === "superadmin") return;
     setSaving(true);
     setError(null);
-    const body = { role };
-    if (role === "admin") body.permissions = permissions;
-    const result = await updateAdminUserRole(authorizedRequest, user.id, body);
+    setErrorDetails([]);
+    const result = await updateAdminUserRole(
+      authorizedRequest,
+      user.id,
+      buildRoleUpdatePayload({ role, permissions }),
+    );
     setSaving(false);
     if (!result.ok) {
       setError(result.code);
+      setErrorDetails(Array.isArray(result.details) ? result.details : []);
       return;
     }
-    setUser(result.user);
-    setRole(result.user.role);
-    setPermissions(result.user.permissions.filter((item) => ADMIN_ASSIGNABLE.includes(item)));
+    applyUser(result.user);
   }
 
   async function confirmStatus() {
@@ -88,7 +127,7 @@ export default function AdminUserDetail() {
       setError(result.code);
       return;
     }
-    setUser(result.user);
+    applyUser(result.user);
   }
 
   return (
@@ -106,10 +145,20 @@ export default function AdminUserDetail() {
         </Link>
       </PageHeader>
 
-      <div className="mx-auto mt-10 max-w-3xl px-6 lg:px-10">
+      <div className="mx-auto mt-10 max-w-5xl px-6 lg:px-10">
         {error ? (
           <div className="mb-8 border border-gold/40 bg-gold/10 px-4 py-4 text-sm" role="alert">
             <p>{errorText(t, "admin", error)}</p>
+            {errorDetails.length ? (
+              <ul className="mt-3 list-disc space-y-1 pl-5 text-ivory/90">
+                {errorDetails.map((detail, index) => (
+                  <li key={`${detail.field || "field"}-${index}`}>
+                    {detail.field ? `${detail.field}: ` : null}
+                    {detail.message || detail.code}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
             <button type="button" onClick={() => void load()} className="mt-3 text-[11px] uppercase tracking-[0.18em] text-gold">
               {t("admin.retry")}
             </button>
@@ -144,12 +193,6 @@ export default function AdminUserDetail() {
                   value={user.marketingConsent ? t("admin.users.consentOn") : t("admin.users.consentOff")}
                 />
               </dl>
-              <div className="mt-6">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-gold">{t("admin.users.columns.permissions")}</p>
-                <p className="mt-2 text-sm text-ivory/90">
-                  {user.permissions?.length ? user.permissions.join(", ") : "—"}
-                </p>
-              </div>
               {user.role === "superadmin" ? (
                 <p className="mt-6 text-sm text-muted">{t("admin.users.superadminProtected")}</p>
               ) : null}
@@ -158,51 +201,50 @@ export default function AdminUserDetail() {
             {canRole ? (
               <form className="space-y-5 border border-white/10 bg-panel/40 p-6" onSubmit={saveRole}>
                 <h2 className="text-[11px] uppercase tracking-[0.22em] text-gold">{t("admin.users.changeRole")}</h2>
+                <p className="text-sm text-muted">{t("admin.users.roleHint")}</p>
                 <label className="block text-[11px] uppercase tracking-[0.18em] text-gold">
-                  {t("admin.users.role")}
+                  {t("admin.users.currentRole")}
                   <select
                     value={role}
-                    onChange={(event) => setRole(event.target.value)}
+                    onChange={(event) => changeRole(event.target.value)}
                     disabled={saving}
                     className="mt-2 w-full border border-white/10 bg-ink px-3 py-2.5 text-sm text-ivory"
                   >
-                    <option value="customer">{t("admin.users.roles.customer")}</option>
-                    <option value="admin">{t("admin.users.roles.admin")}</option>
+                    {MANAGEABLE_ROLES.map((key) => (
+                      <option key={key} value={key}>
+                        {t(`admin.users.roles.${key}`)}
+                      </option>
+                    ))}
                   </select>
                 </label>
-                {role === "admin" ? (
-                  <fieldset>
+                {role !== "customer" ? (
+                  <fieldset disabled={saving}>
                     <legend className="text-[11px] uppercase tracking-[0.18em] text-gold">
                       {t("admin.users.assignablePermissions")}
                     </legend>
-                    <div className="mt-3 space-y-2">
-                      {ADMIN_ASSIGNABLE.map((permission) => (
-                        <label key={permission} className="flex items-start gap-3 text-sm">
-                          <input
-                            type="checkbox"
-                            className="mt-1 size-4 accent-gold"
-                            checked={permissions.includes(permission)}
-                            disabled={saving}
-                            onChange={() =>
-                              setPermissions((current) =>
-                                current.includes(permission)
-                                  ? current.filter((item) => item !== permission)
-                                  : [...current, permission],
-                              )
-                            }
-                          />
-                          <span>
-                            {t(`admin.permissions.${permission}`)}
-                            <span className="mt-0.5 block text-xs text-muted">{permission}</span>
-                          </span>
-                        </label>
-                      ))}
+                    <p className="mt-2 text-sm text-muted">
+                      {role === "custom"
+                        ? t("admin.users.customPermissionsHint")
+                        : t("admin.users.presetPermissionsHint")}
+                    </p>
+                    <div className="mt-4">
+                      <PermissionMatrix
+                        value={permissions}
+                        onChange={setPermissions}
+                        disabled={saving || permissionsLocked}
+                        t={t}
+                      />
                     </div>
                   </fieldset>
                 ) : null}
-                <Button type="submit" disabled={saving}>
-                  {saving ? t("admin.users.saving") : t("admin.users.saveRole")}
-                </Button>
+                <div className="flex flex-wrap gap-3">
+                  <Button type="submit" disabled={saving || !dirty}>
+                    {saving ? t("admin.users.saving") : t("admin.users.saveChanges")}
+                  </Button>
+                  <Button type="button" variant="outline" disabled={saving || !dirty} onClick={cancelChanges}>
+                    {t("admin.cancel")}
+                  </Button>
+                </div>
               </form>
             ) : null}
 

@@ -3,6 +3,8 @@ import { useSearchParams } from "react-router-dom";
 import workshopBack from "../assets/guitars/optimized/workshop-back.jpg";
 import workshopBackSm from "../assets/guitars/optimized/workshop-back-900.jpg";
 import Button from "../components/Button.jsx";
+import EditableFixedImage from "../components/page-content/EditableFixedImage.jsx";
+import PageContentSession from "../components/page-content/PageContentSession.jsx";
 import Field, { errorFieldClass, fieldClass } from "../components/auth/Field.jsx";
 import {
   BrandDirectContacts,
@@ -25,8 +27,23 @@ import {
 import { hasPublicBrandContact } from "../services/brandSettings.js";
 import { CONTACT_INQUIRY_CODES, submitContactInquiry } from "../services/contactService.js";
 import { readCustomBuildDraft } from "../data/customBuildDraft.js";
+import { mediaUrl } from "../config/api.js";
+import { CONTACT_HERO_SECTION_ID, storedSectionImage } from "../data/pageContent.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import { getPublicProduct } from "../services/publicProductService.js";
+
+const CONTACT_HERO_FALLBACK = {
+  src: workshopBack,
+  srcSet: `${workshopBackSm} 900w, ${workshopBack} 1200w`,
+};
+
+function contactHeroImage(locale) {
+  const stored = storedSectionImage(locale, CONTACT_HERO_SECTION_ID, "image", CONTACT_HERO_FALLBACK);
+  if (stored.stored) {
+    return { src: mediaUrl(stored.src), srcSet: undefined };
+  }
+  return CONTACT_HERO_FALLBACK;
+}
 
 function errorMessage(t, key) {
   if (!key) return "";
@@ -141,6 +158,10 @@ export default function Contact() {
   const showDraft = values.inquiryType === "custom-guitar";
 
   return (
+    <PageContentSession pageKey="contact">
+      {(session) => {
+        const hero = contactHeroImage(session.locale);
+        return (
     <section className="overflow-x-hidden pb-20">
       <header className="mx-auto grid max-w-7xl items-end gap-8 px-6 pt-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-12 lg:px-10 lg:pt-16">
         <div className="min-w-0">
@@ -153,12 +174,15 @@ export default function Contact() {
           </p>
         </div>
         <div className="min-w-0">
-          <img
-            src={workshopBack}
-            srcSet={`${workshopBackSm} 900w, ${workshopBack} 1200w`}
+          <EditableFixedImage
+            editing={session.editing}
+            src={hero.src}
+            srcSet={hero.srcSet}
             sizes="(min-width: 1024px) 40vw, 100vw"
             alt={t("contact.imageAlt")}
             className="aspect-[16/9] w-full max-h-56 object-cover object-center"
+            disabled={session.saving || !session.canUpload}
+            onConfirmFile={(file) => session.replaceImage(CONTACT_HERO_SECTION_ID, "image", file)}
           />
         </div>
       </header>
@@ -354,6 +378,9 @@ export default function Contact() {
         {t("contact.closing")}
       </p>
     </section>
+        );
+      }}
+    </PageContentSession>
   );
 }
 

@@ -14,6 +14,7 @@ import {
   PAGE_KEYS,
   publicPagePath,
   removeGalleryImage,
+  CONTACT_HERO_SECTION_ID,
   SERVICES_EXPERTISE_SECTION_ID,
   setSectionImage,
   storedSectionImage,
@@ -43,12 +44,14 @@ test("public visitors keep fallback copy when the API has no published document"
 });
 
 test("inline editor and page manager share page keys and reorder helpers", () => {
-  assert.deepEqual(PAGE_KEYS, ["about", "build-process", "services"]);
+  assert.deepEqual(PAGE_KEYS, ["about", "build-process", "services", "contact"]);
   assert.equal(isPageKey("about"), true);
   assert.equal(isPageKey("services"), true);
+  assert.equal(isPageKey("contact"), true);
   assert.equal(isPageKey("home"), false);
   assert.equal(publicPagePath("build-process"), "/build-process");
   assert.equal(publicPagePath("services"), "/services");
+  assert.equal(publicPagePath("contact"), "/contact");
   const moved = moveSection([{ id: "a" }, { id: "b" }, { id: "c" }], 1, -1);
   assert.equal(moved.map((item) => item.id).join(), "b,a,c");
   const copied = duplicateSection([{ id: "a" }], 0);
@@ -86,6 +89,8 @@ test("page content copy exists in English and Vietnamese", () => {
   assert.equal(tFor("vi", "admin.pageContent.editImage"), "Sửa ảnh");
   assert.equal(tFor("en", "admin.pageContent.pages.services"), "Services");
   assert.equal(tFor("vi", "admin.pageContent.pages.services"), "Dịch vụ");
+  assert.equal(tFor("en", "admin.pageContent.pages.contact"), "Contact");
+  assert.equal(tFor("vi", "admin.pageContent.pages.contact"), "Liên hệ");
   assert.equal(splitParagraphs("one\n\ntwo").join("|"), "one|two");
 });
 
@@ -106,4 +111,15 @@ test("services expertise image slots stay independent and shared across language
   assert.equal(vi.sections[0].image, nextLeft);
   assert.equal(vi.sections[0].imageSecondary, right);
   assert.equal(vi.title, defaultLocaleContent("services", "vi").title);
+});
+
+test("contact hero image uses a dedicated page-content slot shared across languages", () => {
+  const path = "/uploads/pages/dddddddddddddddddddddddddddddddd.jpg";
+  const en = defaultLocaleContent("contact", "en");
+  assert.equal(en.sections[0].id, CONTACT_HERO_SECTION_ID);
+  const withImage = setSectionImage(en, CONTACT_HERO_SECTION_ID, "image", path);
+  assert.equal(storedSectionImage(withImage, CONTACT_HERO_SECTION_ID, "image", { src: "fallback" }).src, path);
+  const vi = copySharedSectionImages(withImage, defaultLocaleContent("contact", "vi"));
+  assert.equal(vi.sections[0].image, path);
+  assert.equal(vi.title, defaultLocaleContent("contact", "vi").title);
 });

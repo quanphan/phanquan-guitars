@@ -1,7 +1,8 @@
 import { tFor } from "../i18n/translations.js";
 
-export const PAGE_KEYS = ["about", "build-process", "services"];
+export const PAGE_KEYS = ["about", "build-process", "services", "contact"];
 export const SERVICES_EXPERTISE_SECTION_ID = "services-expertise";
+export const CONTACT_HERO_SECTION_ID = "contact-hero";
 export const SHARED_IMAGE_FIELDS = ["image", "imageSecondary"];
 export const PAGE_LANGUAGES = ["en", "vi"];
 export const SECTION_TYPES = [
@@ -62,6 +63,19 @@ export function splitParagraphs(value) {
 }
 
 export function defaultLocaleContent(pageKey, language) {
+  if (pageKey === "contact") {
+    return {
+      title: copyValue(tFor, language, "contact.title"),
+      sections: [
+        {
+          ...emptySection("image"),
+          id: CONTACT_HERO_SECTION_ID,
+          title: copyValue(tFor, language, "contact.title"),
+          imageAlt: copyValue(tFor, language, "contact.imageAlt"),
+        },
+      ],
+    };
+  }
   if (pageKey === "services") {
     return {
       title: copyValue(tFor, language, "services.intro.title"),
@@ -217,6 +231,7 @@ export function duplicateSection(sections, index) {
 export function publicPagePath(pageKey) {
   if (pageKey === "build-process") return "/build-process";
   if (pageKey === "services") return "/services";
+  if (pageKey === "contact") return "/contact";
   return "/about";
 }
 

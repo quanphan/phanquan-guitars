@@ -315,8 +315,17 @@ export function buildProductPayload(form) {
   if (qty != null) body.qty = qty;
   if (price != null) body.price = price;
   if (form.unit !== undefined) body.unit = String(form.unit || "").trim() || null;
-  if (form.image !== undefined) body.image = form.image || null;
-  if (Array.isArray(form.images)) body.images = form.images.filter(Boolean);
+  if (Array.isArray(form.images)) {
+    const seen = new Set();
+    body.images = form.images.filter((item) => {
+      if (typeof item !== "string" || !item.trim() || seen.has(item.trim())) return false;
+      seen.add(item.trim());
+      return true;
+    });
+    body.image = body.images[0] || null;
+  } else if (form.image !== undefined) {
+    body.image = form.image || null;
+  }
   body.categoryId = form.categoryId || null;
   body.instrumentTypeId = form.instrumentTypeId || null;
   body.bodyShapeId = form.bodyShapeId || null;

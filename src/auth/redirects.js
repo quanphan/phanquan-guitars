@@ -10,7 +10,9 @@ export function safeAppRedirect(from, fallback = "/account") {
 }
 
 export function postLoginPath(from, isAdmin) {
-  const next = safeAppRedirect(from);
+  const fallback = isAdmin ? "/admin" : "/account";
+  const next = safeAppRedirect(from, fallback);
   if (next.startsWith("/admin") && !isAdmin) return "/account";
+  if (isAdmin && !next.startsWith("/admin")) return "/admin";
   return next;
 }

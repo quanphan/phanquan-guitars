@@ -10,7 +10,9 @@ const PAGE_SIZE = 10;
 
 export default function AdminMessages() {
   const { t, language } = useLanguage();
-  const { authorizedRequest, isAdmin } = useAuth();
+  const { authorizedRequest, hasPermission } = useAuth();
+  const canRead = hasPermission("messages.read");
+  const canDelete = hasPermission("messages.delete");
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [items, setItems] = useState([]);
@@ -21,6 +23,13 @@ export default function AdminMessages() {
   const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
+    if (!canRead) {
+      setItems([]);
+      setMeta(null);
+      setError("FORBIDDEN");
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     const listed = await listAdminMessages(authorizedRequest, { page, limit: PAGE_SIZE });
@@ -37,7 +46,7 @@ export default function AdminMessages() {
     setItems(listed.items);
     setMeta(listed.meta);
     setLoading(false);
-  }, [authorizedRequest, navigate, page]);
+  }, [authorizedRequest, canRead, navigate, page]);
 
   useEffect(() => {
     void load();
@@ -148,7 +157,7 @@ export default function AdminMessages() {
                       {item.createdAt ? dateFormatter.format(new Date(item.createdAt)) : "—"}
                     </td>
                     <td className="px-4 py-4 align-top">
-                      {isAdmin ? (
+                      {canDelete ? (
                         <button
                           type="button"
                           onClick={() => setPendingDelete(item)}

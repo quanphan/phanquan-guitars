@@ -1,11 +1,12 @@
+const STAFF_ROLES = new Set(["admin", "superadmin", "editor", "custom"]);
+
 export function isAdminRole(role) {
-  return role === "admin" || role === "superadmin";
+  return STAFF_ROLES.has(role);
 }
 
 export function resolveAdminView({ pathname, session }) {
   const path = pathname || "/";
-  const isAdminPath =
-    path === "/admin" || path.startsWith("/admin/");
+  const isAdminPath = path === "/admin" || path.startsWith("/admin/");
   if (!isAdminPath) return { view: "public", redirectTo: null };
 
   const isLogin = path === "/admin/login";

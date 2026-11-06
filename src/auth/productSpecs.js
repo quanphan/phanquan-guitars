@@ -21,19 +21,17 @@ export const SPEC_GROUPS = [
   },
   {
     id: "body",
-    keys: ["bodyWood", "topWood", "bodyContour"],
+    keys: ["bodyWood", "topWood"],
   },
   {
     id: "neck",
     keys: [
       "neckWood",
-      "neckConstruction",
       "neckProfile",
       "fingerboardWood",
       "fingerboardRadius",
       "fretMaterial",
       "nutWidth",
-      "nut",
     ],
   },
   {
@@ -51,6 +49,8 @@ export const SPEC_GROUPS = [
 ];
 
 export const SPEC_FORM_KEYS = SPEC_GROUPS.flatMap((group) => group.keys);
+
+export const RETIRED_SPEC_KEYS = ["bodyContour", "neckConstruction", "nut"];
 
 export const SPEC_TEXTAREA_KEYS = [
   "pickupConfiguration",
@@ -134,8 +134,8 @@ export function editorFormFromProduct(item) {
     descriptionDetail: item?.descriptionDetail || "",
     status: item?.status === "published" ? "published" : "draft",
     sortOrder: item?.sortOrder || 0,
-    image: item?.image || "",
-    images: Array.isArray(item?.images) ? item.images.filter(Boolean) : [],
+    image: productImagePaths(item)[0] || "",
+    images: productImagePaths(item),
     categoryId: item?.category?.id || "",
     instrumentTypeId: item?.instrumentType?.id || "",
     bodyShapeId: item?.bodyShape?.id || "",
