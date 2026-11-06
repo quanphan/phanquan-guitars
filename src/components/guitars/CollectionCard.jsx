@@ -1,19 +1,22 @@
 import { Link } from "react-router-dom";
 import { useLanguage } from "../../i18n/LanguageContext.jsx";
+import { publicProductHref } from "../../services/productView.js";
+import ProductPrice from "../ProductPrice.jsx";
 import Reveal from "../Reveal.jsx";
 import CardSpecSummary from "./CardSpecSummary.jsx";
 
-export default function CollectionCard({ guitar }) {
+export default function CollectionCard({ guitar, showPrice = false }) {
   const { t } = useLanguage();
   const image = guitar.images?.[0];
   const name = guitar.name;
   const typeLabel = guitar.typeLabel;
   const description = guitar.description;
+  const href = publicProductHref(guitar);
 
   return (
     <Reveal className="group h-full">
       <article className="flex h-full flex-col border border-white/8 bg-panel/80 transition-colors duration-300 hover:border-gold/40">
-        <Link to={`/guitars/${guitar.id}`} className="relative overflow-hidden">
+        <Link to={href} className="relative overflow-hidden">
           {image ? (
             <img
               src={image.src}
@@ -37,9 +40,10 @@ export default function CollectionCard({ guitar }) {
           ) : null}
           <h3 className="font-display text-3xl text-ivory break-words">{name}</h3>
           {description ? <p className="text-sm leading-relaxed text-muted">{description}</p> : null}
+          {showPrice ? <ProductPrice product={guitar} className="text-lg text-ivory" /> : null}
           <CardSpecSummary guitar={guitar} t={t} className="mt-auto" />
           <Link
-            to={`/guitars/${guitar.id}`}
+            to={href}
             className="mt-2 inline-flex w-fit text-[11px] uppercase tracking-[0.22em] text-gold transition-colors hover:text-gold-light"
           >
             {t("guitars.collection.viewDetails")}

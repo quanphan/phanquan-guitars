@@ -1,105 +1,71 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Info } from "lucide-react";
+import { Link } from "react-router-dom";
 import { mediaUrl } from "../../config/api.js";
 import { useLanguage } from "../../i18n/LanguageContext.jsx";
 import { formatSeriesPriceRange, seriesCardCopy } from "../../services/guitarSeries.js";
-import { prefersFinePointer } from "../../services/seriesPopover.js";
+import { prefersWideSeriesLayout } from "../../services/seriesPopover.js";
 import Button from "../Button.jsx";
+import SeriesDescriptionCopy from "./SeriesDescriptionCopy.jsx";
 import SeriesDescriptionOverlay from "./SeriesDescriptionOverlay.jsx";
 
-function useFinePointer() {
-  const [fine, setFine] = useState(false);
+function useWideSeriesLayout() {
+  const [wide, setWide] = useState(
+    () => typeof window !== "undefined" && prefersWideSeriesLayout(window),
+  );
   useEffect(() => {
-    const media = window.matchMedia("(hover: hover) and (pointer: fine)");
-    const sync = () => setFine(prefersFinePointer(window));
+    const media = window.matchMedia("(min-width: 1024px)");
+    const sync = () => setWide(prefersWideSeriesLayout(window));
     sync();
     media.addEventListener("change", sync);
     return () => media.removeEventListener("change", sync);
   }, []);
-  return fine;
+  return wide;
 }
 
-function SeriesCard({ item, selected, onSelect, open, onOpen, onClose, finePointer }) {
+function SeriesCard({ item, open, onToggle, wide }) {
   const { t, language } = useLanguage();
   const card = seriesCardCopy(item, language);
   const cardRef = useRef(null);
-  const closeTimer = useRef(null);
   const titleId = useId();
   const descriptionId = `${titleId}-description`;
   const priceRange = formatSeriesPriceRange(card, t);
   const hasDetails = Boolean(card.description || priceRange);
 
-  const clearClose = useCallback(() => {
-    if (closeTimer.current) {
-      window.clearTimeout(closeTimer.current);
-      closeTimer.current = null;
-    }
-  }, []);
-
-  const openNow = useCallback(() => {
-    if (!hasDetails) return;
-    clearClose();
-    onOpen(card.id);
-  }, [card.id, clearClose, hasDetails, onOpen]);
-
-  const closeSoon = useCallback(() => {
-    clearClose();
-    closeTimer.current = window.setTimeout(() => onClose(card.id), 80);
-  }, [card.id, clearClose, onClose]);
-
-  useEffect(() => () => clearClose(), [clearClose]);
-
-  function onInfoClick(event) {
+  function onToggleDetails(event) {
     event.preventDefault();
     event.stopPropagation();
-    if (open) onClose(card.id);
-    else openNow();
+    if (!hasDetails) return;
+    onToggle(card.id);
   }
 
   return (
-    <li>
+    <li className="flex min-w-0 flex-col">
       <article
         ref={cardRef}
         data-series-card={card.id}
-        onMouseEnter={() => {
-          if (finePointer) openNow();
-        }}
-        onMouseLeave={() => {
-          if (finePointer) closeSoon();
-        }}
-        className={`relative flex h-full flex-col overflow-hidden border transition-colors duration-300 ${
-          selected ? "border-gold bg-gold/10" : "border-white/8 bg-panel/80 hover:border-gold/40"
-        }`}
+        className="relative flex min-h-0 flex-1 flex-col border border-white/8 bg-panel/80 transition-colors duration-300 hover:border-gold/40"
       >
-        <button
-          type="button"
-          aria-pressed={selected}
-          aria-describedby={open && hasDetails ? descriptionId : undefined}
-          onClick={() => onSelect(selected ? "" : card.id)}
-          onFocus={() => {
-            if (finePointer) openNow();
-          }}
-          onBlur={(event) => {
-            if (cardRef.current?.contains(event.relatedTarget)) return;
-            if (event.relatedTarget instanceof Element && event.relatedTarget.closest("[role='tooltip']")) return;
-            onClose(card.id);
-          }}
-          className="flex h-full w-full flex-col text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+        <Link
+          to={card.href}
+          className="flex h-full w-full min-w-0 flex-col text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
         >
           {card.imagePath ? (
-            <img
-              src={mediaUrl(card.imagePath)}
-              alt=""
-              loading="lazy"
-              decoding="async"
-              className="aspect-[16/10] w-full object-cover"
-            />
+            <div className="overflow-hidden">
+              <img
+                src={mediaUrl(card.imagePath)}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="aspect-[16/10] w-full object-cover"
+              />
+            </div>
           ) : (
             <div className="border-b border-white/8 px-6 py-5">
               <p className="text-[11px] uppercase tracking-[0.22em] text-gold">{t("guitars.series.title")}</p>
             </div>
           )}
-          <div className="flex flex-1 flex-col gap-3 px-6 py-6 pr-14">
+          <div className="flex flex-1 flex-col gap-3 px-6 py-6">
             <h3 id={titleId} className="font-display text-2xl tracking-wide text-ivory sm:text-3xl">
               {card.name}
             </h3>
@@ -107,27 +73,52 @@ function SeriesCard({ item, selected, onSelect, open, onOpen, onClose, finePoint
               <p className="line-clamp-3 text-sm leading-relaxed text-muted">{card.shortDescription}</p>
             ) : null}
           </div>
-        </button>
-        {hasDetails ? (
+        </Link>
+        {hasDetails && wide ? (
           <button
             type="button"
             aria-expanded={open}
             aria-controls={descriptionId}
             aria-label={t("guitars.series.readDescription")}
-            onClick={onInfoClick}
-            onFocus={openNow}
-            onBlur={(event) => {
-              if (cardRef.current?.contains(event.relatedTarget)) return;
-              if (event.relatedTarget instanceof Element && event.relatedTarget.closest("[role='tooltip']")) return;
-              onClose(card.id);
-            }}
-            className="absolute right-3 top-3 inline-flex size-9 items-center justify-center border border-gold/70 bg-charcoal/80 text-gold transition-colors hover:bg-gold/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+            onClick={onToggleDetails}
+            className="absolute right-3 top-3 hidden size-9 items-center justify-center border border-gold/70 bg-charcoal/80 text-gold transition-colors hover:bg-gold/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold lg:inline-flex"
           >
             <Info className="size-4" aria-hidden="true" />
           </button>
         ) : null}
+        {hasDetails && !wide ? (
+          <div className="border-t border-white/8 px-6 py-4 lg:hidden">
+            <button
+              type="button"
+              aria-expanded={open}
+              aria-controls={descriptionId}
+              onClick={onToggleDetails}
+              className="text-[11px] uppercase tracking-[0.22em] text-gold transition-colors hover:text-gold-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+            >
+              {t("guitars.series.aboutThisSeries")}
+            </button>
+          </div>
+        ) : null}
       </article>
-      {open && hasDetails ? (
+      {hasDetails && !wide ? (
+        <div
+          id={descriptionId}
+          inert={!open ? true : undefined}
+          className={`grid transition-[grid-template-rows] duration-300 ease-out lg:hidden ${
+            open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+          }`}
+        >
+          <div className="min-h-0 overflow-hidden">
+            <div className="mt-3 border border-gold/35 bg-charcoal/80 px-5 py-4">
+              <SeriesDescriptionCopy
+                description={card.description}
+                priceRange={priceRange}
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {hasDetails && wide && open ? (
         <SeriesDescriptionOverlay
           id={descriptionId}
           anchorRef={cardRef}
@@ -135,22 +126,23 @@ function SeriesCard({ item, selected, onSelect, open, onOpen, onClose, finePoint
           description={card.description}
           priceRange={priceRange}
           labelledBy={titleId}
-          onKeep={openNow}
-          onLeave={closeSoon}
         />
       ) : null}
     </li>
   );
 }
 
-export default function GuitarSeriesSection({ series, status, selectedId, onSelect, onRetry }) {
+export default function GuitarSeriesSection({ series, status, onRetry }) {
   const { t } = useLanguage();
-  const selected = selectedId || "";
-  const finePointer = useFinePointer();
+  const wide = useWideSeriesLayout();
   const [openId, setOpenId] = useState("");
 
-  const closeIf = useCallback((id) => {
-    setOpenId((current) => (current === id ? "" : current));
+  useEffect(() => {
+    setOpenId("");
+  }, [wide]);
+
+  const toggle = useCallback((id) => {
+    setOpenId((current) => (current === id ? "" : id));
   }, []);
 
   useEffect(() => {
@@ -162,9 +154,10 @@ export default function GuitarSeriesSection({ series, status, selectedId, onSele
       }
     }
     function onPointerDown(event) {
+      if (!wide) return;
       const target = event.target;
       if (!(target instanceof Element)) return;
-      if (target.closest("[role='tooltip']")) return;
+      if (target.closest("[role='dialog']")) return;
       if (target.closest(`[data-series-card="${openId}"]`)) return;
       setOpenId("");
     }
@@ -174,10 +167,10 @@ export default function GuitarSeriesSection({ series, status, selectedId, onSele
       document.removeEventListener("keydown", onKey);
       document.removeEventListener("pointerdown", onPointerDown);
     };
-  }, [openId]);
+  }, [openId, wide]);
 
   return (
-    <section id="series" className="scroll-mt-24 pt-8 pb-6 lg:pt-10 lg:pb-8" aria-label={t("guitars.series.title")}>
+    <section id="series" className="scroll-mt-24 overflow-x-clip pt-8 pb-6 lg:pt-10 lg:pb-8" aria-label={t("guitars.series.title")}>
       <div className="mx-auto max-w-7xl px-6 lg:px-10">
         {status === "loading" ? (
           <p className="text-sm text-muted">{t("guitars.series.loading")}</p>
@@ -202,12 +195,9 @@ export default function GuitarSeriesSection({ series, status, selectedId, onSele
               <SeriesCard
                 key={item.id}
                 item={item}
-                selected={selected === item.id}
-                onSelect={onSelect}
                 open={openId === item.id}
-                onOpen={setOpenId}
-                onClose={closeIf}
-                finePointer={finePointer}
+                onToggle={toggle}
+                wide={wide}
               />
             ))}
           </ul>

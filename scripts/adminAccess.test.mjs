@@ -166,4 +166,6 @@ test("admin copy exists in English and Vietnamese", () => {
   assert.equal(tFor("vi", "nav.account"), "Tài khoản");
   assert.equal(tFor("en", "admin.tabs.users"), "Users");
   assert.equal(tFor("vi", "admin.permissions.users.read"), "Xem danh sách và hồ sơ user.");
+  assert.equal(tFor("en", "admin.users.showGuide"), "Show");
+  assert.equal(tFor("vi", "admin.users.hideGuide"), "Ẩn");
 });

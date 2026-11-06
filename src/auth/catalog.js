@@ -254,6 +254,7 @@ export function buildTermPayload(form, { includeImagePath = true, kind } = {}) {
   }
 
   if (isSeries) {
+    body.showHome = form.showHome === true;
     body.minPrice = typeof minPrice === "number" ? minPrice : null;
     body.maxPrice = typeof maxPrice === "number" ? maxPrice : null;
     body.currency = currency;

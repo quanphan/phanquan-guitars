@@ -10,6 +10,7 @@ import Gallery from "./pages/Gallery.jsx";
 import GuitarDetail from "./pages/GuitarDetail.jsx";
 import Guitars from "./pages/Guitars.jsx";
 import Home from "./pages/Home.jsx";
+import SeriesDetail from "./pages/SeriesDetail.jsx";
 import InStock from "./pages/InStock.jsx";
 import Services from "./pages/Services.jsx";
 import ServiceCategory from "./pages/ServiceCategory.jsx";
@@ -47,6 +48,7 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/guitars" element={<Guitars />} />
         <Route path="/guitars/:id" element={<GuitarDetail />} />
+        <Route path="/series/:slug" element={<SeriesDetail />} />
         <Route path="/in-stock" element={<InStock />} />
         <Route path="/in-stock/:slug" element={<StockDetail />} />
         <Route path="/services" element={<Services />} />

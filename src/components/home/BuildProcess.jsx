@@ -17,11 +17,8 @@ export default function BuildProcess() {
       </Reveal>
       <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
         {buildSteps.map((step, index) => (
-          <Reveal key={step.number} delay={index * 90}>
+          <Reveal key={step.id} delay={index * 90}>
             <article className="h-full border border-white/8 p-7 transition-colors duration-300 hover:border-gold/35">
-              <p className="text-[11px] tracking-[0.28em] text-gold">
-                {step.number}
-              </p>
               <div className="mt-6">
                 <StepIcon name={step.icon} />
               </div>

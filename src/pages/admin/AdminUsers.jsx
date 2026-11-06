@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { USER_ROLES, USER_STATUSES } from "../../auth/adminUserQuery.js";
@@ -29,6 +30,8 @@ export default function AdminUsers() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const guideId = useId();
   const canRead = hasPermission("users.read");
   const canCreate = hasPermission("users.create_admin");
 
@@ -87,29 +90,54 @@ export default function AdminUsers() {
 
       <div className="mx-auto mt-10 max-w-7xl px-6 lg:px-10">
         <section className="border border-white/10 bg-panel/40 p-5">
-          <h2 className="text-[11px] uppercase tracking-[0.22em] text-gold">{t("admin.users.permissionGuide")}</h2>
-          <p className="mt-3 text-sm leading-relaxed text-muted">{t("admin.users.permissionGuideBody")}</p>
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            {PERMISSION_GROUPS.map((group) => (
-              <section key={group.id} className="border border-white/8 px-4 py-3">
-                <h3 className="text-[11px] uppercase tracking-[0.16em] text-gold">
-                  {t(`admin.permissionGroups.${group.id}`)}
-                </h3>
-                <ul className="mt-3 space-y-2">
-                  {group.keys.map((permission) => (
-                    <li key={permission}>
-                      <p className="text-sm text-ivory">{t(`admin.permissions.${permission}`)}</p>
-                      <p className="mt-0.5 text-xs text-muted">{permission}</p>
-                      <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-gold">
-                        {userHasPermission(actor, permission)
-                          ? t("admin.users.youHave")
-                          : t("admin.users.youLack")}
-                      </p>
-                    </li>
+          <button
+            type="button"
+            aria-expanded={guideOpen}
+            aria-controls={guideId}
+            onClick={() => setGuideOpen((open) => !open)}
+            className="flex w-full items-center justify-between gap-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+          >
+            <h2 className="text-[11px] uppercase tracking-[0.22em] text-gold">{t("admin.users.permissionGuide")}</h2>
+            <span className="inline-flex shrink-0 items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-gold">
+              {guideOpen ? t("admin.users.hideGuide") : t("admin.users.showGuide")}
+              <ChevronDown
+                className={`size-4 transition-transform duration-300 ${guideOpen ? "rotate-180" : ""}`}
+                aria-hidden="true"
+              />
+            </span>
+          </button>
+          <div
+            className={`grid transition-[grid-template-rows] duration-300 ease-out ${
+              guideOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+            }`}
+          >
+            <div id={guideId} className="overflow-hidden" aria-hidden={!guideOpen} inert={!guideOpen}>
+              <div className={guideOpen ? "pt-4" : "pt-0"}>
+                <p className="text-sm leading-relaxed text-muted">{t("admin.users.permissionGuideBody")}</p>
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  {PERMISSION_GROUPS.map((group) => (
+                    <section key={group.id} className="border border-white/8 px-4 py-3">
+                      <h3 className="text-[11px] uppercase tracking-[0.16em] text-gold">
+                        {t(`admin.permissionGroups.${group.id}`)}
+                      </h3>
+                      <ul className="mt-3 space-y-2">
+                        {group.keys.map((permission) => (
+                          <li key={permission}>
+                            <p className="text-sm text-ivory">{t(`admin.permissions.${permission}`)}</p>
+                            <p className="mt-0.5 text-xs text-muted">{permission}</p>
+                            <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-gold">
+                              {userHasPermission(actor, permission)
+                                ? t("admin.users.youHave")
+                                : t("admin.users.youLack")}
+                            </p>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
                   ))}
-                </ul>
-              </section>
-            ))}
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 

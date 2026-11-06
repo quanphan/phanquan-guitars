@@ -31,6 +31,7 @@ const emptyForm = {
   parentId: "",
   imagePath: "",
   isActive: true,
+  showHome: false,
   sortOrder: 0,
   viDescription: "",
   enDescription: "",
@@ -118,6 +119,7 @@ export default function CatalogTermEditor() {
         parentId: item.parentId || "",
         imagePath: item.imagePath || "",
         isActive: item.isActive !== false,
+        showHome: item.showHome === true,
         sortOrder: item.sortOrder || 0,
         viDescription: item.translations?.vi?.description || "",
         enDescription: item.translations?.en?.description || "",
@@ -341,6 +343,18 @@ export default function CatalogTermEditor() {
                 />
                 {form.isActive ? t("admin.catalog.active") : t("admin.catalog.inactive")}
               </label>
+              {isSeries ? (
+                <label className="flex items-center gap-3 text-sm text-ivory">
+                  <input
+                    type="checkbox"
+                    checked={form.showHome === true}
+                    onChange={(event) => setField("showHome", event.target.checked)}
+                    disabled={saving || !canWrite}
+                    className="size-4 accent-gold"
+                  />
+                  {t("admin.catalog.fields.showHome")}
+                </label>
+              ) : null}
               <ImageUploadField
                 label={t("admin.catalog.fields.image")}
                 storedPath={form.imagePath}

@@ -12,6 +12,53 @@ export function publicCatalogSeries(items) {
   return (items || []).filter((item) => item?.id && item.isActive !== false);
 }
 
+export function homeSeries(items) {
+  return publicCatalogSeries(items).filter((item) => item.showHome === true);
+}
+
+export function seriesPublicSlug(item) {
+  const slug = typeof item?.slug === "string" ? item.slug.trim() : "";
+  if (slug) return slug;
+  return readCatalogId(item);
+}
+
+export function seriesPublicPath(item) {
+  const slug = seriesPublicSlug(item);
+  return slug ? `/series/${encodeURIComponent(slug)}` : "";
+}
+
+export function findPublicSeries(items, slug) {
+  const key = String(slug || "").trim().toLowerCase();
+  if (!key) return null;
+  return (
+    publicCatalogSeries(items).find((item) => {
+      const itemSlug = typeof item.slug === "string" ? item.slug.trim().toLowerCase() : "";
+      return itemSlug === key || readCatalogId(item).toLowerCase() === key;
+    }) || null
+  );
+}
+
+export function isPublicCatalogProduct(item) {
+  const status = item?.status;
+  return status == null || status === "published";
+}
+
+export function sortPublicProducts(items) {
+  return [...(items || [])].sort((left, right) => {
+    const orderDelta = (Number(left.sortOrder) || 0) - (Number(right.sortOrder) || 0);
+    if (orderDelta !== 0) return orderDelta;
+    return String(left.id || "").localeCompare(String(right.id || ""));
+  });
+}
+
+export function productsInSeries(items, seriesId) {
+  const selected = readCatalogId(seriesId);
+  if (!selected) return [];
+  return sortPublicProducts(
+    (items || []).filter((item) => isPublicCatalogProduct(item) && readProductSeriesId(item) === selected),
+  );
+}
+
 export function filterInstrumentsBySeries(items, seriesId) {
   const selected = readCatalogId(seriesId);
   if (!selected) return [...(items || [])];
@@ -28,6 +75,8 @@ export function seriesImagePath(item) {
 export function seriesCardCopy(item, language) {
   return {
     id: readCatalogId(item),
+    slug: seriesPublicSlug(item),
+    href: seriesPublicPath(item),
     name: catalogTermName(item, language),
     shortDescription: catalogTermShortDescription(item, language),
     description: catalogTermDescription(item, language),

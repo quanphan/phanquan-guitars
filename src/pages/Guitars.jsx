@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import CollectionCard from "../components/guitars/CollectionCard.jsx";
 import CustomOptions from "../components/guitars/CustomOptions.jsx";
 import GuitarSeriesSection from "../components/guitars/GuitarSeriesSection.jsx";
@@ -9,7 +9,7 @@ import PageHeader from "../components/PageHeader.jsx";
 import { PRODUCT_TYPES } from "../auth/productSpecs.js";
 import { usePublicCatalog } from "../hooks/usePublicCatalog.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
-import { filterInstrumentsBySeries, publicCatalogSeries } from "../services/guitarSeries.js";
+import { publicCatalogSeries } from "../services/guitarSeries.js";
 import { listPublicCatalogTerms } from "../services/publicProductService.js";
 
 export default function Guitars() {
@@ -18,8 +18,6 @@ export default function Guitars() {
   const [series, setSeries] = useState([]);
   const [seriesStatus, setSeriesStatus] = useState("loading");
   const [seriesReload, setSeriesReload] = useState(0);
-  const [selectedSeriesId, setSelectedSeriesId] = useState("");
-
   const retrySeries = useCallback(() => {
     setSeriesReload((current) => current + 1);
   }, []);
@@ -44,23 +42,7 @@ export default function Guitars() {
     };
   }, [seriesReload]);
 
-  useEffect(() => {
-    if (!selectedSeriesId) return;
-    if (!series.some((item) => item.id === selectedSeriesId)) {
-      setSelectedSeriesId("");
-    }
-  }, [selectedSeriesId, series]);
-
-  const visible = useMemo(
-    () => filterInstrumentsBySeries(items, selectedSeriesId),
-    [items, selectedSeriesId],
-  );
-  const collectionEmpty =
-    status === "ready" && visible.length === 0
-      ? selectedSeriesId
-        ? t("guitars.filters.empty")
-        : t("guitars.collection.empty")
-      : null;
+  const collectionEmpty = status === "ready" && items.length === 0 ? t("guitars.collection.empty") : null;
 
   return (
     <>
@@ -72,8 +54,6 @@ export default function Guitars() {
       <GuitarSeriesSection
         series={series}
         status={seriesStatus}
-        selectedId={selectedSeriesId}
-        onSelect={setSelectedSeriesId}
         onRetry={retrySeries}
       />
       <section id="collection" className="scroll-mt-24 pb-24 lg:pb-32">
@@ -92,9 +72,9 @@ export default function Guitars() {
           {collectionEmpty ? (
             <p className="text-sm text-muted">{collectionEmpty}</p>
           ) : null}
-          {status === "ready" && visible.length > 0 ? (
+          {status === "ready" && items.length > 0 ? (
             <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
-              {visible.map((guitar) => (
+              {items.map((guitar) => (
                 <CollectionCard key={guitar.id} guitar={guitar} />
               ))}
             </div>

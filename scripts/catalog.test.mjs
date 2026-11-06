@@ -115,6 +115,12 @@ test("series payload stores bilingual short descriptions and rejects inverted pr
   assert.equal(next.body.minPrice, 800);
   assert.equal(next.body.maxPrice, 1500);
   assert.equal(next.body.currency, "USD");
+  assert.equal(next.body.showHome, false);
+  const shown = buildTermPayload(
+    { name: "Player", slug: "player", sortOrder: 0, showHome: true },
+    { kind: "series" },
+  );
+  assert.equal(shown.body.showHome, true);
   const inverted = buildTermPayload(
     { name: "Player", slug: "player", sortOrder: 0, minPrice: "2000", maxPrice: "1000" },
     { kind: "series" },

@@ -1,5 +1,6 @@
 import { mediaUrl } from "../config/api.js";
 import {
+  PRODUCT_TYPES,
   productImagePaths,
   productQuantity,
   productsOfType,
@@ -45,6 +46,14 @@ export function toPublicInstrument(product, catalogNames = {}) {
     isMock: false,
     inquiryRoute: "/contact",
   };
+}
+
+export function publicProductHref(guitar) {
+  if (!guitar?.id) return "";
+  if (guitar.productType === PRODUCT_TYPES.READY_STOCK) {
+    return `/in-stock/${guitar.slug || guitar.id}`;
+  }
+  return `/guitars/${guitar.id}`;
 }
 
 export function imageAlt(image, t) {

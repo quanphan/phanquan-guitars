@@ -5,7 +5,7 @@
  * Production builds must set VITE_API_BASE_URL (or an equivalent reverse proxy).
  */
 export function getApiBaseUrl() {
-  const value = String(import.meta.env.VITE_API_BASE_URL ?? "").trim();
+  const value = String(import.meta.env?.VITE_API_BASE_URL ?? "").trim();
   if (!value) return "";
   return value.replace(/\/+$/, "");
 }
@@ -16,7 +16,7 @@ export function isCustomBuildApiConfigured() {
 }
 
 export function getGoogleClientId() {
-  return String(import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "").trim();
+  return String(import.meta.env?.VITE_GOOGLE_CLIENT_ID ?? "").trim();
 }
 
 export function isGoogleSignInConfigured() {

@@ -2,13 +2,23 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   filterInstrumentsBySeries,
+  findPublicSeries,
   formatSeriesPriceRange,
+  homeSeries,
+  productsInSeries,
   publicCatalogSeries,
   readProductSeriesId,
   seriesCardCopy,
   seriesImagePath,
+  seriesPublicPath,
 } from "../src/services/guitarSeries.js";
-import { placeSeriesPopover, prefersFinePointer } from "../src/services/seriesPopover.js";
+import {
+  placeSeriesPopover,
+  prefersFinePointer,
+  prefersWideSeriesLayout,
+  SERIES_POPOVER_MAX_HEIGHT,
+  SERIES_POPOVER_MAX_WIDTH,
+} from "../src/services/seriesPopover.js";
 import { tFor } from "../src/i18n/translations.js";
 
 const essential = "6ad5e9c118f88e7cedd450bf";
@@ -24,6 +34,40 @@ test("product series is read from the catalog relation id, not the display name"
   );
   assert.equal(readProductSeriesId({ seriesId: boutique, name: "PQ-BOUTIQUE SERIES" }), boutique);
   assert.equal(readProductSeriesId({ series: { name: essential } }), "");
+});
+
+test("featured home series only include active terms with showHome", () => {
+  const series = [
+    { id: boutique, name: "Boutique", isActive: true, showHome: true, sortOrder: 1 },
+    { id: essential, name: "Essential", isActive: true, showHome: true, sortOrder: 2 },
+    { id: "off", name: "Off", isActive: true, showHome: false },
+    { id: "inactive", name: "Inactive", isActive: false, showHome: true },
+  ];
+  assert.deepEqual(
+    homeSeries(series).map((item) => item.id),
+    [boutique, essential],
+  );
+});
+
+test("series detail routes by slug and lists published products of that series only", () => {
+  const series = [
+    { id: boutique, slug: "pq-boutique-series", isActive: true, showHome: true },
+    { id: essential, slug: "pq-essential-series", isActive: true, showHome: false },
+    { id: "hidden", slug: "hidden-line", isActive: false, showHome: true },
+  ];
+  assert.equal(seriesPublicPath(series[0]), "/series/pq-boutique-series");
+  assert.equal(findPublicSeries(series, "pq-essential-series")?.id, essential);
+  assert.equal(findPublicSeries(series, "hidden-line"), null);
+  const products = [
+    { id: "later", seriesId: essential, status: "published", sortOrder: 2 },
+    { id: "first", series: { id: essential }, status: "published", sortOrder: 1 },
+    { id: "other", seriesId: boutique, status: "published", sortOrder: 0 },
+    { id: "draft", seriesId: essential, status: "draft", sortOrder: 0 },
+  ];
+  assert.deepEqual(
+    productsInSeries(products, essential).map((item) => item.id),
+    ["first", "later"],
+  );
 });
 
 test("public catalog series hide inactive terms and keep API order", () => {
@@ -89,20 +133,30 @@ test("public guitar listing filter uses the mapped seriesId field", () => {
 });
 
 test("guitars series copy exists in English and Vietnamese", () => {
+  assert.equal(tFor("en", "seriesDetail.productsTitle"), "Products in this series");
+  assert.equal(tFor("vi", "seriesDetail.backGuitars"), "Về trang Guitars");
+  assert.equal(tFor("en", "home.featured.viewSeries"), "View series");
   assert.equal(tFor("en", "guitars.series.title"), "Series");
   assert.equal(tFor("en", "guitars.series.readDescription"), "Read full description");
   assert.equal(tFor("vi", "guitars.series.readDescription"), "Xem mô tả đầy đủ");
+  assert.equal(tFor("en", "guitars.series.aboutThisSeries"), "About this Series");
+  assert.equal(tFor("vi", "guitars.series.aboutThisSeries"), "Giới thiệu series");
+  assert.equal(tFor("en", "guitars.series.readMore"), "Read more");
+  assert.equal(tFor("vi", "guitars.series.showLess"), "Thu gọn");
   assert.equal(tFor("vi", "guitars.series.error").includes("series"), true);
 });
 
 test("series description popover stays in the viewport and flips when needed", () => {
   const below = placeSeriesPopover({
-    cardRect: { left: 40, top: 80, bottom: 280 },
+    cardRect: { left: 40, top: 80, bottom: 480 },
     viewport: { width: 1280, height: 800 },
   });
   assert.equal(below.placement, "below");
-  assert.equal(below.left >= 12, true);
-  assert.equal(below.maxWidth <= 420, true);
+  assert.equal(below.top >= 80, true);
+  assert.equal(below.top <= 80 + 44, true);
+  assert.equal(below.left >= 16, true);
+  assert.equal(below.maxWidth <= SERIES_POPOVER_MAX_WIDTH, true);
+  assert.equal(below.maxHeight <= SERIES_POPOVER_MAX_HEIGHT, true);
 
   const above = placeSeriesPopover({
     cardRect: { left: 40, top: 640, bottom: 780 },
@@ -110,13 +164,30 @@ test("series description popover stays in the viewport and flips when needed", (
   });
   assert.equal(above.placement, "above");
   assert.equal(above.top, "auto");
-  assert.equal(above.bottom > 12, true);
+  assert.equal(above.bottom >= 16, true);
+  assert.equal(above.maxHeight <= SERIES_POPOVER_MAX_HEIGHT, true);
 
   const narrow = placeSeriesPopover({
     cardRect: { left: 400, top: 40, bottom: 200 },
     viewport: { width: 360, height: 640 },
   });
-  assert.equal(narrow.left + narrow.maxWidth <= 360 - 12, true);
+  assert.equal(narrow.left >= 16, true);
+  assert.equal(narrow.left + narrow.maxWidth <= 360 - 16, true);
+});
+
+test("wide series layout starts at 1024px", () => {
+  assert.equal(
+    prefersWideSeriesLayout({
+      matchMedia: (query) => ({ matches: query.includes("1024") }),
+    }),
+    true,
+  );
+  assert.equal(
+    prefersWideSeriesLayout({
+      matchMedia: () => ({ matches: false }),
+    }),
+    false,
+  );
 });
 
 test("series cards use short copy and format configured price ranges only", () => {

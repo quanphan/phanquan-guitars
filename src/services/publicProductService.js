@@ -1,5 +1,6 @@
 import { requestJson } from "./apiClient.js";
 import { CATALOG_KINDS } from "../auth/catalog.js";
+import { findPublicSeries, homeSeries, productsInSeries, readProductSeriesId } from "./guitarSeries.js";
 
 function failure(result) {
   if (result.network) return { ok: false, code: "NETWORK", items: [] };
@@ -14,7 +15,7 @@ export async function listPublicCatalogTerms(kind) {
   return { ok: true, code: null, items: result.payload.data };
 }
 
-export async function listPublicProducts(productType) {
+export async function listPublicProducts(productType, { seriesId } = {}) {
   const items = [];
   let page = 1;
   let totalPages = 1;
@@ -22,8 +23,9 @@ export async function listPublicProducts(productType) {
     productType === "custom-order" || productType === "ready-stock"
       ? `&productType=${encodeURIComponent(productType)}`
       : "";
+  const seriesQuery = seriesId ? `&seriesId=${encodeURIComponent(seriesId)}` : "";
   do {
-    const result = await requestJson(`/api/products?page=${page}&limit=50&sort=manual${typeQuery}`);
+    const result = await requestJson(`/api/products?page=${page}&limit=50&sort=manual${typeQuery}${seriesQuery}`);
     if (!result.ok || result.payload?.success !== true || !Array.isArray(result.payload.data)) {
       return { ...failure(result), items: [] };
     }
@@ -32,6 +34,27 @@ export async function listPublicProducts(productType) {
     page += 1;
   } while (page <= totalPages && page <= 20);
   return { ok: true, code: null, items };
+}
+
+export async function listFeaturedHomeSeries() {
+  const listed = await listPublicCatalogTerms("series");
+  if (!listed.ok) return { ...listed, items: [] };
+  return { ok: true, code: null, items: homeSeries(listed.items) };
+}
+
+export async function getPublicSeries(slug) {
+  const listed = await listPublicCatalogTerms("series");
+  if (!listed.ok) return { ok: false, code: listed.code, item: null };
+  const item = findPublicSeries(listed.items, slug);
+  if (!item) return { ok: false, code: "NOT_FOUND", item: null };
+  return { ok: true, code: null, item };
+}
+
+export async function listPublicProductsForSeries(seriesId) {
+  const id = typeof seriesId === "string" ? seriesId : readProductSeriesId({ seriesId });
+  const listed = await listPublicProducts(undefined, { seriesId: id });
+  if (!listed.ok) return listed;
+  return { ok: true, code: null, items: productsInSeries(listed.items, id) };
 }
 
 export async function getPublicProduct(id) {
