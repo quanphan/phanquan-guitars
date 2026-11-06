@@ -132,6 +132,17 @@ export default function SectionEditor({
             disabled={disabled}
             canUpload={canUpload}
           />
+          {section.type === "image" ? (
+            <ImageUploadField
+              label={t("admin.pageContent.fields.imageSecondary")}
+              storedPath={section.imageSecondary}
+              onUploaded={(path) => set("imageSecondary", path)}
+              onClear={() => set("imageSecondary", "")}
+              upload={upload}
+              disabled={disabled}
+              canUpload={canUpload}
+            />
+          ) : null}
           <Field id={`${prefix}-alt`} label={t("admin.pageContent.fields.imageAlt")} value={section.imageAlt} onChange={(value) => set("imageAlt", value)} disabled={disabled} maxLength={200} />
         </>
       ) : null}

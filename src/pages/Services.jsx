@@ -5,12 +5,17 @@ import featuredGrey from "../assets/guitars/optimized/featured-grey.jpg";
 import featuredGreySm from "../assets/guitars/optimized/featured-grey-700.jpg";
 import workshopBack from "../assets/guitars/optimized/workshop-back.jpg";
 import workshopBackSm from "../assets/guitars/optimized/workshop-back-900.jpg";
+import workshopCraft from "../assets/guitars/optimized/workshop-craft.jpg";
+import workshopCraftSm from "../assets/guitars/optimized/workshop-craft-700.jpg";
 import construction from "../assets/buildProcess/construction.jpg";
 import Button from "../components/Button.jsx";
+import EditableFixedImage from "../components/page-content/EditableFixedImage.jsx";
+import PageContentSession from "../components/page-content/PageContentSession.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import Reveal from "../components/Reveal.jsx";
 import SectionHeading from "../components/SectionHeading.jsx";
 import { mediaUrl } from "../config/api.js";
+import { SERVICES_EXPERTISE_SECTION_ID, storedSectionImage } from "../data/pageContent.js";
 import { categoryFallbackKey, mergePublicCategories, serviceLocale } from "../data/services.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import { listPublicServices } from "../services/serviceCatalog.js";
@@ -29,6 +34,25 @@ const FALLBACK_IMAGES = {
     srcSet: `${featuredEngravedSm} 800w, ${featuredEngraved} 1080w`,
   },
 };
+
+const EXPERTISE_FALLBACKS = {
+  image: {
+    src: workshopCraft,
+    srcSet: `${workshopCraftSm} 700w, ${workshopCraft} 956w`,
+  },
+  imageSecondary: {
+    src: construction,
+    srcSet: undefined,
+  },
+};
+
+function expertiseImage(locale, field) {
+  const stored = storedSectionImage(locale, SERVICES_EXPERTISE_SECTION_ID, field, EXPERTISE_FALLBACKS[field]);
+  if (stored.stored) {
+    return { src: mediaUrl(stored.src), srcSet: undefined };
+  }
+  return EXPERTISE_FALLBACKS[field];
+}
 
 function usePageMeta(title, description) {
   useEffect(() => {
@@ -83,6 +107,11 @@ export default function Services() {
   }, []);
 
   return (
+    <PageContentSession pageKey="services">
+      {(session) => {
+        const primary = expertiseImage(session.locale, "image");
+        const secondary = expertiseImage(session.locale, "imageSecondary");
+        return (
     <>
       <PageHeader
         eyebrow={t("services.intro.eyebrow")}
@@ -152,14 +181,15 @@ export default function Services() {
       <section className="border-t border-white/5">
         <div className="mx-auto grid max-w-7xl items-center gap-10 px-6 py-24 lg:grid-cols-2 lg:gap-16 lg:px-10 lg:py-32">
           <Reveal>
-            <img
-              src={workshopBack}
-              srcSet={`${workshopBackSm} 900w, ${workshopBack} 1200w`}
+            <EditableFixedImage
+              editing={session.editing}
+              src={primary.src}
+              srcSet={primary.srcSet}
               sizes="(min-width: 1024px) 40vw, 100vw"
               alt={t("services.expertise.imageAlt")}
-              loading="lazy"
-              decoding="async"
               className="aspect-[4/5] w-full object-cover"
+              disabled={session.saving || !session.canUpload}
+              onConfirmFile={(file) => session.replaceImage(SERVICES_EXPERTISE_SECTION_ID, "image", file)}
             />
           </Reveal>
           <Reveal delay={80}>
@@ -178,12 +208,15 @@ export default function Services() {
                 </li>
               ))}
             </ul>
-            <img
-              src={construction}
+            <EditableFixedImage
+              editing={session.editing}
+              src={secondary.src}
+              srcSet={secondary.srcSet}
               alt=""
-              loading="lazy"
-              decoding="async"
-              className="mt-10 hidden aspect-[16/9] w-full object-cover lg:block"
+              wrapperClassName="mt-10 hidden lg:block"
+              className="aspect-[16/9] w-full object-cover"
+              disabled={session.saving || !session.canUpload}
+              onConfirmFile={(file) => session.replaceImage(SERVICES_EXPERTISE_SECTION_ID, "imageSecondary", file)}
             />
           </Reveal>
         </div>
@@ -236,5 +269,8 @@ export default function Services() {
         </div>
       </section>
     </>
+        );
+      }}
+    </PageContentSession>
   );
 }

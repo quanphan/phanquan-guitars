@@ -1,6 +1,8 @@
 import { tFor } from "../i18n/translations.js";
 
-export const PAGE_KEYS = ["about", "build-process"];
+export const PAGE_KEYS = ["about", "build-process", "services"];
+export const SERVICES_EXPERTISE_SECTION_ID = "services-expertise";
+export const SHARED_IMAGE_FIELDS = ["image", "imageSecondary"];
 export const PAGE_LANGUAGES = ["en", "vi"];
 export const SECTION_TYPES = [
   "hero",
@@ -35,6 +37,7 @@ export function emptySection(type = "text") {
     body: "",
     quote: "",
     image: "",
+    imageSecondary: "",
     imageAlt: "",
     images: [],
     videoUrl: "",
@@ -59,6 +62,19 @@ export function splitParagraphs(value) {
 }
 
 export function defaultLocaleContent(pageKey, language) {
+  if (pageKey === "services") {
+    return {
+      title: copyValue(tFor, language, "services.intro.title"),
+      sections: [
+        {
+          ...emptySection("image"),
+          id: SERVICES_EXPERTISE_SECTION_ID,
+          title: copyValue(tFor, language, "services.expertise.title"),
+          imageAlt: copyValue(tFor, language, "services.expertise.imageAlt"),
+        },
+      ],
+    };
+  }
   if (pageKey === "build-process") {
     const stages = [
       { id: "craft", number: "01" },
@@ -199,7 +215,47 @@ export function duplicateSection(sections, index) {
 }
 
 export function publicPagePath(pageKey) {
-  return pageKey === "build-process" ? "/build-process" : "/about";
+  if (pageKey === "build-process") return "/build-process";
+  if (pageKey === "services") return "/services";
+  return "/about";
+}
+
+export function setSectionImage(locale, sectionId, field, path) {
+  if (!SHARED_IMAGE_FIELDS.includes(field)) return locale;
+  const sections = Array.isArray(locale?.sections) ? locale.sections : [];
+  const nextPath = typeof path === "string" ? path : "";
+  const exists = sections.some((section) => section.id === sectionId);
+  const nextSections = exists
+    ? sections.map((section) => (section.id === sectionId ? { ...section, [field]: nextPath } : section))
+    : [...sections, { ...emptySection("image"), id: sectionId, [field]: nextPath }];
+  return { ...locale, sections: nextSections };
+}
+
+export function copySharedSectionImages(sourceLocale, targetLocale) {
+  const sourceSections = Array.isArray(sourceLocale?.sections) ? sourceLocale.sections : [];
+  const targetSections = Array.isArray(targetLocale?.sections) ? targetLocale.sections.map((section) => ({ ...section })) : [];
+  for (const source of sourceSections) {
+    const index = targetSections.findIndex((section) => section.id === source.id);
+    const patch = {};
+    for (const field of SHARED_IMAGE_FIELDS) {
+      patch[field] = source[field] || "";
+    }
+    if (index === -1) {
+      targetSections.push({ ...emptySection(source.type || "image"), id: source.id, type: source.type || "image", ...patch });
+    } else {
+      targetSections[index] = { ...targetSections[index], ...patch };
+    }
+  }
+  return { ...targetLocale, title: targetLocale?.title || "", sections: targetSections };
+}
+
+export function storedSectionImage(locale, sectionId, field, fallback) {
+  const section = (locale?.sections || []).find((item) => item.id === sectionId);
+  const path = section?.[field];
+  if (typeof path === "string" && path.trim()) {
+    return { src: path, srcSet: undefined, stored: true };
+  }
+  return { ...fallback, stored: false };
 }
 
 export function addGalleryImage(section, item) {

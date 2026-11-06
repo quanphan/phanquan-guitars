@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   addGalleryImage,
+  copySharedSectionImages,
   defaultLocaleContent,
   duplicateSection,
   emptySection,
@@ -13,6 +14,9 @@ import {
   PAGE_KEYS,
   publicPagePath,
   removeGalleryImage,
+  SERVICES_EXPERTISE_SECTION_ID,
+  setSectionImage,
+  storedSectionImage,
   splitParagraphs,
   updateGalleryImage,
   visibleSections,
@@ -39,10 +43,12 @@ test("public visitors keep fallback copy when the API has no published document"
 });
 
 test("inline editor and page manager share page keys and reorder helpers", () => {
-  assert.deepEqual(PAGE_KEYS, ["about", "build-process"]);
+  assert.deepEqual(PAGE_KEYS, ["about", "build-process", "services"]);
   assert.equal(isPageKey("about"), true);
+  assert.equal(isPageKey("services"), true);
   assert.equal(isPageKey("home"), false);
   assert.equal(publicPagePath("build-process"), "/build-process");
+  assert.equal(publicPagePath("services"), "/services");
   const moved = moveSection([{ id: "a" }, { id: "b" }, { id: "c" }], 1, -1);
   assert.equal(moved.map((item) => item.id).join(), "b,a,c");
   const copied = duplicateSection([{ id: "a" }], 0);
@@ -76,5 +82,28 @@ test("page content copy exists in English and Vietnamese", () => {
   assert.equal(tFor("en", "admin.pageContent.previewBanner").includes("unpublished"), true);
   assert.equal(tFor("en", "admin.pageContent.addGalleryImage"), "Add gallery image");
   assert.equal(tFor("vi", "admin.pageContent.addGalleryImage"), "Thêm ảnh gallery");
+  assert.equal(tFor("en", "admin.pageContent.editImage"), "Edit Image");
+  assert.equal(tFor("vi", "admin.pageContent.editImage"), "Sửa ảnh");
+  assert.equal(tFor("en", "admin.pageContent.pages.services"), "Services");
+  assert.equal(tFor("vi", "admin.pageContent.pages.services"), "Dịch vụ");
   assert.equal(splitParagraphs("one\n\ntwo").join("|"), "one|two");
+});
+
+test("services expertise image slots stay independent and shared across languages", () => {
+  const left = "/uploads/pages/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg";
+  const right = "/uploads/pages/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.jpg";
+  const nextLeft = "/uploads/pages/cccccccccccccccccccccccccccccccc.jpg";
+  const en = defaultLocaleContent("services", "en");
+  assert.equal(en.sections[0].id, SERVICES_EXPERTISE_SECTION_ID);
+  const withLeft = setSectionImage(en, SERVICES_EXPERTISE_SECTION_ID, "image", left);
+  const withBoth = setSectionImage(withLeft, SERVICES_EXPERTISE_SECTION_ID, "imageSecondary", right);
+  assert.equal(storedSectionImage(withBoth, SERVICES_EXPERTISE_SECTION_ID, "image", { src: "fallback" }).src, left);
+  assert.equal(storedSectionImage(withBoth, SERVICES_EXPERTISE_SECTION_ID, "imageSecondary", { src: "fallback" }).src, right);
+  const replacedLeft = setSectionImage(withBoth, SERVICES_EXPERTISE_SECTION_ID, "image", nextLeft);
+  assert.equal(replacedLeft.sections[0].image, nextLeft);
+  assert.equal(replacedLeft.sections[0].imageSecondary, right);
+  const vi = copySharedSectionImages(replacedLeft, defaultLocaleContent("services", "vi"));
+  assert.equal(vi.sections[0].image, nextLeft);
+  assert.equal(vi.sections[0].imageSecondary, right);
+  assert.equal(vi.title, defaultLocaleContent("services", "vi").title);
 });
