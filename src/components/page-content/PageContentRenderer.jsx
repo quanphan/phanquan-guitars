@@ -153,7 +153,7 @@ function SectionView({ section, fallbacks }) {
     return (
       <section className="mx-auto max-w-7xl px-6 pt-14 lg:px-10">
         <Reveal>
-          <video src={src} controls playsInline className="aspect-video w-full bg-ink" />
+          <video src={src} controls playsInline className="mx-auto max-h-[80vh] w-full bg-ink object-contain" />
         </Reveal>
       </section>
     );

@@ -32,6 +32,13 @@ export function buildInquiryListQuery({
 export function summarizeConfiguration(configuration) {
   const selections = configuration?.selections;
   if (selections && typeof selections === "object") {
+    if (selections.inquiryKind === "service-cart") {
+      const titles = (Array.isArray(selections.items) ? selections.items : [])
+        .map((item) => item.titleEn || item.titleVi)
+        .filter(Boolean);
+      const sources = Array.isArray(selections.sources) ? selections.sources.join(", ") : "";
+      return ["Service cart", sources, ...titles].filter(Boolean).slice(0, 4).join(" · ");
+    }
     const fromSelections = Object.entries(selections)
       .filter(([, value]) => value != null && String(value).trim() !== "")
       .map(([key, value]) => `${key}: ${value}`)

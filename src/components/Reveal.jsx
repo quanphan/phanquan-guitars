@@ -8,17 +8,25 @@ export default function Reveal({ children, className = "", delay = 0 }) {
     const el = ref.current;
     if (!el) return;
 
+    const revealIfNeeded = (entry) => {
+      const rect = el.getBoundingClientRect();
+      const inView = rect.top < window.innerHeight && rect.bottom > 0;
+      if (entry?.isIntersecting || inView) {
+        setVisible(true);
+        return true;
+      }
+      return false;
+    };
+
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          observer.unobserve(el);
-        }
+        if (revealIfNeeded(entry)) observer.unobserve(el);
       },
-      { threshold: 0.16, rootMargin: "0px 0px -8% 0px" },
+      { threshold: 0, rootMargin: "0px 0px -32px 0px" },
     );
 
     observer.observe(el);
+    if (revealIfNeeded()) observer.unobserve(el);
     return () => observer.disconnect();
   }, []);
 

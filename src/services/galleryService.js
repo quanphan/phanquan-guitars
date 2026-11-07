@@ -20,7 +20,7 @@ function failure(result, fallback = "failure") {
   };
 }
 
-export async function listPublicGallery({ category, page = 1, limit = 50 } = {}) {
+export async function listPublicGallery({ category, showAtHome = false, page = 1, limit = 50 } = {}) {
   if (!isCustomBuildApiConfigured()) {
     return { ok: false, code: "UNAVAILABLE", items: [], meta: null };
   }
@@ -28,11 +28,23 @@ export async function listPublicGallery({ category, page = 1, limit = 50 } = {})
   params.set("page", String(page));
   params.set("limit", String(limit));
   if (GALLERY_CATEGORIES.includes(category)) params.set("category", category);
+  if (showAtHome) params.set("showAtHome", "true");
   const result = await requestJson(`/api/gallery?${params.toString()}`);
   if (!result.ok || result.payload?.success !== true || !Array.isArray(result.payload.data)) {
     return { ...failure(result), items: [], meta: null };
   }
   return { ok: true, code: null, items: result.payload.data, meta: result.payload.meta ?? null };
+}
+
+export async function getPublicGalleryPost(id) {
+  if (!isCustomBuildApiConfigured()) {
+    return { ok: false, code: "UNAVAILABLE", post: null };
+  }
+  const result = await requestJson(`/api/gallery/${encodeURIComponent(id)}`);
+  if (!result.ok || result.payload?.success !== true || !result.payload.data) {
+    return { ...failure(result), post: null };
+  }
+  return { ok: true, code: null, post: result.payload.data };
 }
 
 export async function listAdminGallery(request, { category, status, page = 1, limit = 50 } = {}) {
@@ -53,7 +65,7 @@ export async function saveGalleryPost(request, payload, id) {
   const result = await request(path, { method: id ? "PATCH" : "POST", body: payload });
   if (!result.ok || result.payload?.success !== true || !result.payload.data) {
     const detail = result.payload?.error?.details?.[0]?.code;
-    const mapped = ["TOO_MANY_IMAGES", "TOO_MANY_VIDEOS", "MIXED_MEDIA"].includes(detail)
+    const mapped = ["TOO_MANY_IMAGES", "TOO_MANY_VIDEOS", "INVALID_VIDEO_URL", "UNSUPPORTED_VIDEO_URL", "VIDEO_URL_REQUIRED", "PROVIDER_MISMATCH"].includes(detail)
       ? { ...failure(result), code: detail, post: null }
       : { ...failure(result), post: null };
     return mapped;

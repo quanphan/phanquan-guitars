@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { Info } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { mediaUrl } from "../../config/api.js";
 import { useLanguage } from "../../i18n/LanguageContext.jsx";
@@ -74,31 +74,29 @@ function SeriesCard({ item, open, onToggle, wide }) {
             ) : null}
           </div>
         </Link>
-        {hasDetails && wide ? (
-          <button
-            type="button"
-            aria-expanded={open}
-            aria-controls={descriptionId}
-            aria-label={t("guitars.series.readDescription")}
-            onClick={onToggleDetails}
-            className="absolute right-3 top-3 hidden size-9 items-center justify-center border border-gold/70 bg-charcoal/80 text-gold transition-colors hover:bg-gold/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold lg:inline-flex"
-          >
-            <Info className="size-4" aria-hidden="true" />
-          </button>
-        ) : null}
-        {hasDetails && !wide ? (
-          <div className="border-t border-white/8 px-6 py-4 lg:hidden">
+        <div className="mt-auto flex items-stretch border-t border-white/8">
+          {hasDetails ? (
             <button
               type="button"
               aria-expanded={open}
               aria-controls={descriptionId}
               onClick={onToggleDetails}
-              className="text-[11px] uppercase tracking-[0.22em] text-gold transition-colors hover:text-gold-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+              className="min-h-12 flex-1 px-6 py-3 text-left text-[11px] uppercase tracking-[0.22em] text-gold transition-colors hover:text-gold-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-gold"
             >
-              {t("guitars.series.aboutThisSeries")}
+              {t("guitars.series.details")}
             </button>
-          </div>
-        ) : null}
+          ) : (
+            <span className="min-h-12 flex-1" />
+          )}
+          <Link
+            to={card.href}
+            aria-label={t("guitars.series.viewSeries")}
+            onClick={(event) => event.stopPropagation()}
+            className="inline-flex min-h-12 min-w-12 shrink-0 items-center justify-center border-l border-white/8 text-gold transition-colors hover:bg-gold/10 hover:text-gold-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-gold"
+          >
+            <ArrowRight className="size-4" aria-hidden="true" />
+          </Link>
+        </div>
       </article>
       {hasDetails && !wide ? (
         <div

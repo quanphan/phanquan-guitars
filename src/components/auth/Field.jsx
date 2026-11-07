@@ -18,10 +18,18 @@ export default function Field({
   multiline = false,
   rows = 3,
 }) {
+  function handleChange(event) {
+    if (disabled) return;
+    if (typeof onChange !== "function") {
+      throw new Error(`Field "${id}" requires an onChange(value) callback.`);
+    }
+    onChange(event.target.value);
+  }
+
   const shared = {
     id,
     value,
-    onChange: (event) => onChange(event.target.value),
+    onChange: handleChange,
     disabled,
     maxLength,
     placeholder,

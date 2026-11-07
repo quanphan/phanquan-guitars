@@ -1,54 +1,175 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  GALLERY_CATEGORIES,
+  GALLERY_FILTERS,
+  emptyGalleryForm,
   filterGalleryPosts,
+  galleryPostHasVideo,
+  galleryPostPath,
+  homeGalleryPosts,
+  storyVideo,
   orderedGalleryImages,
+  orderedGalleryMedia,
+  storyExcerpt,
   selectIncomingGalleryFiles,
   validateGalleryMedia,
 } from "../src/data/gallery.js";
 import { tFor } from "../src/i18n/translations.js";
+import { facebookVideoHref } from "../src/services/facebookPlayerPool.js";
+import { requestFacebookAudiblePlayback } from "../src/services/facebookSdk.js";
+import { formFromPost, payloadFromForm } from "../src/data/galleryForm.js";
+import {
+  galleryDirectVideoPath,
+  galleryPosterUrl,
+  galleryUploadMime,
+  galleryVideoEmbedSrc,
+  galleryVideoPreviewSrc,
+  hydrateGalleryMedia,
+  parseGalleryVideoUrl,
+} from "../src/data/galleryVideo.js";
 
 test("gallery filters hide other categories and keep published-looking lists intact", () => {
   const posts = [
     { id: "1", category: "process", title: "A" },
     { id: "2", category: "video", title: "B" },
+    { id: "3", category: "art-of-making", title: "C" },
   ];
-  assert.equal(filterGalleryPosts(posts, "all").length, 2);
-  assert.deepEqual(filterGalleryPosts(posts, "video").map((item) => item.id), ["2"]);
+  assert.equal(filterGalleryPosts(posts, "all").length, 3);
+  assert.deepEqual(filterGalleryPosts(posts, "video").map((item) => item.id), []);
+  assert.deepEqual(filterGalleryPosts(posts, "art-of-making").map((item) => item.id), ["3"]);
+  assert.ok(GALLERY_CATEGORIES.includes("art-of-making"));
+  assert.ok(GALLERY_FILTERS.includes("art-of-making"));
+  assert.ok(GALLERY_CATEGORIES.includes("process"));
+});
+
+test("VIDEO tab lists posts by playable media, not category", () => {
+  const youtube = {
+    id: "yt",
+    category: "process",
+    media: [{ kind: "video", provider: "youtube", videoId: "cuZ8FmcnON4", sourceUrl: "https://www.youtube.com/watch?v=cuZ8FmcnON4" }],
+  };
+  const facebook = {
+    id: "fb",
+    category: "art-of-making",
+    media: [{
+      kind: "video",
+      provider: "facebook",
+      sourceUrl: "https://www.facebook.com/reel/1649522569474963",
+    }],
+  };
+  const uploaded = {
+    id: "file",
+    category: "instruments",
+    media: [
+      { kind: "image", path: "/uploads/gallery/images/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg" },
+      { kind: "video", provider: "upload", path: "/uploads/gallery/videos/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.mp4" },
+    ],
+  };
+  const imageOnly = {
+    id: "photo",
+    category: "video",
+    media: [{ kind: "image", path: "/uploads/gallery/images/cccccccccccccccccccccccccccccccc.jpg" }],
+  };
+  const finishStill = {
+    id: "finish",
+    category: "finish",
+    media: [{ kind: "image", path: "/uploads/gallery/images/dddddddddddddddddddddddddddddddd.jpg" }],
+  };
+  const posts = [youtube, facebook, uploaded, imageOnly, finishStill];
+
+  assert.equal(galleryPostHasVideo(youtube), true);
+  assert.equal(galleryPostHasVideo(imageOnly), false);
+  assert.deepEqual(filterGalleryPosts(posts, "video").map((item) => item.id), ["yt", "fb", "file"]);
+  assert.deepEqual(filterGalleryPosts(posts, "process").map((item) => item.id), ["yt"]);
+  assert.deepEqual(filterGalleryPosts(posts, "art-of-making").map((item) => item.id), ["fb"]);
+  assert.deepEqual(filterGalleryPosts(posts, "instruments").map((item) => item.id), ["file"]);
+  assert.deepEqual(filterGalleryPosts(posts, "finish").map((item) => item.id), ["finish"]);
+  assert.ok(!filterGalleryPosts(posts, "video").some((item) => item.id === "photo"));
 });
 
 test("gallery copy exists in English and Vietnamese", () => {
   assert.equal(tFor("en", "gallery.filters.process"), "Build process");
   assert.equal(tFor("vi", "gallery.filters.process"), "Quá trình chế tác");
+  assert.equal(tFor("en", "gallery.filters.art-of-making"), "ART OF MAKING");
+  assert.equal(tFor("vi", "gallery.filters.art-of-making"), "NGHỆ THUẬT CHẾ TÁC");
   assert.equal(tFor("vi", "gallery.filters.materials"), "Vật liệu & gỗ");
+  assert.equal(tFor("en", "gallery.media.unavailable"), "This image could not be loaded.");
+  assert.equal(tFor("en", "gallery.video.unsupported"), "This uploaded video cannot play in this browser. Use MP4 (H.264/AAC) if possible.");
   assert.equal(tFor("en", "gallery.add"), "Add New");
+  assert.equal(tFor("en", "gallery.form.showAtHome"), "Show on Home");
+  assert.equal(tFor("vi", "gallery.form.showAtHome"), "Hiện trên trang chủ");
+  assert.equal(tFor("en", "home.artOfMaking.playVideo"), "Play video");
+  assert.equal(tFor("vi", "home.artOfMaking.playVideo"), "Phát video");
+  assert.equal(tFor("en", "home.artOfMaking.closeVideo"), "Close video");
+  assert.equal(tFor("vi", "home.artOfMaking.closeVideo"), "Đóng video");
+  assert.equal(tFor("en", "home.artOfMaking.title"), "Artist & Workshop Stories");
+  assert.equal(tFor("en", "home.artOfMaking.eyebrow"), "Behind the music & the craft");
+  assert.equal(tFor("vi", "home.artOfMaking.title"), "Nghệ sĩ & Câu chuyện xưởng đàn");
+  assert.equal(tFor("vi", "home.artOfMaking.eyebrow"), "Âm nhạc & dấu ấn chế tác");
+  assert.equal(
+    tFor("en", "home.artOfMaking.description"),
+    "Stories of artists, music, and craftsmanship — from workshop visits and live sessions to guitar demonstrations, testing, and creative collaborations.",
+  );
+  assert.equal(
+    tFor("vi", "home.artOfMaking.description"),
+    "Những câu chuyện về nghệ sĩ, âm nhạc và xưởng chế tác — từ các buổi ghé thăm, biểu diễn, trải nghiệm nhạc cụ đến những hoạt động sáng tạo tại PhanQuan Guitars.",
+  );
+  assert.equal(tFor("en", "home.featured.title"), "Featured guitars");
   assert.equal(tFor("en", "gallery.errors.TOO_MANY_IMAGES"), "A gallery post can include at most 5 images.");
   assert.equal(tFor("vi", "gallery.errors.TOO_MANY_IMAGES"), "Mỗi bài gallery tối đa 5 ảnh.");
-  assert.equal(tFor("en", "gallery.errors.TOO_MANY_VIDEOS"), "A gallery post can include only one video.");
-  assert.equal(tFor("vi", "gallery.errors.TOO_MANY_VIDEOS"), "Mỗi bài gallery chỉ được một video.");
+  assert.equal(tFor("en", "gallery.errors.TOO_MANY_VIDEOS"), "A gallery post can include at most 5 videos.");
+  assert.equal(tFor("vi", "gallery.errors.TOO_MANY_VIDEOS"), "Mỗi bài gallery tối đa 5 video.");
 });
 
-test("gallery media limits keep five images or one video", () => {
+test("home gallery posts stay on the gallery collection and default off the home section", () => {
+  assert.equal(emptyGalleryForm().showAtHome, false);
+  assert.equal(galleryPostPath("abc123"), "/gallery/abc123");
+  const posts = [
+    { id: "1", title: "On home", category: "process", showAtHome: true },
+    { id: "2", title: "Gallery only", category: "art-of-making", showAtHome: false },
+    { id: "3", title: "Legacy" },
+  ];
+  assert.deepEqual(
+    homeGalleryPosts(posts).map((item) => item.id),
+    ["1"],
+  );
+  assert.equal(emptyGalleryForm().category, "process");
+  assert.equal(storyExcerpt(""), "");
+  assert.equal(storyExcerpt("A night in the shop"), "A night in the shop");
+  assert.equal(storyExcerpt("https://www.facebook.com/reel/1"), "");
+  const withVideo = {
+    cover: { id: "img", kind: "image" },
+    media: [
+      { id: "img", kind: "image" },
+      { id: "yt", kind: "video", sourceUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
+    ],
+  };
+  assert.equal(storyVideo(withVideo).id, "yt");
+  assert.equal(storyVideo({ cover: { id: "img", kind: "image" }, media: [{ id: "img", kind: "image" }] }), null);
+});
+
+test("gallery media limits keep five images and five videos and allow mixed posts", () => {
   const images = Array.from({ length: 5 }, (_, index) => ({ id: `i${index}`, kind: "image" }));
   assert.equal(validateGalleryMedia(images), null);
   assert.equal(validateGalleryMedia([...images, { id: "i5", kind: "image" }]), "TOO_MANY_IMAGES");
   assert.equal(validateGalleryMedia([{ id: "v", kind: "video" }]), null);
-  assert.equal(
-    validateGalleryMedia([
-      { id: "v1", kind: "video" },
-      { id: "v2", kind: "video" },
-    ]),
-    "TOO_MANY_VIDEOS",
-  );
-  assert.equal(validateGalleryMedia([{ id: "i", kind: "image" }, { id: "v", kind: "video" }]), "MIXED_MEDIA");
+  const fiveVideos = Array.from({ length: 5 }, (_, index) => ({ id: `v${index}`, kind: "video" }));
+  assert.equal(validateGalleryMedia(fiveVideos), null);
+  assert.equal(validateGalleryMedia([...fiveVideos, { id: "v5", kind: "video" }]), "TOO_MANY_VIDEOS");
+  assert.equal(validateGalleryMedia([{ id: "i", kind: "image" }, { id: "v", kind: "video" }]), null);
 
   const extra = selectIncomingGalleryFiles(images, [{ type: "image/png" }]);
   assert.equal(extra.files.length, 0);
   assert.equal(extra.code, "TOO_MANY_IMAGES");
 
-  const secondVideo = selectIncomingGalleryFiles([{ id: "v", kind: "video" }], [{ type: "video/mp4" }]);
-  assert.equal(secondVideo.files.length, 0);
-  assert.equal(secondVideo.code, "TOO_MANY_VIDEOS");
+  const mixedUpload = selectIncomingGalleryFiles(images.slice(0, 1), [{ type: "video/mp4" }]);
+  assert.equal(mixedUpload.files.length, 1);
+  assert.equal(mixedUpload.code, null);
+
+  const sixthVideo = selectIncomingGalleryFiles(fiveVideos, [{ type: "video/mp4" }]);
+  assert.equal(sixthVideo.files.length, 0);
+  assert.equal(sixthVideo.code, "TOO_MANY_VIDEOS");
 
   const ordered = orderedGalleryImages({
     coverMediaId: "b",
@@ -61,5 +182,232 @@ test("gallery media limits keep five images or one video", () => {
   assert.deepEqual(
     ordered.map((item) => item.id),
     ["b", "a"],
+  );
+
+  const orderedMedia = orderedGalleryMedia({
+    media: [
+      { id: "b", kind: "image", sortOrder: 2 },
+      { id: "a", kind: "video", sortOrder: 1 },
+    ],
+  });
+  assert.deepEqual(
+    orderedMedia.map((item) => item.id),
+    ["a", "b"],
+  );
+});
+
+test("gallery video URLs accept YouTube, Shorts, Facebook, Vimeo, and reject unsafe values", () => {
+  const youtubeUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+  const youtube = parseGalleryVideoUrl(youtubeUrl);
+  assert.equal(youtube.ok, true);
+  assert.equal(youtube.provider, "youtube");
+  assert.equal(youtube.videoId, "dQw4w9WgXcQ");
+  assert.equal(youtube.sourceUrl, youtubeUrl);
+  assert.equal(galleryVideoEmbedSrc(youtube), "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ");
+  assert.equal(
+    galleryVideoEmbedSrc(youtube, { autoplay: true }),
+    "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1",
+  );
+  assert.equal(galleryDirectVideoPath({ kind: "video", ...youtube }), "");
+
+  const shortsUrl = "https://www.youtube.com/shorts/dQw4w9WgXcQ";
+  const shorts = parseGalleryVideoUrl(shortsUrl);
+  assert.equal(shorts.ok, true);
+  assert.equal(shorts.videoId, "dQw4w9WgXcQ");
+  assert.equal(shorts.sourceUrl, shortsUrl);
+
+  const short = parseGalleryVideoUrl("https://youtu.be/dQw4w9WgXcQ");
+  assert.equal(short.ok, true);
+  assert.equal(short.videoId, "dQw4w9WgXcQ");
+
+  const facebookUrl = "https://www.facebook.com/watch/?v=123456789012345";
+  const facebook = parseGalleryVideoUrl(facebookUrl);
+  assert.equal(facebook.ok, true);
+  assert.equal(facebook.provider, "facebook");
+  assert.equal(facebook.sourceUrl, facebookUrl);
+  assert.match(galleryVideoEmbedSrc(facebook), /facebook\.com\/plugins\/video\.php\?href=/);
+
+  const reelUrl = "https://www.facebook.com/reel/987654321098765";
+  const reel = parseGalleryVideoUrl(reelUrl);
+  assert.equal(reel.ok, true);
+  assert.equal(reel.provider, "facebook");
+  assert.equal(reel.sourceUrl, reelUrl);
+  assert.equal(reel.videoId, "987654321098765");
+
+  const pageVideoUrl = "https://www.facebook.com/PhanQuanGuitars/videos/123456789012345/";
+  const pageVideo = parseGalleryVideoUrl(pageVideoUrl);
+  assert.equal(pageVideo.ok, true);
+  assert.equal(pageVideo.provider, "facebook");
+  assert.equal(pageVideo.sourceUrl, pageVideoUrl);
+  assert.equal(pageVideo.videoId, "123456789012345");
+  assert.match(galleryVideoEmbedSrc(pageVideo), /plugins\/video\.php\?href=/);
+  assert.equal(galleryVideoEmbedSrc(pageVideo).includes(encodeURIComponent("https://www.facebook.com/PhanQuanGuitars/videos/123456789012345/")), true);
+
+  const fbWatchUrl = "https://fb.watch/abcDE12/";
+  const fbWatch = parseGalleryVideoUrl(fbWatchUrl);
+  assert.equal(fbWatch.ok, true);
+  assert.equal(fbWatch.provider, "facebook");
+  assert.equal(fbWatch.sourceUrl, fbWatchUrl);
+  assert.equal(fbWatch.videoId, "abcDE12");
+  assert.equal(
+    galleryVideoEmbedSrc(fbWatch).includes(`href=${encodeURIComponent("https://fb.watch/abcDE12/")}`),
+    true,
+  );
+
+  const shareUrl = "https://www.facebook.com/share/v/1AbCdEfGhIj/";
+  const share = parseGalleryVideoUrl(shareUrl);
+  assert.equal(share.ok, true);
+  assert.equal(share.sourceUrl, shareUrl);
+
+  const vimeo = parseGalleryVideoUrl("https://vimeo.com/123456789");
+  assert.equal(vimeo.ok, true);
+  assert.equal(vimeo.provider, "vimeo");
+  assert.equal(galleryVideoEmbedSrc(vimeo), "https://player.vimeo.com/video/123456789");
+
+  const direct = parseGalleryVideoUrl("https://cdn.example.com/clip.webm?token=1");
+  assert.equal(direct.ok, true);
+  assert.equal(direct.provider, "direct");
+  assert.equal(galleryVideoEmbedSrc(direct), "");
+  assert.equal(galleryDirectVideoPath({ kind: "video", ...direct }), "https://cdn.example.com/clip.webm?token=1");
+  assert.equal(
+    galleryDirectVideoPath({
+      kind: "video",
+      provider: "upload",
+      path: "/uploads/gallery/videos/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.mp4",
+    }),
+    "/uploads/gallery/videos/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.mp4",
+  );
+  assert.equal(
+    galleryUploadMime("/uploads/gallery/videos/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.mp4"),
+    "video/mp4",
+  );
+  assert.equal(galleryUploadMime("https://cdn.example.com/clip.webm?token=1"), "video/webm");
+  assert.equal(
+    galleryVideoPreviewSrc("/uploads/gallery/videos/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.mp4"),
+    "/uploads/gallery/videos/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.mp4#t=0.001",
+  );
+
+  assert.equal(parseGalleryVideoUrl("javascript:alert(1)").ok, false);
+  assert.equal(parseGalleryVideoUrl("https://example.com/page").code, "UNSUPPORTED_VIDEO_URL");
+  assert.equal(parseGalleryVideoUrl("not-a-url").ok, false);
+  assert.equal(parseGalleryVideoUrl("").code, "VIDEO_URL_REQUIRED");
+  assert.equal(parseGalleryVideoUrl('<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ"></iframe>').ok, false);
+  assert.equal(parseGalleryVideoUrl(facebookUrl, { expectedProvider: "youtube" }).code, "PROVIDER_MISMATCH");
+  assert.equal(
+    galleryVideoEmbedSrc({ kind: "video", url: youtubeUrl }),
+    "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
+  );
+});
+
+test("gallery editor keeps original video URLs through add, hydrate, and title updates", () => {
+  const youtubeUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+  const shortsUrl = "https://www.youtube.com/shorts/dQw4w9WgXcQ";
+  const facebookUrl = "https://www.facebook.com/username/videos/123456789012345";
+  const reelUrl = "https://www.facebook.com/reel/987654321098765";
+  const fbWatchUrl = "https://fb.watch/abcDE12/";
+
+  for (const url of [youtubeUrl, shortsUrl, facebookUrl, reelUrl, fbWatchUrl]) {
+    const saved = {
+      id: "post1",
+      title: "Session",
+      excerpt: "Live",
+      content: "Body",
+      category: "video",
+      status: "published",
+      publishedAt: "2026-01-02T00:00:00.000Z",
+      order: 1,
+      showAtHome: false,
+      coverMediaId: "m1",
+      media: [{ id: "m1", kind: "video", url, sourceUrl: url, path: url, provider: parseGalleryVideoUrl(url).provider }],
+    };
+    const form = formFromPost(saved);
+    assert.equal(form.media[0].sourceUrl, url);
+    const payload = payloadFromForm({ ...form, title: "Session updated", excerpt: "Edited" });
+    assert.equal(payload.title, "Session updated");
+    assert.equal(payload.media[0].sourceUrl, url);
+    assert.equal(payload.media[0].url, url);
+    assert.equal(payload.media[0].kind, "video");
+  }
+
+  const imageOnly = formFromPost({
+    id: "img",
+    title: "Bench",
+    category: "process",
+    status: "draft",
+    media: [{ id: "i1", kind: "image", path: "/uploads/gallery/images/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png", provider: "upload" }],
+  });
+  assert.equal(imageOnly.media[0].kind, "image");
+  assert.equal(payloadFromForm(imageOnly).media[0].provider, "upload");
+
+  const legacy = hydrateGalleryMedia({
+    id: "legacy",
+    kind: "video",
+    path: youtubeUrl,
+    provider: "upload",
+  });
+  assert.equal(legacy.sourceUrl, youtubeUrl);
+  assert.equal(legacy.provider, "youtube");
+  assert.equal(legacy.videoId, "dQw4w9WgXcQ");
+});
+
+test("Facebook gallery videos use a custom poster and keep it through edit payloads", () => {
+  const facebookUrl = "https://www.facebook.com/watch/?v=123456789012345";
+  const poster = "/uploads/gallery/images/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg";
+  const youtubeUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+
+  assert.equal(galleryPosterUrl({ kind: "video", sourceUrl: facebookUrl, provider: "facebook" }), "");
+  assert.equal(
+    galleryPosterUrl({ kind: "video", sourceUrl: facebookUrl, provider: "facebook", thumbnail: poster }),
+    poster,
+  );
+  assert.equal(
+    galleryPosterUrl({ kind: "video", url: youtubeUrl, provider: "youtube" }),
+    "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+  );
+
+  const form = formFromPost({
+    id: "fb1",
+    title: "Facebook session",
+    category: "video",
+    status: "published",
+    media: [{ id: "m1", kind: "video", sourceUrl: facebookUrl, url: facebookUrl, provider: "facebook", thumbnail: poster }],
+  });
+  assert.equal(form.media[0].thumbnail, poster);
+  const payload = payloadFromForm({ ...form, title: "Facebook session updated" });
+  assert.equal(payload.title, "Facebook session updated");
+  assert.equal(payload.media[0].sourceUrl, facebookUrl);
+  assert.equal(payload.media[0].thumbnail, poster);
+  assert.equal(tFor("en", "gallery.form.uploadPoster"), "Upload poster image");
+  assert.equal(tFor("en", "gallery.video.facebookPreview"), "Facebook video");
+  assert.equal(tFor("en", "gallery.video.unmute"), "Unmute video");
+  assert.equal(tFor("vi", "gallery.video.unmute"), "Bật tiếng");
+  assert.equal(tFor("en", "gallery.video.close"), "Close video");
+  const facebookAutoplay = galleryVideoEmbedSrc(parseGalleryVideoUrl(facebookUrl), { autoplay: true });
+  assert.match(facebookAutoplay, /autoplay=1/);
+  assert.match(facebookAutoplay, /[?&]mute=0/);
+  assert.equal(facebookAutoplay.includes("mute=1"), false);
+  assert.equal(
+    galleryVideoEmbedSrc(parseGalleryVideoUrl("https://www.youtube.com/watch?v=dQw4w9WgXcQ"), { autoplay: true }),
+    "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1",
+  );
+  let unmuteCount = 0;
+  let playCount = 0;
+  const player = {
+    unmute() {
+      unmuteCount += 1;
+    },
+    play() {
+      playCount += 1;
+    },
+  };
+  requestFacebookAudiblePlayback(player);
+  requestFacebookAudiblePlayback(player);
+  assert.equal(unmuteCount, 1);
+  assert.equal(playCount, 1);
+  requestFacebookAudiblePlayback(player, { force: true });
+  assert.equal(unmuteCount, 2);
+  assert.equal(
+    facebookVideoHref("https://www.facebook.com/reel/1649522569474963"),
+    "https://www.facebook.com/reel/1649522569474963",
   );
 });

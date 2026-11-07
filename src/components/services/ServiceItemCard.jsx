@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import ProductPrice from "../ProductPrice.jsx";
 import ServiceHtml from "./ServiceHtml.jsx";
 import { mediaUrl } from "../../config/api.js";
+import { useCart } from "../../cart/CartContext.jsx";
 import {
   optionGroupLabel,
   optionValueLabel,
@@ -10,18 +11,36 @@ import {
 } from "../../data/services.js";
 import { useLanguage } from "../../i18n/LanguageContext.jsx";
 import { fieldClass } from "../auth/Field.jsx";
+import { isCartCategory } from "../../services/serviceCart.js";
 
-export default function ServiceItemCard({ item }) {
+export default function ServiceItemCard({ item, categorySlug }) {
   const { t, language } = useLanguage();
   const copy = serviceLocale(item, language);
   const heading = copy.title || item.title;
   const groups = Array.isArray(item.optionGroups) ? item.optionGroups : [];
   const [selected, setSelected] = useState(() => groups.map((group) => group.values?.[0]?.id || ""));
+  const [feedback, setFeedback] = useState("");
+  const [saving, setSaving] = useState(false);
+  const cartEnabled = isCartCategory(categorySlug);
+  const { addItem } = useCart();
 
   const price = useMemo(
     () => resolveServiceItemPrice(item, selected),
     [item, selected],
   );
+
+  async function onAdd() {
+    if (!cartEnabled || saving) return;
+    setSaving(true);
+    setFeedback("");
+    const result = await addItem({
+      serviceItemId: item.id,
+      optionValueIds: selected.filter(Boolean),
+      quantity: 1,
+    });
+    setSaving(false);
+    setFeedback(result.ok ? "added" : result.code || "failure");
+  }
 
   return (
     <article className="border border-white/10 bg-panel/30 p-6">
@@ -33,7 +52,11 @@ export default function ServiceItemCard({ item }) {
         />
       ) : null}
       <h2 className="mt-5 font-display text-2xl tracking-wide text-ivory">{heading}</h2>
-      <ProductPrice product={{ price, currency: item.currency }} className="mt-3 text-gold" />
+      {price == null ? (
+        <p className="mt-3 text-gold">{t("cart.priceOnRequest")}</p>
+      ) : (
+        <ProductPrice product={{ price, currency: item.currency }} className="mt-3 text-gold" />
+      )}
       {groups.length > 0 ? (
         <div className="mt-6 space-y-5">
           {groups.map((group, groupIndex) => {
@@ -91,6 +114,28 @@ export default function ServiceItemCard({ item }) {
       <div className="mt-4">
         <ServiceHtml html={copy.html} />
       </div>
+      {cartEnabled ? (
+        <div className="mt-6 space-y-4">
+          <button
+            type="button"
+            onClick={() => void onAdd()}
+            disabled={saving}
+            className="inline-flex items-center border border-gold bg-gold px-5 py-3 text-[11px] uppercase tracking-[0.22em] text-charcoal transition-colors hover:bg-gold-light disabled:opacity-50"
+          >
+            {saving ? t("cart.adding") : t("cart.add")}
+          </button>
+          {feedback === "added" ? (
+            <p className="text-sm text-gold" role="status">
+              {t("cart.added")}
+            </p>
+          ) : null}
+          {feedback && feedback !== "added" ? (
+            <p className="text-sm text-gold" role="alert">
+              {t("cart.addFailed")}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
     </article>
   );
 }

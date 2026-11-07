@@ -79,7 +79,7 @@ export default function ServiceCategory() {
           {status === "ready" && items.length > 0 ? (
             <div className="grid gap-8 md:grid-cols-2">
               {items.map((item) => (
-                <ServiceItemCard key={item.id} item={item} />
+                <ServiceItemCard key={item.id} item={item} categorySlug={slug} />
               ))}
             </div>
           ) : null}

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { placeSeriesPopover } from "../../services/seriesPopover.js";
 import SeriesDescriptionCopy from "./SeriesDescriptionCopy.jsx";
@@ -11,7 +11,6 @@ export default function SeriesDescriptionOverlay({
   priceRange,
   labelledBy,
 }) {
-  const overlayRef = useRef(null);
   const [style, setStyle] = useState(null);
 
   useLayoutEffect(() => {
@@ -27,6 +26,7 @@ export default function SeriesDescriptionOverlay({
         width: `${next.maxWidth}px`,
         maxWidth: `${next.maxWidth}px`,
         maxHeight: `${next.maxHeight}px`,
+        height: "auto",
         top: next.top === "auto" ? "auto" : `${next.top}px`,
         bottom: next.bottom === "auto" ? "auto" : `${next.bottom}px`,
       });
@@ -44,17 +44,17 @@ export default function SeriesDescriptionOverlay({
 
   return createPortal(
     <div
-      ref={overlayRef}
       id={id}
       role="dialog"
       aria-labelledby={labelledBy}
-      className="fixed z-[70] overflow-y-auto overscroll-contain border border-gold/40 bg-charcoal/95 px-5 py-4 text-left shadow-[0_18px_40px_rgba(0,0,0,0.45)] backdrop-blur-sm"
+      className="fixed z-[70] flex flex-col overflow-hidden border border-gold/40 bg-charcoal/95 px-5 py-4 text-left shadow-[0_18px_40px_rgba(0,0,0,0.45)] backdrop-blur-sm"
       style={style || { visibility: "hidden" }}
     >
       <SeriesDescriptionCopy
         name={name}
         description={description}
         priceRange={priceRange}
+        pinPrice
       />
     </div>,
     document.body,

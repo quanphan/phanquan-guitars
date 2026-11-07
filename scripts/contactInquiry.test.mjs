@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { tFor } from "../src/i18n/translations.js";
 import {
+  buildContactChatSummary,
   buildContactInquiryPayload,
   contactPagePath,
   parseInquiryType,
@@ -84,6 +85,36 @@ test("custom-guitar payload keeps an existing draft reference without inventing 
   assert.equal(withoutDraft.draftId, undefined);
 });
 
+test("contact chat summary includes name, email, phone, inquiry type, and message", () => {
+  const text = buildContactChatSummary({
+    t: (key) => tFor("en", key),
+    values: {
+      name: "Lan Pham",
+      email: "lan@example.com",
+      phone: "0903083489",
+      inquiryType: "custom-guitar",
+      message: "I want an offset six-string.",
+    },
+  });
+  assert.match(text, /Lan Pham/);
+  assert.match(text, /lan@example.com/);
+  assert.match(text, /0903083489/);
+  assert.match(text, /Custom Guitar Inquiry/);
+  assert.match(text, /I want an offset six-string/);
+});
+
+test("contact payload still omits phone so email submit is unchanged", () => {
+  const payload = buildContactInquiryPayload({
+    inquiryType: "technical",
+    name: "Lan Pham",
+    email: "lan@example.com",
+    phone: "0903083489",
+    message: "What scale is this?",
+  });
+  assert.equal(payload.phone, undefined);
+  assert.equal(payload.inquiryType, "technical");
+});
+
 test("contact copy exists in English and Vietnamese", () => {
   assert.equal(tFor("en", "contact.title"), "Let's Talk About Your Guitar.");
   assert.equal(tFor("vi", "contact.title"), "Hãy nói về cây đàn của bạn.");
@@ -91,6 +122,10 @@ test("contact copy exists in English and Vietnamese", () => {
   assert.equal(tFor("vi", "contact.types.collaboration.title"), "Hợp tác & khác");
   assert.equal(tFor("en", "contact.closing"), "Every great instrument begins with a conversation.");
   assert.equal(tFor("vi", "contact.submit"), "Gửi enquiry");
+  assert.equal(tFor("en", "contact.fields.phone"), "Phone number");
+  assert.equal(tFor("en", "socialChat.facebook"), "Chat via Facebook");
+  assert.equal(tFor("en", "socialChat.copied"), "Summary copied. Please paste it into the chat.");
+  assert.equal(tFor("vi", "socialChat.contact"), "Chat với xưởng");
   assert.equal(tFor("en", "admin.tabs.messages"), "Messages");
   assert.equal(tFor("vi", "admin.tabs.messages"), "Tin nhắn");
 });

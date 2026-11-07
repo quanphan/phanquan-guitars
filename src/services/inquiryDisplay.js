@@ -257,9 +257,21 @@ function orHumanize(primary, fallbackId) {
   return humanizeOptionId(fallbackId);
 }
 
+export function isServiceCartInquiry(inquiry) {
+  return inquiry?.configuration?.selections?.inquiryKind === "service-cart";
+}
+
+export function serviceCartLines(inquiry) {
+  const items = inquiry?.configuration?.selections?.items;
+  return Array.isArray(items) ? items : [];
+}
+
 export function buildInquiryDisplay(inquiry, t, { catalog, language } = {}) {
   const selections = inquiry?.configuration?.selections ?? {};
   const parsed = parseInquiryNotes(inquiry?.configuration?.notes);
+  if (isServiceCartInquiry(inquiry) && !parsed.metadata.country && selections.country) {
+    parsed.metadata.country = selections.country;
+  }
   const wizard = {
     ...wizardFromCatalog(selections),
     ...parsed.wizard,

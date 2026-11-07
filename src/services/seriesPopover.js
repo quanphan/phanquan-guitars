@@ -1,8 +1,6 @@
 const VIEW_PADDING = 16;
 const GAP = 12;
-const INFO_OFFSET = 44;
 export const SERIES_POPOVER_MAX_WIDTH = 360;
-export const SERIES_POPOVER_MAX_HEIGHT = 280;
 export const SERIES_LAYOUT_MIN_WIDTH = 1024;
 
 export function prefersFinePointer(media = globalThis) {
@@ -27,12 +25,14 @@ export function placeSeriesPopover({ cardRect, viewport, gap = GAP } = {}) {
   if (left < VIEW_PADDING) left = VIEW_PADDING;
 
   const cardTop = Number(cardRect?.top) || 0;
-  const belowTop = cardTop + INFO_OFFSET;
+  const cardBottom = Number(cardRect?.bottom) || 0;
+  const belowTop = cardBottom + gap;
   const spaceBelow = viewHeight - belowTop - VIEW_PADDING;
   const spaceAbove = cardTop - VIEW_PADDING - gap;
-  const placement = spaceBelow >= 140 || spaceBelow >= spaceAbove ? "below" : "above";
+  const placement = spaceBelow >= 160 || spaceBelow >= spaceAbove ? "below" : "above";
   const available = placement === "below" ? spaceBelow : spaceAbove;
-  const maxHeight = Math.max(120, Math.min(SERIES_POPOVER_MAX_HEIGHT, available));
+  const viewportCap = Math.max(0, viewHeight - VIEW_PADDING * 2);
+  const maxHeight = Math.max(0, Math.min(available, viewportCap));
 
   if (placement === "below") {
     return {
@@ -50,7 +50,7 @@ export function placeSeriesPopover({ cardRect, viewport, gap = GAP } = {}) {
     left,
     maxWidth,
     top: "auto",
-    bottom: Math.max(VIEW_PADDING, viewHeight - (Number(cardRect?.top) || 0) + gap),
+    bottom: Math.max(VIEW_PADDING, viewHeight - cardTop + gap),
     maxHeight,
   };
 }

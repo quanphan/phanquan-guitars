@@ -1,6 +1,10 @@
 import { isAdminRole } from "./adminAccess.js";
 
 export const ADMIN_SESSION_KEY = "phanquan-guitars-admin-session";
+// Access and refresh tokens stay in sessionStorage (tab-scoped), not localStorage.
+// HttpOnly cookie auth was evaluated and deferred: it would require CSRF tokens,
+// SameSite/cross-origin API changes, and a coordinated TimboWebApi cookie rollout
+// that would break current login, refresh, admin, and authorizedRequest flows.
 export const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 export const SESSION_IDLE_MS = 30 * 60 * 1000;
 export const SESSION_ACTIVITY_THROTTLE_MS = 5 * 1000;

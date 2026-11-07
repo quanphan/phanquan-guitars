@@ -7,6 +7,7 @@ import BuildProcess from "./pages/BuildProcess.jsx";
 import Account from "./pages/Account.jsx";
 import CustomBuild from "./pages/CustomBuild.jsx";
 import Gallery from "./pages/Gallery.jsx";
+import GalleryDetail from "./pages/GalleryDetail.jsx";
 import GuitarDetail from "./pages/GuitarDetail.jsx";
 import Guitars from "./pages/Guitars.jsx";
 import Home from "./pages/Home.jsx";
@@ -39,6 +40,9 @@ import CatalogTermEditor from "./pages/admin/CatalogTermEditor.jsx";
 import AdminCustomBuildSetup from "./pages/admin/AdminCustomBuildSetup.jsx";
 import WizardOptionEditor from "./pages/admin/WizardOptionEditor.jsx";
 import Contact from "./pages/Contact.jsx";
+import Cart from "./pages/Cart.jsx";
+import CartRequest from "./pages/CartRequest.jsx";
+import CartConfirmation from "./pages/CartConfirmation.jsx";
 import StockDetail from "./pages/StockDetail.jsx";
 
 export default function App() {
@@ -54,10 +58,14 @@ export default function App() {
         <Route path="/services" element={<Services />} />
         <Route path="/services/:slug" element={<ServiceCategory />} />
         <Route path="/gallery" element={<Gallery />} />
+        <Route path="/gallery/:id" element={<GalleryDetail />} />
         <Route path="/custom-build" element={<CustomBuild />} />
         <Route path="/build-process" element={<BuildProcess />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/cart" element={<Cart />} />
+        <Route path="/cart/request" element={<CartRequest />} />
+        <Route path="/cart/confirmation/:id" element={<CartConfirmation />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route element={<CustomerRoute />}>

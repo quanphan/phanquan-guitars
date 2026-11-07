@@ -1,85 +1,21 @@
+import { useState } from "react";
 import Field from "../auth/Field.jsx";
 import Button from "../Button.jsx";
 import {
   GALLERY_CATEGORIES,
   GALLERY_IMAGE_MAX,
   GALLERY_VIDEO_MAX,
-  emptyGalleryForm,
   galleryImages,
   galleryVideos,
 } from "../../data/gallery.js";
-import { mediaUrl } from "../../config/api.js";
+import { formFromPost, payloadFromForm, todayDateInput } from "../../data/galleryForm.js";
+import { hydrateGalleryMedia, newGalleryMediaId, parseGalleryVideoUrl } from "../../data/galleryVideo.js";
 import { useLanguage } from "../../i18n/LanguageContext.jsx";
 import { errorText } from "../../auth/errorText.js";
+import GalleryMediaPlayer from "./GalleryMediaPlayer.jsx";
+import GalleryMediaThumb from "./GalleryMediaThumb.jsx";
 
-function padDatePart(value) {
-  return String(value).padStart(2, "0");
-}
-
-export function todayDateInput() {
-  const date = new Date();
-  return `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}`;
-}
-
-function toDateInput(iso) {
-  if (!iso) return "";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "";
-  return `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}`;
-}
-
-function fromDateInput(value) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || "").trim());
-  if (!match) return null;
-  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12, 0, 0);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toISOString();
-}
-
-export function formFromPost(post) {
-  if (!post) return { ...emptyGalleryForm(), publishedAt: todayDateInput() };
-  return {
-    title: post.title || "",
-    excerpt: post.excerpt || "",
-    content: post.content || "",
-    category: post.category || "process",
-    status: post.status || "draft",
-    publishedAt: toDateInput(post.publishedAt || post.createdAt) || todayDateInput(),
-    order: post.order || 0,
-    coverMediaId: post.coverMediaId || post.cover?.id || "",
-    media: Array.isArray(post.media) ? post.media : [],
-  };
-}
-
-export function payloadFromForm(form) {
-  return {
-    title: form.title,
-    excerpt: form.excerpt,
-    content: form.content,
-    category: form.category,
-    status: form.status,
-    publishedAt: fromDateInput(form.publishedAt),
-    order: Number(form.order) || 0,
-    coverMediaId: form.coverMediaId,
-    media: form.media.map((item) => ({
-      id: item.id,
-      kind: item.kind,
-      path: item.path || item.url,
-      url: item.url || item.path,
-      mime: item.mime,
-      size: item.size,
-      originalName: item.originalName,
-    })),
-  };
-}
-
-function MediaThumb({ item }) {
-  const src = mediaUrl(item.url || item.path);
-  if (item.kind === "video") {
-    return <video src={src} muted playsInline preload="metadata" className="h-24 w-32 object-cover bg-ink" />;
-  }
-  return <img src={src} alt="" className="h-24 w-32 object-cover bg-ink" />;
-}
+export { formFromPost, payloadFromForm, todayDateInput };
 
 export default function GalleryEditor({
   form,
@@ -91,11 +27,18 @@ export default function GalleryEditor({
   saving,
   error,
   onUpload,
+  onUploadPoster,
   onSave,
   onClose,
   onRemoveMedia,
 }) {
   const { t } = useLanguage();
+  const [mediaType, setMediaType] = useState("image");
+  const [videoProvider, setVideoProvider] = useState("auto");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [videoThumb, setVideoThumb] = useState("");
+  const [videoError, setVideoError] = useState(null);
+  const [preview, setPreview] = useState(null);
 
   function update(key, value) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -103,8 +46,8 @@ export default function GalleryEditor({
 
   const images = galleryImages(form.media);
   const videos = galleryVideos(form.media);
-  const canAddImages = videos.length === 0 && images.length < GALLERY_IMAGE_MAX;
-  const canAddVideos = images.length === 0 && videos.length < GALLERY_VIDEO_MAX;
+  const canAddImages = images.length < GALLERY_IMAGE_MAX;
+  const canAddVideos = videos.length < GALLERY_VIDEO_MAX;
   const canAddMedia = canAddImages || canAddVideos;
   const accept = [
     canAddImages ? "image/jpeg,image/png,image/webp,image/gif" : "",
@@ -112,6 +55,66 @@ export default function GalleryEditor({
   ]
     .filter(Boolean)
     .join(",");
+
+  function addExternalVideo() {
+    if (!canAddVideos) {
+      setVideoError("TOO_MANY_VIDEOS");
+      return;
+    }
+    const parsed = parseGalleryVideoUrl(videoUrl, { expectedProvider: videoProvider });
+    if (!parsed.ok) {
+      setVideoError(parsed.code);
+      setPreview(null);
+      return;
+    }
+    const item = {
+      id: newGalleryMediaId(),
+      kind: "video",
+      provider: parsed.provider,
+      videoId: parsed.videoId,
+      url: parsed.sourceUrl,
+      sourceUrl: parsed.sourceUrl,
+      path: parsed.sourceUrl,
+      thumbnail: videoThumb.trim() || parsed.thumbnail,
+      sortOrder: form.media.length,
+    };
+    setForm((current) => ({
+      ...current,
+      media: [...current.media, item],
+      coverMediaId: current.coverMediaId || item.id,
+    }));
+    setVideoUrl("");
+    setVideoThumb("");
+    setVideoError(null);
+    setPreview(item);
+  }
+
+  function previewUrl() {
+    const parsed = parseGalleryVideoUrl(videoUrl, { expectedProvider: videoProvider });
+    if (!parsed.ok) {
+      setVideoError(parsed.code);
+      setPreview(null);
+      return;
+    }
+    setVideoError(null);
+    setPreview({
+      id: "preview",
+      kind: "video",
+      provider: parsed.provider,
+      videoId: parsed.videoId,
+      url: parsed.sourceUrl,
+      sourceUrl: parsed.sourceUrl,
+      path: parsed.sourceUrl,
+      thumbnail: videoThumb.trim() || parsed.thumbnail,
+    });
+  }
+
+  function updateMedia(id, patch) {
+    setForm((current) => ({
+      ...current,
+      media: current.media.map((entry) => (entry.id === id ? hydrateGalleryMedia({ ...entry, ...patch }) : entry)),
+    }));
+  }
 
   function move(index, delta) {
     setForm((current) => {
@@ -214,13 +217,31 @@ export default function GalleryEditor({
             />
           </div>
 
+          <label className="flex items-start gap-3 text-sm leading-relaxed text-ivory">
+            <input
+              id="gallery-show-at-home"
+              type="checkbox"
+              checked={Boolean(form.showAtHome)}
+              onChange={(event) => update("showAtHome", event.target.checked)}
+              disabled={saving}
+              className="mt-1 size-4 shrink-0 accent-gold"
+            />
+            <span>
+              <span className="block text-[11px] uppercase tracking-[0.18em] text-gold">
+                {t("gallery.form.showAtHome")}
+              </span>
+              <span className="mt-1 block text-sm text-muted">{t("gallery.form.showAtHomeHelp")}</span>
+            </span>
+          </label>
+
           <div>
             <p className="text-[11px] uppercase tracking-[0.18em] text-gold">{t("gallery.form.media")}</p>
+            <p className="mt-2 text-xs text-muted">{t("gallery.form.mediaHelp")}</p>
             <div className="mt-3 space-y-3">
               {form.media.map((item, index) => (
-                <div key={item.id} className="flex flex-wrap items-center gap-3 border border-white/10 p-3">
-                  <MediaThumb item={item} />
-                  {item.kind === "image" ? (
+                <div key={item.id} className="border border-white/10 p-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <GalleryMediaThumb item={item} className="h-24 w-32 shrink-0" compact />
                     <label className="flex items-center gap-2 text-xs text-ivory">
                       <input
                         type="radio"
@@ -231,29 +252,120 @@ export default function GalleryEditor({
                       />
                       {t("gallery.form.cover")}
                     </label>
-                  ) : (
-                    <p className="text-xs text-muted">{t("gallery.form.videoOnly")}</p>
-                  )}
-                  <button type="button" className="text-[11px] uppercase tracking-[0.16em] text-muted hover:text-ivory" onClick={() => move(index, -1)}>
-                    {t("gallery.form.up")}
-                  </button>
-                  <button type="button" className="text-[11px] uppercase tracking-[0.16em] text-muted hover:text-ivory" onClick={() => move(index, 1)}>
-                    {t("gallery.form.down")}
-                  </button>
-                  <button type="button" className="text-[11px] uppercase tracking-[0.16em] text-gold" onClick={() => onRemoveMedia(item)}>
-                    {t("gallery.form.removeMedia")}
-                  </button>
+                    <button type="button" className="text-[11px] uppercase tracking-[0.16em] text-muted hover:text-ivory" onClick={() => move(index, -1)}>
+                      {t("gallery.form.up")}
+                    </button>
+                    <button type="button" className="text-[11px] uppercase tracking-[0.16em] text-muted hover:text-ivory" onClick={() => move(index, 1)}>
+                      {t("gallery.form.down")}
+                    </button>
+                    <button type="button" className="text-[11px] uppercase tracking-[0.16em] text-gold" onClick={() => onRemoveMedia(item)}>
+                      {t("gallery.form.removeMedia")}
+                    </button>
+                  </div>
+                  {item.kind === "video" && item.provider !== "upload" ? (
+                    <div className="mt-3 space-y-3">
+                      <Field
+                        id={`gallery-source-${item.id}`}
+                        label={t("gallery.form.videoUrl")}
+                        value={item.sourceUrl || item.url || ""}
+                        onChange={(value) => updateMedia(item.id, { sourceUrl: value, url: value, path: value })}
+                        disabled={saving}
+                      />
+                      <Field
+                        id={`gallery-thumb-${item.id}`}
+                        label={t("gallery.form.thumbnail")}
+                        value={item.thumbnail || ""}
+                        onChange={(value) => updateMedia(item.id, { thumbnail: value })}
+                        disabled={saving}
+                      />
+                      {item.provider === "facebook" && onUploadPoster ? (
+                        <label className="inline-flex cursor-pointer border border-gold/70 px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-ivory hover:bg-gold/10">
+                          {t("gallery.form.uploadPoster")}
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/gif"
+                            className="sr-only"
+                            disabled={saving || uploading}
+                            onChange={(event) => {
+                              const file = event.target.files?.[0];
+                              event.target.value = "";
+                              if (!file) return;
+                              void onUploadPoster(file).then((path) => {
+                                if (path) updateMedia(item.id, { thumbnail: path });
+                              });
+                            }}
+                          />
+                        </label>
+                      ) : null}
+                      <GalleryMediaPlayer item={item} title={form.title} />
+                    </div>
+                  ) : null}
                 </div>
               ))}
             </div>
             <p className="mt-3 text-xs text-muted">
-              {videos.length
-                ? t("gallery.form.videoLimit")
-                : t("gallery.form.imageLimit")
-                    .replace("{count}", String(images.length))
-                    .replace("{max}", String(GALLERY_IMAGE_MAX))}
+              {t("gallery.form.imageLimit")
+                .replace("{count}", String(images.length))
+                .replace("{max}", String(GALLERY_IMAGE_MAX))}
+              {" · "}
+              {t("gallery.form.videoCount")
+                .replace("{count}", String(videos.length))
+                .replace("{max}", String(GALLERY_VIDEO_MAX))}
             </p>
-            {canAddMedia ? (
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="gallery-media-type" className="text-[11px] uppercase tracking-[0.18em] text-gold">
+                  {t("gallery.form.mediaType")}
+                </label>
+                <select
+                  id="gallery-media-type"
+                  value={mediaType}
+                  onChange={(event) => {
+                    const next = event.target.value;
+                    if (
+                      mediaType === "external" &&
+                      next === "image" &&
+                      (videoUrl.trim() || preview) &&
+                      !window.confirm(t("gallery.form.confirmSwitchMedia"))
+                    ) {
+                      return;
+                    }
+                    if (next === "image") {
+                      setVideoUrl("");
+                      setVideoThumb("");
+                      setVideoError(null);
+                      setPreview(null);
+                    }
+                    setMediaType(next);
+                  }}
+                  disabled={saving}
+                  className="mt-2 w-full border border-white/10 bg-ink px-4 py-3 text-sm text-ivory"
+                >
+                  <option value="image">{t("gallery.form.mediaTypeImage")}</option>
+                  <option value="external">{t("gallery.form.mediaTypeVideo")}</option>
+                </select>
+              </div>
+              {mediaType === "external" ? (
+                <div>
+                  <label htmlFor="gallery-video-provider" className="text-[11px] uppercase tracking-[0.18em] text-gold">
+                    {t("gallery.form.videoProvider")}
+                  </label>
+                  <select
+                    id="gallery-video-provider"
+                    value={videoProvider}
+                    onChange={(event) => setVideoProvider(event.target.value)}
+                    disabled={saving}
+                    className="mt-2 w-full border border-white/10 bg-ink px-4 py-3 text-sm text-ivory"
+                  >
+                    <option value="auto">{t("gallery.form.providerAuto")}</option>
+                    <option value="youtube">{t("gallery.form.providerYoutube")}</option>
+                    <option value="facebook">{t("gallery.form.providerFacebook")}</option>
+                  </select>
+                </div>
+              ) : null}
+            </div>
+
+            {mediaType === "image" && canAddMedia ? (
               <label className="mt-3 inline-flex cursor-pointer border border-gold/70 px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-ivory hover:bg-gold/10">
                 {uploading
                   ? t("gallery.form.uploading")
@@ -273,10 +385,70 @@ export default function GalleryEditor({
                   }}
                 />
               </label>
-            ) : images.length >= GALLERY_IMAGE_MAX ? (
-              <p className="mt-3 text-xs text-gold">{t("gallery.form.imageFull")}</p>
+            ) : null}
+            {mediaType === "image" && !canAddMedia ? (
+              <p className="mt-3 text-xs text-gold">{t("gallery.form.mediaFull")}</p>
             ) : null}
             {pendingUpload ? <p className="mt-2 text-xs text-gold">{t("gallery.form.uploaded")}</p> : null}
+
+            {mediaType === "external" && canAddVideos ? (
+              <div className="mt-6 space-y-3 border border-white/10 p-4">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-gold">{t("gallery.form.externalVideo")}</p>
+                <Field
+                  id="gallery-video-url"
+                  label={t("gallery.form.videoUrl")}
+                  value={videoUrl}
+                  onChange={(value) => {
+                    setVideoUrl(value);
+                    setVideoError(null);
+                  }}
+                  disabled={saving}
+                />
+                <Field
+                  id="gallery-video-thumb"
+                  label={t("gallery.form.thumbnailOptional")}
+                  value={videoThumb}
+                  onChange={setVideoThumb}
+                  disabled={saving}
+                />
+                {onUploadPoster ? (
+                  <label className="inline-flex cursor-pointer border border-gold/70 px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-ivory hover:bg-gold/10">
+                    {t("gallery.form.uploadPoster")}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      className="sr-only"
+                      disabled={saving || uploading}
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        event.target.value = "";
+                        if (!file) return;
+                        void onUploadPoster(file).then((path) => {
+                          if (path) setVideoThumb(path);
+                        });
+                      }}
+                    />
+                  </label>
+                ) : null}
+                <div className="flex flex-wrap gap-3">
+                  <Button type="button" variant="outline" disabled={saving} onClick={previewUrl}>
+                    {t("gallery.form.previewVideo")}
+                  </Button>
+                  <Button type="button" disabled={saving} onClick={addExternalVideo}>
+                    {t("gallery.form.addVideo")}
+                  </Button>
+                </div>
+                {videoError ? (
+                  <p className="text-sm text-gold" role="alert">
+                    {errorText(t, "gallery", videoError)}
+                  </p>
+                ) : null}
+                {preview ? <GalleryMediaPlayer item={preview} title={form.title} className="mt-3" /> : null}
+              </div>
+            ) : null}
+            {mediaType === "external" && !canAddVideos ? (
+              <p className="mt-3 text-xs text-gold">{t("gallery.form.videoLimit")}</p>
+            ) : null}
           </div>
 
           {error ? (

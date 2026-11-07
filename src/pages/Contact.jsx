@@ -20,10 +20,12 @@ import {
   INQUIRY_TYPE_VALUES,
   PRODUCT_REF_MAX,
   SUBJECT_MAX,
+  buildContactChatSummary,
   emptyContactValues,
   parseInquiryType,
   validateContactInquiry,
 } from "../services/contactInquiry.js";
+import SocialChatShare from "../components/social/SocialChatShare.jsx";
 import { hasPublicBrandContact } from "../services/brandSettings.js";
 import { CONTACT_INQUIRY_CODES, submitContactInquiry } from "../services/contactService.js";
 import { readCustomBuildDraft } from "../data/customBuildDraft.js";
@@ -281,6 +283,16 @@ export default function Contact() {
                 error={errorMessage(t, fieldErrors.email)}
               />
               <Field
+                id="contact-phone"
+                label={t("contact.fields.phone")}
+                type="tel"
+                value={values.phone ?? ""}
+                onChange={(value) => update("phone", value)}
+                autoComplete="tel"
+                maxLength={30}
+                disabled={submitting}
+              />
+              <Field
                 id="contact-subject"
                 label={t("contact.fields.subject")}
                 value={values.subject}
@@ -346,6 +358,10 @@ export default function Contact() {
               <Button type="submit" disabled={submitting}>
                 {submitting ? t("contact.submitting") : t("contact.submit")}
               </Button>
+              <SocialChatShare
+                disabled={submitting}
+                getText={() => buildContactChatSummary({ values, t })}
+              />
             </form>
           )}
         </div>

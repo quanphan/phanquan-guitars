@@ -1,20 +1,27 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { flushSync } from "react-dom";
+import { Link } from "react-router-dom";
 import ConfirmDialog from "../components/admin/ConfirmDialog.jsx";
 import GalleryEditor, { formFromPost, payloadFromForm, todayDateInput } from "../components/gallery/GalleryEditor.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import Reveal from "../components/Reveal.jsx";
 import Button from "../components/Button.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
-import { mediaUrl } from "../config/api.js";
+import GalleryMediaPlayer from "../components/gallery/GalleryMediaPlayer.jsx";
+import GalleryMediaThumb from "../components/gallery/GalleryMediaThumb.jsx";
+import VideoModal from "../components/gallery/VideoModal.jsx";
 import {
   GALLERY_FILTERS,
   emptyGalleryForm,
   filterGalleryPosts,
-  orderedGalleryImages,
+  galleryPostPath,
+  orderedGalleryMedia,
   selectIncomingGalleryFiles,
   validateGalleryMedia,
 } from "../data/gallery.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
+import { loadFacebookSdk } from "../services/facebookSdk.js";
+import { warmupFacebookMedia } from "../services/facebookPlayerPool.js";
 import {
   deleteGalleryPost,
   listAdminGallery,
@@ -30,56 +37,42 @@ function formatDate(iso, language) {
   return new Intl.DateTimeFormat(language === "vi" ? "vi-VN" : "en-GB", { dateStyle: "medium" }).format(date);
 }
 
-function MainMedia({ item, className }) {
-  if (!item) {
-    return <div className={`aspect-[4/5] w-full border border-white/10 bg-ink/50 ${className || ""}`} aria-hidden="true" />;
-  }
-  const src = mediaUrl(item.url);
-  if (item.kind === "video") {
-    return (
-      <video src={src} muted playsInline preload="metadata" className={`aspect-[4/5] w-full bg-ink object-contain ${className || ""}`} />
-    );
-  }
-  return (
-    <img
-      src={src}
-      alt=""
-      loading="lazy"
-      decoding="async"
-      className={`aspect-[4/5] w-full bg-ink object-contain object-center ${className || ""}`}
-    />
-  );
-}
-
 function GalleryItem({ post, isAdmin, language, t, onOpen, onEdit, onDelete }) {
-  const images = orderedGalleryImages(post);
-  const video = (post.media || []).find((item) => item.kind === "video");
-  const cover = post.cover || post.media?.[0];
-  const isVideoPost = cover?.kind === "video" || (Boolean(video) && images.length === 0);
-  const [selectedId, setSelectedId] = useState(images[0]?.id || "");
-  const selected = images.find((item) => item.id === selectedId) || images[0] || null;
-  const main = isVideoPost ? video : selected;
+  const media = orderedGalleryMedia(post);
+  const cover = post.cover || media[0];
+  const [selectedId, setSelectedId] = useState(cover?.id || media[0]?.id || "");
+  const selected = media.find((item) => item.id === selectedId) || media[0] || null;
 
   function openAt(item) {
-    const index = Math.max(0, (post.media || []).findIndex((entry) => entry.id === item?.id));
-    onOpen({ post, index });
+    const index = Math.max(0, media.findIndex((entry) => entry.id === item?.id));
+    flushSync(() => onOpen({ post: { ...post, media }, index }));
   }
 
   return (
     <article className="group">
-      <button type="button" className="block w-full text-left" onClick={() => openAt(main)}>
-        <MainMedia item={main} />
-      </button>
+      {selected?.kind === "video" ? (
+        <GalleryMediaThumb
+          item={selected}
+          className="aspect-[4/5] w-full"
+          alt=""
+          onPlay={() => openAt(selected)}
+          playLabel={t("gallery.video.play")}
+        />
+      ) : (
+        <button type="button" className="block w-full text-left" onClick={() => openAt(selected)}>
+          <GalleryMediaThumb item={selected} className="aspect-[4/5] w-full" alt="" />
+        </button>
+      )}
       <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <p className="text-xs text-muted">{formatDate(post.publishedAt || post.createdAt, language)}</p>
-        {!isVideoPost && images.length > 1 ? (
+        {media.length > 1 ? (
           <div
             className="ml-auto flex justify-end gap-2 overflow-x-auto pb-1 sm:flex-wrap"
             role="listbox"
             aria-label={post.title}
           >
-            {images.map((item) => {
-              const active = (selected?.id || images[0]?.id) === item.id;
+            {media.map((item) => {
+              const active = (selected?.id || media[0]?.id) === item.id;
               return (
                 <button
                   key={item.id}
@@ -91,7 +84,7 @@ function GalleryItem({ post, isAdmin, language, t, onOpen, onEdit, onDelete }) {
                     active ? "border-gold" : "border-white/15 hover:border-ivory/50"
                   }`}
                 >
-                  <img src={mediaUrl(item.url)} alt="" className="h-full w-full object-contain" />
+                  <GalleryMediaThumb item={item} className="h-full w-full" alt="" compact />
                 </button>
               );
             })}
@@ -101,7 +94,11 @@ function GalleryItem({ post, isAdmin, language, t, onOpen, onEdit, onDelete }) {
       {post.status === "draft" ? (
         <p className="mt-4 text-[11px] uppercase tracking-[0.18em] text-gold">{t("gallery.draft")}</p>
       ) : null}
-      <h2 className={`${post.status === "draft" ? "mt-2" : "mt-4"} font-display text-2xl tracking-wide text-ivory`}>{post.title}</h2>
+      <h2 className={`${post.status === "draft" ? "mt-2" : "mt-4"} font-display text-2xl tracking-wide text-ivory`}>
+        <Link to={galleryPostPath(post.id)} className="transition-colors hover:text-gold">
+          {post.title}
+        </Link>
+      </h2>
       {post.excerpt ? <p className="mt-2 text-sm leading-relaxed text-muted">{post.excerpt}</p> : null}
       {isAdmin ? (
         <div className="mt-4 flex gap-4">
@@ -120,7 +117,9 @@ function GalleryItem({ post, isAdmin, language, t, onOpen, onEdit, onDelete }) {
 function Lightbox({ post, index, onClose, onMove, t }) {
   const item = post.media?.[index];
   if (!item) return null;
-  const src = mediaUrl(item.url);
+  if (item.kind === "video") {
+    return <VideoModal item={item} title={post.title} onClose={onClose} />;
+  }
   return (
     <div
       className="fixed inset-0 z-40 flex items-center justify-center bg-charcoal/90 px-6"
@@ -131,11 +130,7 @@ function Lightbox({ post, index, onClose, onMove, t }) {
       }}
     >
       <div className="max-h-[90vh] w-full max-w-5xl">
-        {item.kind === "video" ? (
-          <video src={src} controls autoPlay className="max-h-[70vh] w-full bg-ink" />
-        ) : (
-          <img src={src} alt={post.title} className="max-h-[70vh] w-full object-contain" />
-        )}
+        <GalleryMediaPlayer key={item.id} item={item} title={post.title} className="max-h-[80vh]" />
         <div className="mt-4 flex items-start justify-between gap-4">
           <div>
             <h2 className="font-display text-2xl text-ivory">{post.title}</h2>
@@ -200,6 +195,14 @@ export default function Gallery() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    void loadFacebookSdk();
+  }, []);
+
+  useEffect(() => {
+    items.forEach((post) => warmupFacebookMedia(orderedGalleryMedia(post)));
+  }, [items]);
 
   useEffect(() => {
     if (!viewer) return undefined;
@@ -273,6 +276,24 @@ export default function Gallery() {
     setUploading(false);
   }
 
+  async function onUploadPoster(file) {
+    if (!(file instanceof File) || file.type.startsWith("video/")) {
+      setSaveError("UNSUPPORTED_MEDIA_TYPE");
+      return "";
+    }
+    setUploading(true);
+    setSaveError(null);
+    setUploadProgress({ current: 1, total: 1 });
+    const result = await uploadGalleryMedia(authorizedFormRequest, file);
+    setUploading(false);
+    if (!result.ok) {
+      setSaveError(result.code);
+      return "";
+    }
+    setPendingUpload(true);
+    return result.media.path || "";
+  }
+
   async function onSave() {
     const mediaError = validateGalleryMedia(form.media);
     if (mediaError) {
@@ -316,14 +337,20 @@ export default function Gallery() {
         ) : null}
       </PageHeader>
 
-      <div className="mx-auto mt-10 flex max-w-7xl flex-wrap gap-3 px-6 lg:px-10" role="tablist" aria-label={t("gallery.title")}>
+      <div
+        className="mx-auto mt-10 flex max-w-7xl flex-wrap items-center gap-2 px-6 lg:px-10"
+        role="tablist"
+        aria-label={t("gallery.title")}
+      >
         {GALLERY_FILTERS.map((id) => (
           <button
             key={id}
             type="button"
             onClick={() => setFilter(id)}
-            className={`text-[11px] uppercase tracking-[0.18em] ${
-              filter === id ? "text-gold" : "text-ivory/70 hover:text-ivory"
+            className={`border px-3 py-2 text-[11px] uppercase tracking-[0.14em] ${
+              filter === id
+                ? "border-gold text-gold"
+                : "border-white/15 text-ivory hover:border-ivory/40 hover:text-ivory"
             }`}
           >
             {t(`gallery.filters.${id}`)}
@@ -381,6 +408,7 @@ export default function Gallery() {
           saving={saving}
           error={saveError}
           onUpload={onUpload}
+          onUploadPoster={onUploadPoster}
           onSave={() => void onSave()}
           onClose={() => setEditorOpen(false)}
           onRemoveMedia={(item) => setPendingMedia(item)}

@@ -143,6 +143,7 @@ export default function AdminBrandSettings() {
   }
 
   const workshops = form.workshops || { workshop1: emptyWorkshop(), workshop2: emptyWorkshop() };
+  const socialContact = form.socialContact || emptyAdminBrandSettings().socialContact;
 
   return (
     <section className="pb-24">
@@ -231,6 +232,67 @@ export default function AdminBrandSettings() {
                   disabled={saving}
                   placeholder={t("admin.brandSettings.placeholders.url")}
                   error={fieldError("contact.other")}
+                />
+              </div>
+            </fieldset>
+
+            <fieldset className="space-y-6">
+              <legend className="font-display text-xl tracking-wide text-ivory">
+                {t("admin.brandSettings.sections.socialContact")}
+              </legend>
+              <p className="text-sm text-muted">{t("admin.brandSettings.sections.socialContactHelp")}</p>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Field
+                  id="social-facebook-url"
+                  label={t("admin.brandSettings.fields.facebookUrl")}
+                  value={socialContact.facebookUrl}
+                  onChange={(value) => update("socialContact.facebookUrl", value)}
+                  disabled={saving}
+                  placeholder={t("admin.brandSettings.placeholders.facebookUrl")}
+                  error={fieldError("socialContact.facebookUrl")}
+                />
+                <Field
+                  id="social-facebook-messenger-url"
+                  label={t("admin.brandSettings.fields.facebookMessengerUrl")}
+                  value={socialContact.facebookMessengerUrl}
+                  onChange={(value) => update("socialContact.facebookMessengerUrl", value)}
+                  disabled={saving}
+                  placeholder={t("admin.brandSettings.placeholders.facebookMessengerUrl")}
+                  error={fieldError("socialContact.facebookMessengerUrl")}
+                />
+                <Field
+                  id="social-zalo-phone"
+                  label={t("admin.brandSettings.fields.zaloPhone")}
+                  value={socialContact.zaloPhone}
+                  onChange={(value) => update("socialContact.zaloPhone", value)}
+                  disabled={saving}
+                  placeholder={t("admin.brandSettings.placeholders.zaloPhone")}
+                  error={fieldError("socialContact.zaloPhone")}
+                />
+                <Field
+                  id="social-zalo-url"
+                  label={t("admin.brandSettings.fields.zaloUrl")}
+                  value={socialContact.zaloUrl}
+                  onChange={(value) => update("socialContact.zaloUrl", value)}
+                  disabled={saving}
+                  placeholder={t("admin.brandSettings.placeholders.zaloUrl")}
+                  error={fieldError("socialContact.zaloUrl")}
+                />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Toggle
+                  id="social-facebook-enabled"
+                  label={t("admin.brandSettings.fields.enableFacebook")}
+                  checked={socialContact.facebookEnabled}
+                  onChange={(value) => update("socialContact.facebookEnabled", value)}
+                  disabled={saving}
+                />
+                <Toggle
+                  id="social-zalo-enabled"
+                  label={t("admin.brandSettings.fields.enableZalo")}
+                  checked={socialContact.zaloEnabled}
+                  onChange={(value) => update("socialContact.zaloEnabled", value)}
+                  disabled={saving}
                 />
               </div>
             </fieldset>

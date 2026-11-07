@@ -40,8 +40,8 @@ async function send(path, { method, headers, body }) {
   }
 }
 
-export async function requestJson(path, { method = "GET", body, token } = {}) {
-  const headers = { Accept: "application/json" };
+export async function requestJson(path, { method = "GET", body, token, headers: extraHeaders } = {}) {
+  const headers = { Accept: "application/json", ...(extraHeaders || {}) };
   if (body !== undefined) {
     headers["Content-Type"] = "application/json";
   }

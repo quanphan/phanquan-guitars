@@ -9,6 +9,11 @@ import {
 } from "../../../data/customBuild.js";
 import { wizardOptionLabel } from "../../../data/wizardCatalog.js";
 import { visibleReviewRows } from "../../../data/wizardDisplay.js";
+import {
+  buildCustomBuildChatSummary,
+  customBuildReviewGroups,
+} from "../../../services/customBuildChatSummary.js";
+import SocialChatShare from "../../social/SocialChatShare.jsx";
 import ReferenceImageField from "../ReferenceImageField.jsx";
 import { firstContactFieldId } from "../../../utils/customBuildSubmitFlow.js";
 import { debugSubmit } from "../../../utils/submitDebug.js";
@@ -236,13 +241,7 @@ export default function StepReviewSubmit({
     }
   }, [submitAttempt, submitStatus, submitted, submitting, contactErrors]);
 
-  const scaleValue = builder.scale
-    ? builder.scale.type === "multiscale"
-      ? t("customBuild.step1.multiscaleHint")
-          .replace("{bass}", builder.scale.bass)
-          .replace("{treble}", builder.scale.treble) + ` (${builder.scale.display})`
-      : builder.scale.display
-    : null;
+  const reviewGroups = customBuildReviewGroups({ t, builder, optionName });
 
   return (
     <div>
@@ -274,100 +273,16 @@ export default function StepReviewSubmit({
         </>
       )}
 
-      <ReviewSection
-        title={t("customBuild.steps.instrumentShape")}
-        onEdit={() => onEditSection(1)}
-        editLabel={t("customBuild.step6.edit")}
-        locked={submitted || submitting}
-        rows={[
-          { key: "instrument", label: t("customBuild.summary.instrument"), value: optionName(builder.instrumentType, "types") },
-          { key: "series", label: t("customBuild.summary.series"), value: optionName(builder.series, "series") },
-          { key: "shape", label: t("customBuild.summary.shape"), value: optionName(builder.shape, "shapes") },
-          { key: "scale", label: t("customBuild.summary.scale"), value: scaleValue },
-          {
-            key: "strings",
-            label: t("customBuild.summary.strings"),
-            value:
-              selections.stringCount != null
-                ? t("customBuild.strings.count").replace("{count}", String(selections.stringCount))
-                : null,
-          },
-          { key: "radius", label: t("customBuild.summary.radius"), value: builder.radius?.display ?? null },
-        ]}
-      />
-
-      <ReviewSection
-        title={t("customBuild.steps.bodyTop")}
-        onEdit={() => onEditSection(2)}
-        editLabel={t("customBuild.step6.edit")}
-        locked={submitted || submitting}
-        rows={[
-          { key: "bodyWood", label: t("customBuild.summary.bodyWood"), value: optionName(builder.bodyWood, "woods") },
-          { key: "topWood", label: t("customBuild.summary.topWood"), value: optionName(builder.topWood, "woods") },
-        ]}
-      />
-
-      <ReviewSection
-        title={t("customBuild.steps.neckFingerboard")}
-        onEdit={() => onEditSection(3)}
-        editLabel={t("customBuild.step6.edit")}
-        locked={submitted || submitting}
-        rows={[
-          { key: "neckWood", label: t("customBuild.summary.neckWood"), value: optionName(builder.neckWood, "neckWoods") },
-          { key: "neckConstruction", label: t("customBuild.summary.neckConstruction"), value: optionName(builder.neckConstruction, "constructions") },
-          { key: "fingerboard", label: t("customBuild.summary.fingerboard"), value: optionName(builder.fingerboardWood, "fingerboards") },
-          { key: "neckProfile", label: t("customBuild.summary.neckProfile"), value: optionName(builder.neckProfile, "profiles") },
-          { key: "frets", label: t("customBuild.summary.frets"), value: optionName(builder.fretSpec, "frets") },
-          {
-            key: "fretCount",
-            label: t("customBuild.summary.fretCount"),
-            value:
-              builder.inheritedFretCount != null
-                ? t("customBuild.step3.fretCountValue").replace("{count}", String(builder.inheritedFretCount))
-                : null,
-          },
-        ]}
-      />
-
-      <ReviewSection
-        title={t("customBuild.steps.electronicsHardware")}
-        onEdit={() => onEditSection(4)}
-        editLabel={t("customBuild.step6.edit")}
-        locked={submitted || submitting}
-        rows={
-          selections.customerSuppliedParts
-            ? [
-                {
-                  key: "customerSuppliedParts",
-                  label: t("customBuild.summary.customerSuppliedParts"),
-                  value: t("customBuild.step4.customerSuppliedSummary"),
-                },
-              ]
-            : [
-                { key: "pickupConfig", label: t("customBuild.summary.pickupConfig"), value: optionName(builder.pickupConfig, "pickupConfigs") },
-                { key: "pickupType", label: t("customBuild.summary.pickupType"), value: optionName(builder.pickupType, "pickupTypes") },
-                { key: "bridge", label: t("customBuild.summary.bridge"), value: optionName(builder.bridge, "bridges") },
-                { key: "tuners", label: t("customBuild.summary.tuners"), value: optionName(builder.tuner, "tuners") },
-                { key: "hardwareFinish", label: t("customBuild.summary.hardwareFinish"), value: optionName(builder.hardwareFinish, "hardwareFinishes") },
-                { key: "controls", label: t("customBuild.summary.controls"), value: optionName(builder.controlLayout, "controls") },
-              ]
-        }
-      />
-
-      <ReviewSection
-        title={t("customBuild.steps.finishDetails")}
-        onEdit={() => onEditSection(5)}
-        editLabel={t("customBuild.step6.edit")}
-        locked={submitted || submitting}
-        rows={[
-          { key: "finishType", label: t("customBuild.summary.finishType"), value: optionName(builder.finishType, "finishTypes") },
-          { key: "finishColor", label: t("customBuild.summary.finishColor"), value: optionName(builder.finishColor, "finishColors") },
-          { key: "customColor", label: t("customBuild.summary.customColor"), value: selections.customColorNote?.trim() || null },
-          { key: "inlay", label: t("customBuild.summary.inlay"), value: optionName(builder.inlay, "inlays") },
-          { key: "engraving", label: t("customBuild.summary.engraving"), value: optionName(builder.engraving, "engravings") },
-          { key: "specialRequests", label: t("customBuild.summary.specialRequests"), value: selections.specialRequests?.trim() || null },
-        ]}
-      />
+      {reviewGroups.map((group, index) => (
+        <ReviewSection
+          key={group.title}
+          title={group.title}
+          onEdit={() => onEditSection(index + 1)}
+          editLabel={t("customBuild.step6.edit")}
+          locked={submitted || submitting}
+          rows={group.rows}
+        />
+      ))}
 
       {submitted ? null : (
       <section className="mt-12">
@@ -534,6 +449,10 @@ export default function StepReviewSubmit({
               t("customBuild.step6.submit")
             )}
           </Button>
+          <SocialChatShare
+            disabled={submitting || submitted}
+            getText={() => buildCustomBuildChatSummary({ builder, language, t })}
+          />
         </form>
       </section>
       )}

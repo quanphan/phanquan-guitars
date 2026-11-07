@@ -1,0 +1,13 @@
+.gallery-video-preview::-webkit-media-controls,
+.gallery-video-preview::-webkit-media-controls-enclosure,
+.gallery-video-preview::-webkit-media-controls-panel,
+.gallery-video-preview::-webkit-media-controls-overlay-play-button,
+.gallery-video-preview::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}

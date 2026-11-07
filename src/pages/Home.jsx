@@ -1,3 +1,4 @@
+import ArtOfMaking from "../components/home/ArtOfMaking.jsx";
 import BuildProcess from "../components/home/BuildProcess.jsx";
 import CallToAction from "../components/home/CallToAction.jsx";
 import FeaturedGuitars from "../components/home/FeaturedGuitars.jsx";
@@ -11,6 +12,7 @@ export default function Home() {
       <Hero />
       <Introduction />
       <FeaturedGuitars />
+      <ArtOfMaking />
       <BuildProcess />
       <Workshop />
       <CallToAction />

@@ -14,6 +14,19 @@ export function emptyWorkshop() {
   };
 }
 
+export const DEFAULT_SOCIAL_CONTACT = {
+  facebookUrl: "https://www.facebook.com/phan.quan.353",
+  facebookMessengerUrl: "https://m.me/phan.quan.353",
+  zaloPhone: "0903083489",
+  zaloUrl: "https://zalo.me/0903083489",
+  facebookEnabled: true,
+  zaloEnabled: true,
+};
+
+export function emptySocialContact() {
+  return { ...DEFAULT_SOCIAL_CONTACT };
+}
+
 export function emptyAdminBrandSettings() {
   return {
     contact: {
@@ -40,6 +53,7 @@ export function emptyAdminBrandSettings() {
       hours: false,
     },
     hours: { en: "", vi: "" },
+    socialContact: emptySocialContact(),
     updatedAt: null,
     updatedBy: null,
   };
@@ -56,6 +70,12 @@ export function emptyPublicBrandSettings() {
     other: null,
     hours: null,
     workshops: [],
+    socialContact: {
+      facebookUrl: null,
+      facebookMessengerUrl: null,
+      zaloPhone: null,
+      zaloUrl: null,
+    },
   };
 }
 
@@ -109,8 +129,24 @@ export function normalizeAdminBrandSettings(data) {
       en: asText(hours.en),
       vi: asText(hours.vi),
     },
+    socialContact: mergeSocialContact(source.socialContact),
     updatedAt: source.updatedAt || fallback.updatedAt,
     updatedBy: source.updatedBy || fallback.updatedBy,
+  };
+}
+
+function mergeSocialContact(value) {
+  const defaults = emptySocialContact();
+  if (!value || typeof value !== "object") return defaults;
+  const zaloPhone = asText(value.zaloPhone);
+  return {
+    facebookUrl: asText(value.facebookUrl),
+    facebookMessengerUrl:
+      value.facebookMessengerUrl === undefined ? defaults.facebookMessengerUrl : asText(value.facebookMessengerUrl),
+    zaloPhone,
+    zaloUrl: value.zaloUrl === undefined ? zaloHref(zaloPhone) || defaults.zaloUrl : asText(value.zaloUrl),
+    facebookEnabled: value.facebookEnabled !== false,
+    zaloEnabled: value.zaloEnabled !== false,
   };
 }
 
@@ -141,6 +177,27 @@ export function normalizePublicBrandSettings(data) {
     other: asText(data.other) || null,
     hours,
     workshops,
+    socialContact: normalizePublicSocial(data.socialContact),
+  };
+}
+
+function normalizePublicSocial(value) {
+  if (!value || typeof value !== "object") {
+    return {
+      facebookUrl: DEFAULT_SOCIAL_CONTACT.facebookUrl,
+      facebookMessengerUrl: DEFAULT_SOCIAL_CONTACT.facebookMessengerUrl,
+      zaloPhone: DEFAULT_SOCIAL_CONTACT.zaloPhone,
+      zaloUrl: DEFAULT_SOCIAL_CONTACT.zaloUrl,
+    };
+  }
+  const facebookUrl = asText(value.facebookUrl) || null;
+  const facebookMessengerUrl = asText(value.facebookMessengerUrl) || null;
+  const zaloPhone = asText(value.zaloPhone) || null;
+  return {
+    facebookUrl,
+    facebookMessengerUrl,
+    zaloPhone,
+    zaloUrl: asText(value.zaloUrl) || zaloHref(zaloPhone) || null,
   };
 }
 
@@ -166,6 +223,20 @@ export function telHref(value) {
   if (!trimmed) return "";
   const target = trimmed.replace(/[^\d+]/g, "");
   return target ? `tel:${target}` : "";
+}
+
+export function zaloHref(value) {
+  const digits = asText(value).replace(/[^\d]/g, "");
+  return digits ? `https://zalo.me/${digits}` : "";
+}
+
+export function publicSocialLinks(settings) {
+  const social = settings?.socialContact || emptyPublicBrandSettings().socialContact;
+  return {
+    facebookProfileUrl: social.facebookUrl || "",
+    facebookChatUrl: social.facebookMessengerUrl || "",
+    zaloUrl: social.zaloUrl || zaloHref(social.zaloPhone),
+  };
 }
 
 export function hoursForLanguage(hours, language) {
@@ -245,6 +316,19 @@ export function validateAdminBrandSettings(form) {
       errors[`contact.${key}`] = "invalid";
     }
   });
+  const social = form.socialContact || {};
+  if (asText(social.facebookUrl) && !isHttpUrl(asText(social.facebookUrl))) {
+    errors["socialContact.facebookUrl"] = "invalid";
+  }
+  if (asText(social.facebookMessengerUrl) && !isHttpUrl(asText(social.facebookMessengerUrl))) {
+    errors["socialContact.facebookMessengerUrl"] = "invalid";
+  }
+  if (asText(social.zaloPhone) && !PHONE_PATTERN.test(asText(social.zaloPhone))) {
+    errors["socialContact.zaloPhone"] = "invalid";
+  }
+  if (asText(social.zaloUrl) && !isHttpUrl(asText(social.zaloUrl))) {
+    errors["socialContact.zaloUrl"] = "invalid";
+  }
   ["workshop1", "workshop2"].forEach((slot) => {
     const mapsUrl = asText(form.workshops?.[slot]?.mapsUrl);
     if (mapsUrl && !isHttpUrl(mapsUrl)) {
@@ -261,5 +345,6 @@ export function buildAdminBrandPayload(form) {
     workshops: normalized.workshops,
     display: normalized.display,
     hours: normalized.hours,
+    socialContact: normalized.socialContact,
   };
 }

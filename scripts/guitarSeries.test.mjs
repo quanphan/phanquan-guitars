@@ -16,7 +16,6 @@ import {
   placeSeriesPopover,
   prefersFinePointer,
   prefersWideSeriesLayout,
-  SERIES_POPOVER_MAX_HEIGHT,
   SERIES_POPOVER_MAX_WIDTH,
 } from "../src/services/seriesPopover.js";
 import { tFor } from "../src/i18n/translations.js";
@@ -139,8 +138,10 @@ test("guitars series copy exists in English and Vietnamese", () => {
   assert.equal(tFor("en", "guitars.series.title"), "Series");
   assert.equal(tFor("en", "guitars.series.readDescription"), "Read full description");
   assert.equal(tFor("vi", "guitars.series.readDescription"), "Xem mô tả đầy đủ");
-  assert.equal(tFor("en", "guitars.series.aboutThisSeries"), "About this Series");
-  assert.equal(tFor("vi", "guitars.series.aboutThisSeries"), "Giới thiệu series");
+  assert.equal(tFor("en", "guitars.series.details"), "Details");
+  assert.equal(tFor("vi", "guitars.series.details"), "Chi tiết");
+  assert.equal(tFor("en", "guitars.series.viewSeries"), "View series");
+  assert.equal(tFor("vi", "guitars.series.viewSeries"), "Xem series");
   assert.equal(tFor("en", "guitars.series.readMore"), "Read more");
   assert.equal(tFor("vi", "guitars.series.showLess"), "Thu gọn");
   assert.equal(tFor("vi", "guitars.series.error").includes("series"), true);
@@ -152,11 +153,11 @@ test("series description popover stays in the viewport and flips when needed", (
     viewport: { width: 1280, height: 800 },
   });
   assert.equal(below.placement, "below");
-  assert.equal(below.top >= 80, true);
-  assert.equal(below.top <= 80 + 44, true);
+  assert.equal(below.top, 492);
   assert.equal(below.left >= 16, true);
   assert.equal(below.maxWidth <= SERIES_POPOVER_MAX_WIDTH, true);
-  assert.equal(below.maxHeight <= SERIES_POPOVER_MAX_HEIGHT, true);
+  assert.equal(below.maxHeight, 292);
+  assert.equal(below.maxHeight > 280, true);
 
   const above = placeSeriesPopover({
     cardRect: { left: 40, top: 640, bottom: 780 },
@@ -165,7 +166,7 @@ test("series description popover stays in the viewport and flips when needed", (
   assert.equal(above.placement, "above");
   assert.equal(above.top, "auto");
   assert.equal(above.bottom >= 16, true);
-  assert.equal(above.maxHeight <= SERIES_POPOVER_MAX_HEIGHT, true);
+  assert.equal(above.maxHeight, 612);
 
   const narrow = placeSeriesPopover({
     cardRect: { left: 400, top: 40, bottom: 200 },
@@ -173,6 +174,7 @@ test("series description popover stays in the viewport and flips when needed", (
   });
   assert.equal(narrow.left >= 16, true);
   assert.equal(narrow.left + narrow.maxWidth <= 360 - 16, true);
+  assert.equal(narrow.maxHeight <= 640 - 32, true);
 });
 
 test("wide series layout starts at 1024px", () => {

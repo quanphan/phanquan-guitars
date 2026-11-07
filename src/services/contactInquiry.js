@@ -58,12 +58,38 @@ export function emptyContactValues() {
     inquiryType: "",
     name: "",
     email: "",
+    phone: "",
     subject: "",
     message: "",
     productId: "",
     productRef: "",
     draftId: "",
   };
+}
+
+export function buildContactChatSummary({ values, t }) {
+  const lines = [`${t("cart.share.website")}: PhanQuan Guitars`];
+  const name = String(values?.name || "").trim();
+  const email = String(values?.email || "").trim();
+  const phone = String(values?.phone || "").trim();
+  const inquiryType = parseInquiryType(values?.inquiryType);
+  const subject = String(values?.subject || "").trim();
+  const productRef = String(values?.productRef || "").trim();
+  const message = String(values?.message || "").trim();
+  if (name) lines.push(`${t("contact.fields.name")}: ${name}`);
+  if (email) lines.push(`${t("contact.fields.email")}: ${email}`);
+  if (phone) lines.push(`${t("contact.fields.phone")}: ${phone}`);
+  if (inquiryType) {
+    lines.push(`${t("contact.inquiryType")}: ${t(`contact.types.${inquiryType}.title`)}`);
+  }
+  if (subject) lines.push(`${t("contact.fields.subject")}: ${subject}`);
+  if (productRef) lines.push(`${t("contact.fields.productRef")}: ${productRef}`);
+  if (message) {
+    lines.push("");
+    lines.push(`${t("contact.fields.message")}:`);
+    lines.push(message);
+  }
+  return lines.join("\n").trim();
 }
 
 export function validateContactInquiry(values) {

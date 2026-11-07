@@ -11,7 +11,14 @@ import {
   getAdminInquiry,
   updateAdminInquiryStatus,
 } from "../../services/adminInquiryService.js";
-import { buildInquiryDisplay, phoneHref } from "../../services/inquiryDisplay.js";
+import {
+  buildInquiryDisplay,
+  isServiceCartInquiry,
+  phoneHref,
+  serviceCartLines,
+} from "../../services/inquiryDisplay.js";
+import { formatStoredPrice } from "../../services/formatPrice.js";
+import { localizedCategory, localizedTitle, optionSummary } from "../../services/serviceCart.js";
 import { INQUIRY_STATUSES } from "../../services/inquiryQuery.js";
 
 const STATUS_BADGE = {
@@ -96,6 +103,9 @@ export default function AdminInquiryDetail() {
     timeStyle: "short",
   });
   const display = inquiry ? buildInquiryDisplay(inquiry, t, { language }) : null;
+  const cartInquiry = inquiry ? isServiceCartInquiry(inquiry) : false;
+  const cartLines = inquiry ? serviceCartLines(inquiry) : [];
+  const cartSelections = inquiry?.configuration?.selections || {};
   const notProvided = t("admin.detail.notProvided");
   const submitted = inquiry?.createdAt ? dateFormatter.format(new Date(inquiry.createdAt)) : null;
   const phoneLink = phoneHref(inquiry?.customer?.phone);
@@ -174,6 +184,30 @@ export default function AdminInquiryDetail() {
                   value={display?.metadata.country}
                   empty={notProvided}
                 />
+                {cartInquiry ? (
+                  <>
+                    <InfoRow
+                      label={t("admin.detail.inquiryKind")}
+                      value={t("admin.detail.serviceCart")}
+                      empty={notProvided}
+                    />
+                    <InfoRow
+                      label={t("admin.detail.sources")}
+                      value={(cartSelections.sources || []).join(", ")}
+                      empty={notProvided}
+                    />
+                    <InfoRow
+                      label={t("admin.detail.sessionId")}
+                      value={cartSelections.sessionId}
+                      empty={notProvided}
+                    />
+                    <InfoRow
+                      label={t("admin.detail.userId")}
+                      value={cartSelections.userId}
+                      empty={notProvided}
+                    />
+                  </>
+                ) : null}
               </dl>
 
               <div className="mt-6 flex flex-wrap gap-3">
@@ -272,37 +306,73 @@ export default function AdminInquiryDetail() {
               )}
             </section>
 
-            <section>
-              <h2 className="text-[11px] uppercase tracking-[0.22em] text-gold">
-                {t("admin.detail.configuration")}
-              </h2>
-              {!display?.hasConfiguration ? (
-                <p className="mt-4 border border-white/10 px-4 py-5 text-sm text-muted">
-                  {t("admin.detail.noConfiguration")}
-                </p>
-              ) : (
-                <div className="mt-5 grid gap-4 lg:grid-cols-2">
-                  {display.groups.map((group) => (
-                    <article key={group.id} className="border border-white/10 bg-panel/40 p-5">
-                      <h3 className="text-[11px] uppercase tracking-[0.22em] text-gold">
-                        {t(group.titleKey)}
-                      </h3>
-                      <dl className="mt-4">
-                        {group.rows.map((item) => (
-                          <InfoRow
-                            key={item.labelKey}
-                            label={t(item.labelKey)}
-                            value={item.value}
-                            empty={notProvided}
-                            compact
-                          />
-                        ))}
-                      </dl>
-                    </article>
+            {cartInquiry ? (
+              <section className="border border-white/10 bg-panel/40 p-5 sm:p-6">
+                <h2 className="text-[11px] uppercase tracking-[0.22em] text-gold">
+                  {t("admin.detail.cartItems")}
+                </h2>
+                <ul className="mt-5 space-y-4">
+                  {cartLines.map((item, index) => (
+                    <li key={`${item.serviceItemId}-${index}`} className="border-b border-white/8 pb-4 last:border-b-0">
+                      <p className="text-[11px] uppercase tracking-[0.16em] text-gold">
+                        {localizedCategory(item, language)}
+                      </p>
+                      <p className="mt-1 text-ivory">{localizedTitle(item, language)}</p>
+                      {optionSummary(item, language).map((line) => (
+                        <p key={line} className="text-sm text-muted">
+                          {line}
+                        </p>
+                      ))}
+                      <p className="mt-2 text-sm text-muted">
+                        {t("cart.quantity")}: {item.quantity}
+                        {" · "}
+                        {item.priceOnRequest
+                          ? t("cart.priceOnRequest")
+                          : formatStoredPrice(item.lineTotal, item.currency) ||
+                            formatStoredPrice(item.unitPrice, item.currency)}
+                      </p>
+                    </li>
                   ))}
-                </div>
-              )}
-            </section>
+                </ul>
+                <p className="mt-4 text-sm text-ivory">
+                  {cartSelections.quotationRequired
+                    ? t("cart.quotationRequired")
+                    : formatStoredPrice(cartSelections.subtotal, cartLines[0]?.currency) || t("cart.quotationRequired")}
+                </p>
+              </section>
+            ) : (
+              <section>
+                <h2 className="text-[11px] uppercase tracking-[0.22em] text-gold">
+                  {t("admin.detail.configuration")}
+                </h2>
+                {!display?.hasConfiguration ? (
+                  <p className="mt-4 border border-white/10 px-4 py-5 text-sm text-muted">
+                    {t("admin.detail.noConfiguration")}
+                  </p>
+                ) : (
+                  <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                    {display.groups.map((group) => (
+                      <article key={group.id} className="border border-white/10 bg-panel/40 p-5">
+                        <h3 className="text-[11px] uppercase tracking-[0.22em] text-gold">
+                          {t(group.titleKey)}
+                        </h3>
+                        <dl className="mt-4">
+                          {group.rows.map((item) => (
+                            <InfoRow
+                              key={item.labelKey}
+                              label={t(item.labelKey)}
+                              value={item.value}
+                              empty={notProvided}
+                              compact
+                            />
+                          ))}
+                        </dl>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
 
             <details className="border border-white/10 bg-ink/40 p-5">
               <summary className="cursor-pointer text-[11px] uppercase tracking-[0.22em] text-gold">
