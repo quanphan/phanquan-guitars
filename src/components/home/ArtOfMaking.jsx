@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 import { Link } from "react-router-dom";
 import { mediaUrl } from "../../config/api.js";
-import { galleryPostPath, homeGalleryPosts, storyExcerpt, storyVideo } from "../../data/gallery.js";
+import { galleryPostCopy, galleryPostPath, homeGalleryPosts, storyExcerpt, storyVideo } from "../../data/gallery.js";
 import { galleryPosterUrl, isExternalGalleryVideo } from "../../data/galleryVideo.js";
 import { useLanguage } from "../../i18n/LanguageContext.jsx";
 import { loadFacebookSdk } from "../../services/facebookSdk.js";
@@ -74,13 +74,14 @@ function CoverMedia({ cover, title, featured = false, wide = false, priority = f
 }
 
 function StoryCopy({ post, featured = false }) {
-  const { t } = useLanguage();
-  const excerpt = storyExcerpt(post.excerpt);
+  const { t, language } = useLanguage();
+  const copy = galleryPostCopy(post, language);
+  const excerpt = storyExcerpt(copy.excerpt);
 
   return (
     <div className={featured ? "pt-6 lg:pt-8" : "pt-5"}>
       <h3 className={`font-display tracking-wide text-ivory ${featured ? "text-3xl sm:text-4xl" : "text-2xl"}`}>
-        {post.title}
+        {copy.title}
       </h3>
       {excerpt ? (
         <p className={`mt-3 text-sm leading-relaxed text-muted ${featured ? "sm:text-base" : ""}`}>{excerpt}</p>
@@ -93,6 +94,8 @@ function StoryCopy({ post, featured = false }) {
 }
 
 function StoryCard({ post, featured = false, wide = false, priority = false, onPlayVideo }) {
+  const { language } = useLanguage();
+  const copy = galleryPostCopy(post, language);
   const href = galleryPostPath(post.id);
   const cover = coverOf(post);
   const video = storyVideo(post);
@@ -101,7 +104,7 @@ function StoryCard({ post, featured = false, wide = false, priority = false, onP
     return (
       <article className="group">
         <Link to={href} className="block">
-          <CoverMedia cover={cover} title={post.title} featured={featured} wide={wide} priority={priority} />
+          <CoverMedia cover={cover} title={copy.title} featured={featured} wide={wide} priority={priority} />
           <StoryCopy post={post} featured={featured} />
         </Link>
       </article>
@@ -112,7 +115,7 @@ function StoryCard({ post, featured = false, wide = false, priority = false, onP
     <article className="group">
       <CoverMedia
         cover={cover}
-        title={post.title}
+        title={copy.title}
         featured={featured}
         wide={wide}
         priority={priority}
@@ -127,7 +130,7 @@ function StoryCard({ post, featured = false, wide = false, priority = false, onP
 }
 
 export default function ArtOfMaking() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [posts, setPosts] = useState([]);
   const [status, setStatus] = useState("loading");
   const [reloadToken, setReloadToken] = useState(0);
@@ -215,7 +218,9 @@ export default function ArtOfMaking() {
           </div>
         ) : null}
       </div>
-      {playing ? <VideoModal item={playing.video} title={playing.post.title} onClose={closeVideo} /> : null}
+      {playing ? (
+        <VideoModal item={playing.video} title={galleryPostCopy(playing.post, language).title} onClose={closeVideo} />
+      ) : null}
     </section>
   );
 }

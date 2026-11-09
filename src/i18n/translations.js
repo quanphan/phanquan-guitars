@@ -2106,6 +2106,8 @@ export const translations = {
         deleteBody: "Only empty categories can be deleted. Posts keep their slug if you disable a category instead.",
       },
       form: {
+        localeVi: "Vietnamese",
+        localeEn: "English",
         title: "Title",
         excerpt: "Short description",
         content: "Content",
@@ -4526,6 +4528,8 @@ export const translations = {
         deleteBody: "Chỉ xóa được danh mục không còn bài. Nếu muốn ẩn, hãy tắt danh mục để giữ slug của bài cũ.",
       },
       form: {
+        localeVi: "Tiếng Việt",
+        localeEn: "Tiếng Anh",
         title: "Tiêu đề",
         excerpt: "Mô tả ngắn",
         content: "Nội dung",

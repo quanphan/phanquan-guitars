@@ -8,6 +8,7 @@ import {
   PUBLIC_GALLERY_PAGE_SIZE,
   emptyGalleryForm,
   filterGalleryPosts,
+  galleryPostCopy,
   galleryPostHasVideo,
   galleryPostPath,
   homeGalleryPosts,
@@ -195,6 +196,35 @@ test("home gallery posts stay on the gallery collection and default off the home
     ["1"],
   );
   assert.equal(emptyGalleryForm().category, "process");
+  assert.equal(emptyGalleryForm().titleVi, "");
+  assert.equal(emptyGalleryForm().titleEn, "");
+  const bilingual = {
+    id: "bi",
+    title: "Tiêu đề cũ",
+    excerpt: "Mô tả cũ",
+    content: "Nội dung cũ",
+    translations: {
+      vi: { title: "Tiêu đề VI", excerpt: "Mô tả VI", content: "Nội dung VI" },
+      en: { title: "Title EN", excerpt: "Excerpt EN", content: "Content EN" },
+    },
+  };
+  assert.equal(galleryPostCopy(bilingual, "vi").title, "Tiêu đề VI");
+  assert.equal(galleryPostCopy(bilingual, "en").title, "Title EN");
+  assert.equal(galleryPostCopy(bilingual, "en").excerpt, "Excerpt EN");
+  assert.equal(galleryPostCopy({ title: "Chỉ tiếng Việt", excerpt: "Mô tả" }, "en").title, "Chỉ tiếng Việt");
+  assert.equal(galleryPostCopy({ title: "Chỉ tiếng Việt", excerpt: "Mô tả" }, "vi").excerpt, "Mô tả");
+  const bilingualForm = formFromPost(bilingual);
+  assert.equal(bilingualForm.titleVi, "Tiêu đề VI");
+  assert.equal(bilingualForm.titleEn, "Title EN");
+  const bilingualPayload = payloadFromForm(bilingualForm);
+  assert.equal(bilingualPayload.translations.en.content, "Content EN");
+  assert.equal(bilingualPayload.title, "Tiêu đề VI");
+  const legacyForm = formFromPost({ title: "Bài cũ", excerpt: "Mô tả cũ", content: "Nội dung cũ" });
+  assert.equal(legacyForm.titleVi, "Bài cũ");
+  assert.equal(legacyForm.titleEn, "");
+  assert.equal(payloadFromForm(legacyForm).translations.vi.title, "Bài cũ");
+  assert.equal(tFor("en", "gallery.form.localeVi"), "Vietnamese");
+  assert.equal(tFor("vi", "gallery.form.localeEn"), "Tiếng Anh");
   assert.equal(storyExcerpt(""), "");
   assert.equal(storyExcerpt("A night in the shop"), "A night in the shop");
   assert.equal(storyExcerpt("https://www.facebook.com/reel/1"), "");
@@ -382,8 +412,10 @@ test("gallery editor keeps original video URLs through add, hydrate, and title u
     };
     const form = formFromPost(saved);
     assert.equal(form.media[0].sourceUrl, url);
-    const payload = payloadFromForm({ ...form, title: "Session updated", excerpt: "Edited" });
+    const payload = payloadFromForm({ ...form, titleVi: "Session updated", excerptVi: "Edited" });
     assert.equal(payload.title, "Session updated");
+    assert.equal(payload.translations.vi.title, "Session updated");
+    assert.equal(payload.translations.en.title, "");
     assert.equal(form.pin, false);
     assert.equal(payload.pin, false);
     assert.equal(payload.media[0].sourceUrl, url);
@@ -446,7 +478,7 @@ test("Facebook gallery videos use a custom poster and keep it through edit paylo
     media: [{ id: "m1", kind: "video", sourceUrl: facebookUrl, url: facebookUrl, provider: "facebook", thumbnail: poster }],
   });
   assert.equal(form.media[0].thumbnail, poster);
-  const payload = payloadFromForm({ ...form, title: "Facebook session updated" });
+  const payload = payloadFromForm({ ...form, titleVi: "Facebook session updated" });
   assert.equal(payload.title, "Facebook session updated");
   assert.equal(payload.media[0].sourceUrl, facebookUrl);
   assert.equal(payload.media[0].thumbnail, poster);

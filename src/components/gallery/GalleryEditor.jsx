@@ -141,32 +141,67 @@ export default function GalleryEditor({
             onSave();
           }}
         >
-          <Field
-            id="gallery-title"
-            label={t("gallery.form.title")}
-            value={form.title}
-            onChange={(value) => update("title", value)}
-            required
-            disabled={saving}
-          />
-          <Field
-            id="gallery-excerpt"
-            label={t("gallery.form.excerpt")}
-            value={form.excerpt}
-            onChange={(value) => update("excerpt", value)}
-            multiline
-            rows={2}
-            disabled={saving}
-          />
-          <Field
-            id="gallery-content"
-            label={t("gallery.form.content")}
-            value={form.content}
-            onChange={(value) => update("content", value)}
-            multiline
-            rows={5}
-            disabled={saving}
-          />
+          <fieldset className="space-y-4 border border-white/10 px-4 py-4">
+            <legend className="px-1 text-[11px] uppercase tracking-[0.18em] text-gold">
+              {t("gallery.form.localeVi")}
+            </legend>
+            <Field
+              id="gallery-title-vi"
+              label={t("gallery.form.title")}
+              value={form.titleVi}
+              onChange={(value) => update("titleVi", value)}
+              required
+              disabled={saving}
+            />
+            <Field
+              id="gallery-excerpt-vi"
+              label={t("gallery.form.excerpt")}
+              value={form.excerptVi}
+              onChange={(value) => update("excerptVi", value)}
+              multiline
+              rows={2}
+              disabled={saving}
+            />
+            <Field
+              id="gallery-content-vi"
+              label={t("gallery.form.content")}
+              value={form.contentVi}
+              onChange={(value) => update("contentVi", value)}
+              multiline
+              rows={5}
+              disabled={saving}
+            />
+          </fieldset>
+          <fieldset className="space-y-4 border border-white/10 px-4 py-4">
+            <legend className="px-1 text-[11px] uppercase tracking-[0.18em] text-gold">
+              {t("gallery.form.localeEn")}
+            </legend>
+            <Field
+              id="gallery-title-en"
+              label={t("gallery.form.title")}
+              value={form.titleEn}
+              onChange={(value) => update("titleEn", value)}
+              disabled={saving}
+            />
+            <Field
+              id="gallery-excerpt-en"
+              label={t("gallery.form.excerpt")}
+              value={form.excerptEn}
+              onChange={(value) => update("excerptEn", value)}
+              multiline
+              rows={2}
+              disabled={saving}
+            />
+            <Field
+              id="gallery-content-en"
+              label={t("gallery.form.content")}
+              value={form.contentEn}
+              onChange={(value) => update("contentEn", value)}
+              multiline
+              rows={5}
+              disabled={saving}
+            />
+          </fieldset>
           <div className="grid gap-5 sm:grid-cols-2">
             <div>
               <label htmlFor="gallery-category" className="text-[11px] uppercase tracking-[0.18em] text-gold">

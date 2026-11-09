@@ -16,6 +16,7 @@ import {
   FALLBACK_GALLERY_CATEGORIES,
   emptyGalleryForm,
   galleryCategoryName,
+  galleryPostCopy,
   galleryPostPath,
   orderedGalleryMedia,
   publicGalleryFilters,
@@ -42,6 +43,7 @@ function formatDate(iso, language) {
 }
 
 function GalleryItem({ post, isAdmin, language, t, onOpen, onEdit, onDelete, onPin, pinSaving }) {
+  const copy = galleryPostCopy(post, language);
   const media = orderedGalleryMedia(post);
   const cover = post.cover || media[0];
   const [selectedId, setSelectedId] = useState(cover?.id || media[0]?.id || "");
@@ -58,13 +60,13 @@ function GalleryItem({ post, isAdmin, language, t, onOpen, onEdit, onDelete, onP
         <GalleryMediaThumb
           item={selected}
           className="h-[18rem] w-full sm:h-[22rem] lg:h-[24rem]"
-          alt={post.title || ""}
+          alt={copy.title || ""}
           onPlay={() => openAt(selected)}
           playLabel={t("gallery.video.play")}
         />
       ) : (
         <button type="button" className="block w-full text-left" onClick={() => openAt(selected)}>
-          <GalleryMediaThumb item={selected} className="h-[18rem] w-full sm:h-[22rem] lg:h-[24rem]" alt={post.title || ""} />
+          <GalleryMediaThumb item={selected} className="h-[18rem] w-full sm:h-[22rem] lg:h-[24rem]" alt={copy.title || ""} />
         </button>
       )}
       <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
@@ -73,7 +75,7 @@ function GalleryItem({ post, isAdmin, language, t, onOpen, onEdit, onDelete, onP
           <div
             className="ml-auto flex justify-end gap-2 overflow-x-auto pb-1 sm:flex-wrap"
             role="listbox"
-            aria-label={post.title}
+            aria-label={copy.title}
           >
             {media.map((item) => {
               const active = (selected?.id || media[0]?.id) === item.id;
@@ -100,10 +102,10 @@ function GalleryItem({ post, isAdmin, language, t, onOpen, onEdit, onDelete, onP
       ) : null}
       <h2 className={`${post.status === "draft" ? "mt-2" : "mt-4"} font-display text-2xl tracking-wide text-ivory`}>
         <Link to={galleryPostPath(post.id)} className="transition-colors hover:text-gold">
-          {post.title}
+          {copy.title}
         </Link>
       </h2>
-      {post.excerpt ? <p className="mt-2 text-sm leading-relaxed text-muted">{post.excerpt}</p> : null}
+      {copy.excerpt ? <p className="mt-2 text-sm leading-relaxed text-muted">{copy.excerpt}</p> : null}
       {isAdmin ? (
         <div className="mt-4 flex flex-wrap items-center gap-4">
           <ProductPinToggle
@@ -124,11 +126,12 @@ function GalleryItem({ post, isAdmin, language, t, onOpen, onEdit, onDelete, onP
   );
 }
 
-function Lightbox({ post, index, onClose, onMove, t }) {
+function Lightbox({ post, index, onClose, onMove, t, language }) {
+  const copy = galleryPostCopy(post, language);
   const item = post.media?.[index];
   if (!item) return null;
   if (item.kind === "video") {
-    return <VideoModal item={item} title={post.title} onClose={onClose} />;
+    return <VideoModal item={item} title={copy.title} onClose={onClose} />;
   }
   return (
     <div
@@ -140,12 +143,12 @@ function Lightbox({ post, index, onClose, onMove, t }) {
       }}
     >
       <div className="max-h-[90vh] w-full max-w-5xl">
-        <GalleryMediaPlayer key={item.id} item={item} title={post.title} className="max-h-[80vh]" />
+        <GalleryMediaPlayer key={item.id} item={item} title={copy.title} className="max-h-[80vh]" />
         <div className="mt-4 flex items-start justify-between gap-4">
           <div>
-            <h2 className="font-display text-2xl text-ivory">{post.title}</h2>
-            {post.content || post.excerpt ? (
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">{post.content || post.excerpt}</p>
+            <h2 className="font-display text-2xl text-ivory">{copy.title}</h2>
+            {copy.content || copy.excerpt ? (
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">{copy.content || copy.excerpt}</p>
             ) : null}
           </div>
           <button type="button" className="text-[11px] uppercase tracking-[0.18em] text-gold" onClick={onClose}>
@@ -441,6 +444,7 @@ export default function Gallery() {
         <Lightbox
           post={viewer.post}
           index={viewer.index}
+          language={language}
           t={t}
           onClose={() => setViewer(null)}
           onMove={(delta) => {

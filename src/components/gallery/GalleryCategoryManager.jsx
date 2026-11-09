@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { slugifyName } from "../../auth/catalog.js";
 import { errorText } from "../../auth/errorText.js";
 import ConfirmDialog from "../admin/ConfirmDialog.jsx";
@@ -21,6 +22,7 @@ export default function GalleryCategoryManager({ categories, onChange, authorize
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [pendingDelete, setPendingDelete] = useState(null);
+  const [expanded, setExpanded] = useState(true);
 
   const editing = Boolean(form.id);
   const ordered = useMemo(
@@ -116,14 +118,32 @@ export default function GalleryCategoryManager({ categories, onChange, authorize
 
   return (
     <section className="mx-auto mt-10 max-w-7xl border border-white/10 bg-ink/40 px-6 py-6 lg:px-10">
-      <h2 className="text-[11px] uppercase tracking-[0.22em] text-gold">{t("gallery.categories.title")}</h2>
-      <p className="mt-2 max-w-3xl text-sm text-muted">{t("gallery.categories.hint")}</p>
+      <button
+        type="button"
+        className="flex w-full items-center gap-2 text-left"
+        aria-expanded={expanded}
+        onClick={() => setExpanded((current) => !current)}
+      >
+        {expanded ? (
+          <ChevronDown className="h-4 w-4 shrink-0 text-gold" aria-hidden="true" />
+        ) : (
+          <ChevronRight className="h-4 w-4 shrink-0 text-gold" aria-hidden="true" />
+        )}
+        <h2 className="text-[11px] uppercase tracking-[0.22em] text-gold">{t("gallery.categories.title")}</h2>
+      </button>
       {error ? (
         <p className="mt-4 text-sm text-gold" role="alert">
           {errorText(t, "gallery", error)}
         </p>
       ) : null}
-      <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(18rem,0.8fr)]">
+      <div
+        className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${
+          expanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+        }`}
+      >
+        <div className="overflow-hidden">
+          <p className="mt-2 max-w-3xl text-sm text-muted">{t("gallery.categories.hint")}</p>
+          <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(18rem,0.8fr)]">
         <ul className="space-y-3">
           {ordered.map((item, index) => (
             <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 border border-white/10 px-4 py-3">
@@ -222,6 +242,8 @@ export default function GalleryCategoryManager({ categories, onChange, authorize
             ) : null}
           </div>
         </form>
+      </div>
+        </div>
       </div>
       <ConfirmDialog
         open={Boolean(pendingDelete)}

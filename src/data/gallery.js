@@ -56,6 +56,20 @@ export function sortGalleryPosts(posts) {
   });
 }
 
+export function galleryPostCopy(post, language) {
+  const locale = language === "en" ? "en" : "vi";
+  const fallback = locale === "en" ? "vi" : "en";
+  const translations = post?.translations && typeof post.translations === "object" ? post.translations : {};
+  const current = translations[locale] && typeof translations[locale] === "object" ? translations[locale] : {};
+  const other = translations[fallback] && typeof translations[fallback] === "object" ? translations[fallback] : {};
+  const pick = (key) => current[key] || other[key] || post?.[key] || "";
+  return {
+    title: pick("title"),
+    excerpt: pick("excerpt"),
+    content: pick("content"),
+  };
+}
+
 export function galleryCategoryName(category, language) {
   if (!category) return "";
   const current = category.translations?.[language]?.name;
@@ -155,6 +169,12 @@ export function emptyGalleryForm() {
     title: "",
     excerpt: "",
     content: "",
+    titleVi: "",
+    titleEn: "",
+    excerptVi: "",
+    excerptEn: "",
+    contentVi: "",
+    contentEn: "",
     category: "process",
     status: "draft",
     publishedAt: "",

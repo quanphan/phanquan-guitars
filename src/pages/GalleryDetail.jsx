@@ -4,13 +4,13 @@ import BackLink from "../components/BackLink.jsx";
 import Button from "../components/Button.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import GalleryMediaPlayer from "../components/gallery/GalleryMediaPlayer.jsx";
-import { orderedGalleryMedia } from "../data/gallery.js";
+import { galleryPostCopy, orderedGalleryMedia } from "../data/gallery.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import { getPublicGalleryPost } from "../services/galleryService.js";
 
 export default function GalleryDetail() {
   const { id } = useParams();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [post, setPost] = useState(null);
   const [status, setStatus] = useState("loading");
   const [reloadToken, setReloadToken] = useState(0);
@@ -67,23 +67,24 @@ export default function GalleryDetail() {
   }
 
   const media = orderedGalleryMedia(post);
+  const copy = galleryPostCopy(post, language);
 
   return (
     <section className="pb-24">
-      <PageHeader eyebrow={t("gallery.eyebrow")} title={post.title} description={post.excerpt || undefined}>
+      <PageHeader eyebrow={t("gallery.eyebrow")} title={copy.title} description={copy.excerpt || undefined}>
         <div className="mt-8">
           <BackLink to="/gallery" label={t("gallery.title")} />
         </div>
       </PageHeader>
       <div className="mx-auto mt-10 max-w-5xl px-6 lg:px-10">
-        {media[0] ? <GalleryMediaPlayer item={media[0]} title={post.title} /> : null}
-        {post.content ? (
-          <p className="mt-8 max-w-3xl text-sm leading-relaxed text-muted sm:text-base">{post.content}</p>
+        {media[0] ? <GalleryMediaPlayer item={media[0]} title={copy.title} /> : null}
+        {copy.content ? (
+          <p className="mt-8 max-w-3xl text-sm leading-relaxed text-muted sm:text-base">{copy.content}</p>
         ) : null}
         {media.length > 1 ? (
           <div className="mt-10 grid gap-6 sm:grid-cols-2">
             {media.slice(1).map((item) => (
-              <GalleryMediaPlayer key={item.id} item={item} title={post.title} />
+              <GalleryMediaPlayer key={item.id} item={item} title={copy.title} />
             ))}
           </div>
         ) : null}

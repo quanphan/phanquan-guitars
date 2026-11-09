@@ -25,12 +25,29 @@ function fromDateInput(value) {
   return date.toISOString();
 }
 
+function localeText(post, locale, key) {
+  const block = post?.translations?.[locale];
+  return (block && typeof block === "object" && block[key]) || "";
+}
+
 export function formFromPost(post) {
   if (!post) return { ...emptyGalleryForm(), publishedAt: todayDateInput() };
+  const titleVi = localeText(post, "vi", "title") || post.title || "";
+  const titleEn = localeText(post, "en", "title");
+  const excerptVi = localeText(post, "vi", "excerpt") || post.excerpt || "";
+  const excerptEn = localeText(post, "en", "excerpt");
+  const contentVi = localeText(post, "vi", "content") || post.content || "";
+  const contentEn = localeText(post, "en", "content");
   return {
-    title: post.title || "",
-    excerpt: post.excerpt || "",
-    content: post.content || "",
+    title: titleVi || titleEn,
+    excerpt: excerptVi || excerptEn,
+    content: contentVi || contentEn,
+    titleVi,
+    titleEn,
+    excerptVi,
+    excerptEn,
+    contentVi,
+    contentEn,
     category: post.category || "process",
     status: post.status || "draft",
     publishedAt: toDateInput(post.publishedAt) || "",
@@ -42,11 +59,28 @@ export function formFromPost(post) {
   };
 }
 
-export function payloadFromForm(form) {
+function formLocale(form, viKey, enKey, legacyKey) {
+  const vi = String(form?.[viKey] ?? "");
+  const en = String(form?.[enKey] ?? "");
+  const legacy = String(form?.[legacyKey] ?? "");
   return {
-    title: form.title,
-    excerpt: form.excerpt,
-    content: form.content,
+    vi: vi || (!en ? legacy : ""),
+    en,
+  };
+}
+
+export function payloadFromForm(form) {
+  const title = formLocale(form, "titleVi", "titleEn", "title");
+  const excerpt = formLocale(form, "excerptVi", "excerptEn", "excerpt");
+  const content = formLocale(form, "contentVi", "contentEn", "content");
+  return {
+    title: title.vi || title.en,
+    excerpt: excerpt.vi || excerpt.en,
+    content: content.vi || content.en,
+    translations: {
+      vi: { title: title.vi, excerpt: excerpt.vi, content: content.vi },
+      en: { title: title.en, excerpt: excerpt.en, content: content.en },
+    },
     category: form.category,
     status: form.status,
     publishedAt: fromDateInput(form.publishedAt),
