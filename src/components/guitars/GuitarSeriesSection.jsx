@@ -56,6 +56,8 @@ function SeriesCard({ item, open, onToggle, wide }) {
               src={mediaUrl(card.imagePath)}
               alt=""
               fit="contain"
+              loading="eager"
+              decoding="async"
               frameClassName="aspect-[16/10] w-full"
             />
           ) : (

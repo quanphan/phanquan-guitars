@@ -17,6 +17,7 @@ export default function FitImage({
   height,
   loading = "lazy",
   decoding = "async",
+  fetchPriority,
   fill = true,
 }) {
   const image = (
@@ -29,6 +30,7 @@ export default function FitImage({
       height={height}
       loading={loading}
       decoding={decoding}
+      fetchPriority={fetchPriority}
       className={`${fill ? "h-full w-full" : "h-auto w-auto"} max-h-full max-w-full ${FIT[fit] || FIT.contain} ${className}`}
     />
   );
