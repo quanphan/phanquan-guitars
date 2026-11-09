@@ -1090,8 +1090,9 @@ export const translations = {
         tagsLabel: "Design",
       },
       collection: {
-        eyebrow: "Workshop Builds",
-        title: "Featured builds",
+        eyebrow: "FEATURED INSTRUMENTS",
+        title: "FEATURED INSTRUMENTS",
+        description: "A selection of distinctive instruments, handcrafted with character and precision.",
         viewDetails: "View details",
         strings: "Strings",
         empty: "No guitars available yet",
@@ -3508,8 +3509,9 @@ export const translations = {
         tagsLabel: "Thiết kế",
       },
       collection: {
-        eyebrow: "Sản phẩm xưởng",
-        title: "Những cây đàn tiêu biểu",
+        eyebrow: "SẢN PHẨM TIÊU BIỂU",
+        title: "FEATURED INSTRUMENTS",
+        description: "Tuyển chọn những nhạc cụ mang dấu ấn thiết kế và chế tác riêng.",
         viewDetails: "Xem chi tiết",
         strings: "Dây",
         empty: "Chưa có sản phẩm",

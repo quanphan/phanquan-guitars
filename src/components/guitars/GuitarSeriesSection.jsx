@@ -166,8 +166,12 @@ export default function GuitarSeriesSection({ series, status, onRetry }) {
   }, [openId, wide]);
 
   return (
-    <section id="series" className="scroll-mt-24 overflow-x-clip pt-8 pb-6 lg:pt-10 lg:pb-8" aria-label={t("guitars.series.title")}>
+    <section id="series" className="scroll-mt-24 overflow-x-clip pt-8 pb-12 lg:pt-10 lg:pb-16" aria-label={t("guitars.series.title")}>
       <div className="mx-auto max-w-7xl px-6 lg:px-10">
+        <header className="mb-8 lg:mb-10">
+          <p className="text-[11px] uppercase tracking-[0.32em] text-gold">{t("guitars.series.eyebrow")}</p>
+          <h2 className="mt-3 font-display text-3xl tracking-wide text-ivory sm:text-4xl">{t("guitars.series.title")}</h2>
+        </header>
         {status === "loading" ? (
           <p className="text-sm text-muted">{t("guitars.series.loading")}</p>
         ) : null}

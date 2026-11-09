@@ -60,6 +60,18 @@ test("SHOW MORE appends unique products only", () => {
 test("load-more labels follow the selected site language", () => {
   assert.equal(tFor("en", "guitars.collection.showMore"), "SHOW MORE");
   assert.equal(tFor("vi", "guitars.collection.showMore"), "THÊM NỘI DUNG");
+  assert.equal(tFor("en", "guitars.collection.eyebrow"), "FEATURED INSTRUMENTS");
+  assert.equal(tFor("en", "guitars.collection.title"), "FEATURED INSTRUMENTS");
+  assert.equal(
+    tFor("en", "guitars.collection.description"),
+    "A selection of distinctive instruments, handcrafted with character and precision.",
+  );
+  assert.equal(tFor("vi", "guitars.collection.eyebrow"), "SẢN PHẨM TIÊU BIỂU");
+  assert.equal(tFor("vi", "guitars.collection.title"), "FEATURED INSTRUMENTS");
+  assert.equal(
+    tFor("vi", "guitars.collection.description"),
+    "Tuyển chọn những nhạc cụ mang dấu ấn thiết kế và chế tác riêng.",
+  );
   assert.equal(tFor("en", "gallery.showMore"), "SHOW MORE");
   assert.equal(tFor("vi", "gallery.showMore"), "THÊM NỘI DUNG");
 });
