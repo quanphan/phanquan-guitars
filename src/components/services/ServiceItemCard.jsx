@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import ProductPrice from "../ProductPrice.jsx";
 import ServiceHtml from "./ServiceHtml.jsx";
 import { mediaUrl } from "../../config/api.js";
+import FitImage from "../FitImage.jsx";
 import { useCart } from "../../cart/CartContext.jsx";
 import {
   optionGroupLabel,
@@ -45,11 +46,7 @@ export default function ServiceItemCard({ item, categorySlug }) {
   return (
     <article className="border border-white/10 bg-panel/30 p-6">
       {item.imagePath ? (
-        <img
-          src={mediaUrl(item.imagePath)}
-          alt={heading}
-          className="aspect-[4/3] w-full object-cover"
-        />
+        <FitImage src={mediaUrl(item.imagePath)} alt={heading} fit="contain" frameClassName="aspect-[4/3] w-full" />
       ) : null}
       <h2 className="mt-5 font-display text-2xl tracking-wide text-ivory">{heading}</h2>
       {price == null ? (

@@ -195,15 +195,39 @@ export function defaultLocaleContent(pageKey, language) {
   };
 }
 
+export function localeHasContent(locale) {
+  if (!locale || typeof locale !== "object") return false;
+  if (typeof locale.title === "string" && locale.title.trim()) return true;
+  return Array.isArray(locale.sections) && locale.sections.length > 0;
+}
+
+export function normalizeLocaleContent(locale) {
+  return {
+    title: typeof locale?.title === "string" ? locale.title : "",
+    sections: Array.isArray(locale?.sections)
+      ? locale.sections.map((section) => ({ ...emptySection(section.type), ...section }))
+      : [],
+  };
+}
+
 export function localeFromRecord(record, language, pageKey) {
   const locale = record?.locales?.[language] || record?.draft?.[language] || record?.published?.[language];
-  if (locale && Array.isArray(locale.sections) && locale.sections.length) {
-    return {
-      title: locale.title || "",
-      sections: locale.sections.map((section) => ({ ...emptySection(section.type), ...section })),
-    };
+  if (localeHasContent(locale)) {
+    return normalizeLocaleContent(locale);
   }
   return defaultLocaleContent(pageKey, language);
+}
+
+export function editorLocaleFromDocument(document, language, pageKey) {
+  const draft = document?.draft?.[language];
+  if (localeHasContent(draft)) {
+    return { locale: normalizeLocaleContent(draft), source: "draft" };
+  }
+  const published = document?.published?.[language];
+  if (localeHasContent(published)) {
+    return { locale: normalizeLocaleContent(published), source: "published" };
+  }
+  return { locale: defaultLocaleContent(pageKey, language), source: "fallback" };
 }
 
 export function visibleSections(locale) {

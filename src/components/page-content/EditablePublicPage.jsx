@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { errorText } from "../../auth/errorText.js";
 import ConfirmDialog from "../admin/ConfirmDialog.jsx";
-import { defaultLocaleContent, localeFromRecord } from "../../data/pageContent.js";
+import { defaultLocaleContent, editorLocaleFromDocument, localeFromRecord } from "../../data/pageContent.js";
 import { useLanguage } from "../../i18n/LanguageContext.jsx";
 import { uploadAdminImage } from "../../services/adminCatalogService.js";
 import {
@@ -87,19 +87,9 @@ export default function EditablePublicPage({ pageKey, fallbacks }) {
       if (result.code === "UNAUTHORIZED") navigate("/admin/login");
       return;
     }
-    const next = localeFromRecord(
-      result.document.exists ? { locales: result.document.draft } : null,
-      language,
-      pageKey,
-    );
-    if (!result.document.exists) {
-      const fallback = defaultLocaleContent(pageKey, language);
-      setLocale(fallback);
-      setSnapshot(JSON.stringify(fallback));
-    } else {
-      setLocale(next);
-      setSnapshot(JSON.stringify(next));
-    }
+    const next = editorLocaleFromDocument(result.document, language, pageKey).locale;
+    setLocale(next);
+    setSnapshot(JSON.stringify(next));
     setRevision(result.document.revision || 0);
     setEditing(true);
     setPreview(false);

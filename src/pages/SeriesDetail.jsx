@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import CollectionCard from "../components/guitars/CollectionCard.jsx";
 import Button from "../components/Button.jsx";
+import FitImage from "../components/FitImage.jsx";
 import { mediaUrl } from "../config/api.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import { seriesCardCopy } from "../services/guitarSeries.js";
@@ -96,15 +97,7 @@ export default function SeriesDetail() {
         <>
           <section className="mx-auto mt-10 grid max-w-7xl gap-10 px-6 lg:mt-14 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-start lg:gap-16 lg:px-10">
             <div className="overflow-hidden border border-white/8 bg-ink">
-              {image ? (
-                <img
-                  src={image}
-                  alt={series.name}
-                  className="aspect-[4/5] w-full object-cover lg:aspect-[4/5]"
-                />
-              ) : (
-                <div className="aspect-[4/5] w-full bg-panel" />
-              )}
+              <FitImage src={image} alt={series.name} fit="contain" frameClassName="aspect-[4/5] w-full" />
             </div>
             <div className="lg:pt-4">
               <p className="text-[11px] uppercase tracking-[0.32em] text-gold">{t("seriesDetail.eyebrow")}</p>

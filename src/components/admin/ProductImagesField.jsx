@@ -172,7 +172,7 @@ export default function ProductImagesField({
         <ul className="mt-3 space-y-3">
           {paths.map((path, index) => (
             <li key={path} className="flex flex-wrap items-center gap-3 border border-white/8 p-3">
-              <img src={mediaUrl(path)} alt="" className="h-16 w-16 bg-ink object-cover" />
+              <img src={mediaUrl(path)} alt="" className="h-16 w-16 bg-ink object-contain" />
               <p className="min-w-0 flex-1 break-all text-xs text-ivory">{imageFileName(path, path)}</p>
               <button type="button" disabled={disabled || busy || index === 0} onClick={() => moveImage(index, -1)} className="text-[11px] uppercase tracking-[0.16em] text-gold disabled:opacity-40">
                 {t("admin.catalog.up")}
@@ -188,7 +188,7 @@ export default function ProductImagesField({
           {drafts.map((draft) => (
             <li key={draft.id} className="flex flex-wrap items-center gap-3 border border-white/8 p-3">
               {draft.previewUrl ? (
-                <img src={draft.previewUrl} alt="" className="h-16 w-16 bg-ink object-cover" />
+                <img src={draft.previewUrl} alt="" className="h-16 w-16 bg-ink object-contain" />
               ) : (
                 <div className="flex h-16 w-16 items-center justify-center bg-ink text-[10px] uppercase tracking-[0.12em] text-muted">
                   {draft.status === "converting" ? t("admin.catalog.convertingHeic") : t("admin.catalog.uploading")}

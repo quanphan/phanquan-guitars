@@ -30,7 +30,7 @@ export default function GalleryMediaPlayer({ item, title = "", className = "" })
 
   if (item.kind === "image") {
     return imageSrc ? (
-      <GalleryImage src={imageSrc} alt={title} className={`max-h-[80vh] w-full bg-ink object-contain ${className}`} />
+      <GalleryImage src={imageSrc} alt={title} className={`max-h-[80vh] w-full bg-ink object-contain object-center ${className}`} />
     ) : null;
   }
 

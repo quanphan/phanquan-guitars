@@ -1,5 +1,5 @@
 import { isCustomBuildApiConfigured } from "../config/api.js";
-import { emptyLocale } from "../data/pageContent.js";
+import { editorLocaleFromDocument } from "../data/pageContent.js";
 import { requestJson } from "./apiClient.js";
 
 function failure(result, fallback = "failure") {
@@ -85,8 +85,8 @@ export async function revertPageContent(request, pageKey, { expectedRevision }) 
   return { ok: true, code: null, document: result.payload.data };
 }
 
-export function draftLocale(document, language) {
-  return document?.draft?.[language] || emptyLocale();
+export function draftLocale(document, language, pageKey = "about") {
+  return editorLocaleFromDocument(document, language, pageKey).locale;
 }
 
 export async function listPageImageOrphans(request) {

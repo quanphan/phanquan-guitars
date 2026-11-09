@@ -48,7 +48,7 @@ export default function ImageUploadField({
     <div>
       <p className="text-[11px] uppercase tracking-[0.18em] text-gold">{label}</p>
       {shown ? (
-        <img src={shown} alt="" className="mt-3 h-32 w-32 object-cover border border-white/10 bg-ink" />
+        <img src={shown} alt="" className="mt-3 h-32 w-32 border border-white/10 bg-ink object-contain" />
       ) : (
         <p className="mt-3 text-sm text-muted">{t("admin.catalog.noImage")}</p>
       )}

@@ -6,6 +6,7 @@ import { useLanguage } from "../../i18n/LanguageContext.jsx";
 import { formatSeriesPriceRange, seriesCardCopy } from "../../services/guitarSeries.js";
 import { prefersWideSeriesLayout } from "../../services/seriesPopover.js";
 import Button from "../Button.jsx";
+import FitImage from "../FitImage.jsx";
 import SeriesDescriptionCopy from "./SeriesDescriptionCopy.jsx";
 import SeriesDescriptionOverlay from "./SeriesDescriptionOverlay.jsx";
 
@@ -51,15 +52,12 @@ function SeriesCard({ item, open, onToggle, wide }) {
           className="flex h-full w-full min-w-0 flex-col text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
         >
           {card.imagePath ? (
-            <div className="overflow-hidden">
-              <img
-                src={mediaUrl(card.imagePath)}
-                alt=""
-                loading="lazy"
-                decoding="async"
-                className="aspect-[16/10] w-full object-cover"
-              />
-            </div>
+            <FitImage
+              src={mediaUrl(card.imagePath)}
+              alt=""
+              fit="contain"
+              frameClassName="aspect-[16/10] w-full"
+            />
           ) : (
             <div className="border-b border-white/8 px-6 py-5">
               <p className="text-[11px] uppercase tracking-[0.22em] text-gold">{t("guitars.series.title")}</p>

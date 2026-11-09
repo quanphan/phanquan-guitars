@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import Button from "../components/Button.jsx";
 import CartSocialShare from "../components/cart/CartSocialShare.jsx";
+import FitImage from "../components/FitImage.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import { mediaUrl } from "../config/api.js";
 import { useCart } from "../cart/CartContext.jsx";
@@ -62,10 +63,11 @@ export default function Cart() {
                   <li key={item.lineId} className="overflow-hidden border border-white/10 bg-panel/40 p-2.5 sm:p-3">
                     <div className="flex min-w-0 gap-3">
                       {item.imagePath ? (
-                        <img
+                        <FitImage
                           src={mediaUrl(item.imagePath)}
                           alt=""
-                          className="h-16 w-16 shrink-0 object-cover sm:h-[4.5rem] sm:w-[4.5rem]"
+                          fit="contain"
+                          frameClassName="h-16 w-16 shrink-0 sm:h-[4.5rem] sm:w-[4.5rem]"
                         />
                       ) : null}
                       <div className="min-w-0 flex-1">

@@ -5,6 +5,7 @@ import {
   copySharedSectionImages,
   defaultLocaleContent,
   duplicateSection,
+  editorLocaleFromDocument,
   emptySection,
   isPageKey,
   localeFromRecord,
@@ -41,6 +42,39 @@ test("public visitors keep fallback copy when the API has no published document"
   const fallback = localeFromRecord(null, "en", "about");
   assert.equal(fallback.sections.length > 0, true);
   assert.equal(visibleSections({ sections: [{ id: "a", visible: false }, { id: "b", visible: true }] }).map((item) => item.id).join(), "b");
+});
+
+test("admin editor hydrates from published when draft is empty and does not invent a blank page", () => {
+  const publishedVi = {
+    title: "Từ viết code đến làm guitar",
+    sections: [
+      { id: "about-hero", type: "hero", title: "Từ viết code đến làm guitar", layout: "center" },
+      { id: "about-opening", type: "text-image", body: "Opening", image: "/uploads/pages/260db85ee5e5fb06f41e9e53eb3f8664.jpg" },
+    ],
+  };
+  const document = {
+    exists: true,
+    draft: { en: { title: "", sections: [] }, vi: { title: "", sections: [] } },
+    published: { en: { title: "", sections: [] }, vi: publishedVi },
+  };
+  const vi = editorLocaleFromDocument(document, "vi", "about");
+  assert.equal(vi.source, "published");
+  assert.equal(vi.locale.title, publishedVi.title);
+  assert.equal(vi.locale.sections.map((section) => section.id).join(), "about-hero,about-opening");
+  assert.equal(vi.locale.sections[1].image, publishedVi.sections[1].image);
+
+  const en = editorLocaleFromDocument(document, "en", "about");
+  assert.equal(en.source, "fallback");
+  assert.equal(en.locale.sections.some((section) => section.type === "hero"), true);
+  assert.equal(en.locale.title, defaultLocaleContent("about", "en").title);
+
+  const draftFirst = editorLocaleFromDocument({
+    exists: true,
+    draft: { en: { title: "Draft EN", sections: [{ id: "about-hero", type: "hero", title: "Draft" }] }, vi: { title: "", sections: [] } },
+    published: document.published,
+  }, "en", "about");
+  assert.equal(draftFirst.source, "draft");
+  assert.equal(draftFirst.locale.title, "Draft EN");
 });
 
 test("inline editor and page manager share page keys and reorder helpers", () => {
@@ -83,6 +117,8 @@ test("page content copy exists in English and Vietnamese", () => {
   assert.equal(tFor("en", "admin.tabs.pageContent"), "Page Content");
   assert.equal(tFor("vi", "admin.tabs.pageContent"), "Nội dung trang");
   assert.equal(tFor("en", "admin.pageContent.previewBanner").includes("unpublished"), true);
+  assert.equal(tFor("en", "admin.pageContent.publishedHint").includes("published"), true);
+  assert.equal(tFor("vi", "admin.pageContent.loadFailed").includes("không bị xóa"), true);
   assert.equal(tFor("en", "admin.pageContent.addGalleryImage"), "Add gallery image");
   assert.equal(tFor("vi", "admin.pageContent.addGalleryImage"), "Thêm ảnh gallery");
   assert.equal(tFor("en", "admin.pageContent.editImage"), "Edit Image");

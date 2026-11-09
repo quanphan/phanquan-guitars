@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { mediaUrl } from "../../config/api.js";
 import { useLanguage } from "../../i18n/LanguageContext.jsx";
+import FitImage from "../FitImage.jsx";
 import Reveal from "../Reveal.jsx";
 
 export default function FeaturedSeriesCard({ series }) {
@@ -11,17 +12,12 @@ export default function FeaturedSeriesCard({ series }) {
     <Reveal className="group h-full">
       <article className="flex h-full flex-col border border-white/8 bg-panel/80 transition-colors duration-300 hover:border-gold/40">
         <Link to={series.href} className="relative overflow-hidden">
-          {image ? (
-            <img
-              src={image}
-              alt={series.name}
-              loading="lazy"
-              decoding="async"
-              className="aspect-[4/5] w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
-            />
-          ) : (
-            <div className="aspect-[4/5] w-full bg-ink" />
-          )}
+          <FitImage
+            src={image}
+            alt={series.name}
+            fit="contain"
+            frameClassName="aspect-[4/5] w-full"
+          />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-charcoal/70 via-transparent to-transparent" />
         </Link>
         <div className="flex flex-1 flex-col gap-4 px-6 py-7">

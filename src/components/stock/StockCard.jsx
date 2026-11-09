@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useLanguage } from "../../i18n/LanguageContext.jsx";
 import { formatProductPrice } from "../../services/formatPrice.js";
+import FitImage from "../FitImage.jsx";
 import CardSpecSummary from "../guitars/CardSpecSummary.jsx";
 import Reveal from "../Reveal.jsx";
 
@@ -17,21 +18,16 @@ export default function StockCard({ item }) {
     <Reveal className="group h-full">
       <article className="flex h-full flex-col border border-white/8 bg-panel/80 transition-colors duration-300 hover:border-gold/40">
         <Link to={href} className="relative overflow-hidden">
-          {image ? (
-            <img
-              src={image.src}
-              srcSet={image.srcSet}
-              sizes="(min-width: 1280px) 30vw, (min-width: 768px) 45vw, 100vw"
-              alt={name}
-              width={image.width}
-              height={image.height}
-              loading="lazy"
-              decoding="async"
-              className={`aspect-[4/5] w-full object-cover transition-transform duration-700 group-hover:scale-[1.04] ${item.imagePosition ?? "object-center"} ${sold ? "opacity-80" : ""}`}
-            />
-          ) : (
-            <div className={`aspect-[4/5] w-full bg-ink ${sold ? "opacity-80" : ""}`} />
-          )}
+          <FitImage
+            src={image?.src}
+            srcSet={image?.srcSet}
+            sizes="(min-width: 1280px) 30vw, (min-width: 768px) 45vw, 100vw"
+            alt={name}
+            width={image?.width}
+            height={image?.height}
+            fit="contain"
+            frameClassName={`aspect-[4/5] w-full ${sold ? "opacity-80" : ""}`}
+          />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-charcoal/70 via-transparent to-transparent" />
           <p
             className={`absolute left-4 top-4 px-3 py-1 text-[10px] uppercase tracking-[0.2em] ${

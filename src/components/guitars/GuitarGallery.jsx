@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLanguage } from "../../i18n/LanguageContext.jsx";
 import { imageAlt } from "../../services/productView.js";
+import FitImage from "../FitImage.jsx";
 
 export default function GuitarGallery({ guitar }) {
   const { t } = useLanguage();
@@ -47,14 +48,16 @@ export default function GuitarGallery({ guitar }) {
           className="block w-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
           aria-label={t("guitars.gallery.enlarge")}
         >
-          <img
+          <FitImage
             src={current.src}
             srcSet={current.srcSet}
             sizes="(min-width: 1024px) 45vw, 100vw"
             alt={imageAlt(current, t)}
             width={current.width}
             height={current.height}
-            className={`aspect-[4/5] w-full object-cover ${guitar.imagePosition ?? "object-center"}`}
+            loading="eager"
+            fit="contain"
+            frameClassName="aspect-[4/5] w-full"
           />
         </button>
         <p className="pointer-events-none absolute right-3 top-3 bg-charcoal/80 px-3 py-1 text-[11px] tracking-[0.16em] text-ivory">
@@ -97,10 +100,11 @@ export default function GuitarGallery({ guitar }) {
                     : "border-white/10 hover:border-gold/40"
                 }`}
               >
-                <img
+                <FitImage
                   src={image.src}
                   alt={imageAlt(image, t)}
-                  className="aspect-square w-full object-cover"
+                  fit="contain"
+                  frameClassName="aspect-square w-full"
                 />
               </button>
             </li>
@@ -120,10 +124,13 @@ export default function GuitarGallery({ guitar }) {
             className="relative max-h-full max-w-5xl"
             onClick={(event) => event.stopPropagation()}
           >
-            <img
+            <FitImage
               src={current.src}
               alt={imageAlt(current, t)}
-              className="max-h-[85vh] w-auto max-w-full object-contain"
+              fit="contain"
+              fill={false}
+              frameClassName="flex max-h-[85vh] max-w-full items-center justify-center bg-ink"
+              className="max-h-[85vh]"
             />
             <p className="mt-3 text-center text-[11px] tracking-[0.16em] text-ivory/80">
               {counter}

@@ -5,6 +5,7 @@ import { moveId } from "../../auth/catalog.js";
 import { errorText } from "../../auth/errorText.js";
 import ConfirmDialog from "../../components/admin/ConfirmDialog.jsx";
 import Button from "../../components/Button.jsx";
+import FitImage from "../../components/FitImage.jsx";
 import PageHeader from "../../components/PageHeader.jsx";
 import { mediaUrl } from "../../config/api.js";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue.js";
@@ -202,7 +203,7 @@ export default function CatalogProductsPage() {
                   <tr key={item.id} className="border-t border-white/8">
                     <td className="px-4 py-3">
                       {item.image ? (
-                        <img src={mediaUrl(item.image)} alt="" className="h-12 w-12 object-cover" />
+                        <FitImage src={mediaUrl(item.image)} alt="" fit="contain" frameClassName="h-12 w-12" />
                       ) : (
                         <span className="text-muted">—</span>
                       )}

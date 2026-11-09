@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { mediaUrl } from "../../config/api.js";
+import FitImage from "../FitImage.jsx";
 import {
   REFERENCE_IMAGE_ACCEPT,
   REFERENCE_IMAGE_MAX,
@@ -93,11 +94,7 @@ export default function ReferenceImageField({ images, onChange, disabled }) {
         <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
           {stored.map((path, index) => (
             <li key={path} className="border border-white/10 bg-ink">
-              <img
-                src={mediaUrl(path)}
-                alt=""
-                className="aspect-square w-full object-cover"
-              />
+              <FitImage src={mediaUrl(path)} alt="" fit="contain" frameClassName="aspect-square w-full" />
               {disabled ? null : (
                 <button
                   type="button"

@@ -4,6 +4,7 @@ import { useAuth } from "../../auth/AuthContext.jsx";
 import { mediaUrl } from "../../config/api.js";
 import ConfirmDialog from "../../components/admin/ConfirmDialog.jsx";
 import Button from "../../components/Button.jsx";
+import FitImage from "../../components/FitImage.jsx";
 import PageHeader from "../../components/PageHeader.jsx";
 import { useLanguage } from "../../i18n/LanguageContext.jsx";
 import {
@@ -289,10 +290,11 @@ export default function AdminInquiryDetail() {
                         rel="noreferrer"
                         className="block border border-white/10 bg-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
                       >
-                        <img
+                        <FitImage
                           src={mediaUrl(path)}
                           alt={t("admin.detail.openImage")}
-                          className="aspect-square w-full object-cover"
+                          fit="contain"
+                          frameClassName="aspect-square w-full"
                         />
                         <span className="block px-2 py-2 text-[11px] uppercase tracking-[0.16em] text-gold">
                           {t("admin.detail.openImage")}

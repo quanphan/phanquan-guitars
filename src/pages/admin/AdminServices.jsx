@@ -5,6 +5,7 @@ import { useAuth } from "../../auth/AuthContext.jsx";
 import { errorText } from "../../auth/errorText.js";
 import ConfirmDialog from "../../components/admin/ConfirmDialog.jsx";
 import Button from "../../components/Button.jsx";
+import FitImage from "../../components/FitImage.jsx";
 import PageHeader from "../../components/PageHeader.jsx";
 import { mediaUrl } from "../../config/api.js";
 import { serviceLocale } from "../../data/services.js";
@@ -240,7 +241,7 @@ export default function AdminServices() {
             {items.map((item) => (
               <article key={item.id} className="border border-white/10 p-5">
                 {item.imagePath ? (
-                  <img src={mediaUrl(item.imagePath)} alt="" className="mb-4 h-32 w-full object-cover" />
+                  <FitImage src={mediaUrl(item.imagePath)} alt="" fit="contain" frameClassName="mb-4 h-32 w-full" />
                 ) : null}
                 <h3 className="font-display text-xl text-ivory">{serviceLocale(item, language).title || item.title}</h3>
                 <p className="mt-2 text-xs uppercase tracking-[0.16em] text-muted">{categoryName(item.categoryId)}</p>

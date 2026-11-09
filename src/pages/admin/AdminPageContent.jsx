@@ -9,6 +9,7 @@ import PageHeader from "../../components/PageHeader.jsx";
 import PageContentEditor from "../../components/page-content/PageContentEditor.jsx";
 import {
   defaultLocaleContent,
+  editorLocaleFromDocument,
   isPageKey,
   PAGE_KEYS,
   PAGE_LANGUAGES,
@@ -36,7 +37,6 @@ export default function AdminPageContent() {
   const [language, setLanguage] = useState(uiLanguage === "vi" ? "vi" : "en");
   const [locale, setLocale] = useState(() => defaultLocaleContent("about", "en"));
   const [revision, setRevision] = useState(0);
-  const [exists, setExists] = useState(false);
   const [hasPublished, setHasPublished] = useState(false);
   const [snapshot, setSnapshot] = useState("");
   const [loading, setLoading] = useState(true);
@@ -46,20 +46,19 @@ export default function AdminPageContent() {
   const [confirm, setConfirm] = useState(null);
   const [pendingSwitch, setPendingSwitch] = useState(null);
   const [orphans, setOrphans] = useState(null);
+  const [source, setSource] = useState("fallback");
+  const [loaded, setLoaded] = useState(false);
 
   const dirty = useMemo(() => JSON.stringify(locale) !== snapshot, [locale, snapshot]);
 
   const applyDocument = useCallback((document, nextPage, nextLanguage) => {
-    const fallback = defaultLocaleContent(nextPage, nextLanguage);
-    const stored = document?.draft?.[nextLanguage];
-    const next = document?.exists
-      ? { title: stored?.title || "", sections: Array.isArray(stored?.sections) ? stored.sections : [] }
-      : fallback;
+    const { locale: next, source: nextSource } = editorLocaleFromDocument(document, nextLanguage, nextPage);
     setLocale(next);
     setSnapshot(JSON.stringify(next));
+    setSource(nextSource);
     setRevision(document?.revision || 0);
-    setExists(Boolean(document?.exists));
     setHasPublished(Boolean(document?.published));
+    setLoaded(true);
   }, []);
 
   const load = useCallback(async (nextPage = pageKey, nextLanguage = language) => {
@@ -70,6 +69,7 @@ export default function AdminPageContent() {
     if (!result.ok) {
       setError(result.code);
       setLoading(false);
+      setLoaded(false);
       if (result.code === "UNAUTHORIZED") {
         navigate("/admin/login?from=/admin/page-content", { replace: true });
       }
@@ -190,6 +190,8 @@ export default function AdminPageContent() {
 
         {loading ? (
           <p className="text-sm text-muted">{t("admin.pageContent.loading")}</p>
+        ) : error && !loaded ? (
+          <p className="text-sm text-muted">{t("admin.pageContent.loadFailed")}</p>
         ) : (
           <form
             className="space-y-8"
@@ -230,7 +232,10 @@ export default function AdminPageContent() {
                 {t("admin.pageContent.preview")}
               </Link>
             </div>
-            {!exists ? <p className="text-sm text-muted">{t("admin.pageContent.fallbackHint")}</p> : null}
+            {source === "published" ? (
+              <p className="text-sm text-muted">{t("admin.pageContent.publishedHint")}</p>
+            ) : null}
+            {source === "fallback" ? <p className="text-sm text-muted">{t("admin.pageContent.fallbackHint")}</p> : null}
           </form>
         )}
         <section className="mt-16 space-y-4 border-t border-white/10 pt-10">

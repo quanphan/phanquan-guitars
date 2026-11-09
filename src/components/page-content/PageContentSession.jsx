@@ -6,6 +6,7 @@ import ConfirmDialog from "../admin/ConfirmDialog.jsx";
 import {
   copySharedSectionImages,
   defaultLocaleContent,
+  editorLocaleFromDocument,
   localeFromRecord,
   setSectionImage,
 } from "../../data/pageContent.js";
@@ -62,11 +63,7 @@ export default function PageContentSession({ pageKey, children }) {
         if (result.code === "UNAUTHORIZED") navigate("/admin/login");
         return;
       }
-      const next = localeFromRecord(
-        result.document.exists ? { locales: result.document.draft } : null,
-        language,
-        pageKey,
-      );
+      const next = editorLocaleFromDocument(result.document, language, pageKey).locale;
       setLocale(next);
       setSnapshot(JSON.stringify(next));
       setRevision(result.document.revision || 0);
@@ -111,7 +108,7 @@ export default function PageContentSession({ pageKey, children }) {
     const otherLanguage = language === "vi" ? "en" : "vi";
     const otherLocale = copySharedSectionImages(
       nextLocale,
-      localeFromRecord({ locales: first.document.draft }, otherLanguage, pageKey),
+      editorLocaleFromDocument(first.document, otherLanguage, pageKey).locale,
     );
     const second = await savePageContentDraft(authorizedRequest, pageKey, {
       language: otherLanguage,

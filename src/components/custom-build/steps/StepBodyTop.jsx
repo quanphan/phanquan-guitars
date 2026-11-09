@@ -1,4 +1,5 @@
 import { mediaUrl } from "../../../config/api.js";
+import FitImage from "../../FitImage.jsx";
 import { choiceImageSrc, optionDescription, optionLabel } from "../../../data/wizardCatalog.js";
 import { useLanguage } from "../../../i18n/LanguageContext.jsx";
 import ChoiceButton from "../ChoiceButton.jsx";
@@ -16,11 +17,7 @@ function WoodCard({ wood, selected, onSelect, t, language }) {
       className="flex h-full flex-col overflow-hidden"
     >
       {wood.image ? (
-        <img
-          src={choiceImageSrc(wood.image, mediaUrl)}
-          alt=""
-          className="aspect-[4/3] w-full object-cover"
-        />
+        <FitImage src={choiceImageSrc(wood.image, mediaUrl)} alt="" fit="contain" frameClassName="aspect-[4/3] w-full" />
       ) : (
         <div
           className="flex aspect-[4/3] w-full items-center justify-center bg-ink text-[10px] uppercase tracking-[0.18em] text-muted"
