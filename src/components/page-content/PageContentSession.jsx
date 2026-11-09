@@ -37,30 +37,37 @@ export default function PageContentSession({ pageKey, children }) {
   const [error, setError] = useState(null);
   const [status, setStatus] = useState("");
   const [confirm, setConfirm] = useState(null);
+  const [ready, setReady] = useState(false);
 
   const dirty = useMemo(() => editing && JSON.stringify(locale) !== snapshot, [editing, locale, snapshot]);
 
-  const load = useCallback(async (wantEdit = editing) => {
+  const load = useCallback(async (wantEdit = editing, signal) => {
+    const cancelled = () => signal?.aborted;
     setError(null);
     if (isAdmin && previewRequested && !wantEdit) {
       const result = await previewPageContent(authorizedRequest, pageKey);
+      if (cancelled()) return;
       if (!result.ok) {
         setError(result.code);
         setLocale(defaultLocaleContent(pageKey, language));
         setPreview(false);
+        setReady(true);
         return;
       }
       setLocale(localeFromRecord(result.document, language, pageKey));
       setRevision(result.document.revision || 0);
       setPreview(true);
       setEditing(false);
+      setReady(true);
       return;
     }
     if (isAdmin && wantEdit) {
       const result = await getAdminPageContent(authorizedRequest, pageKey);
+      if (cancelled()) return;
       if (!result.ok) {
         setError(result.code);
         if (result.code === "UNAUTHORIZED") navigate("/admin/login");
+        setReady(true);
         return;
       }
       const next = editorLocaleFromDocument(result.document, language, pageKey).locale;
@@ -68,19 +75,58 @@ export default function PageContentSession({ pageKey, children }) {
       setSnapshot(JSON.stringify(next));
       setRevision(result.document.revision || 0);
       setPreview(false);
+      setReady(true);
       return;
     }
     const result = await getPublicPageContent(pageKey);
+    if (cancelled()) return;
     if (!result.ok && result.code && result.code !== "NOT_FOUND") {
       setError(result.code);
     }
     setLocale(localeFromRecord(result.document, language, pageKey));
     setPreview(false);
+    setReady(true);
   }, [authorizedRequest, editing, isAdmin, language, navigate, pageKey, previewRequested]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let aborted = false;
+    async function loadPublic() {
+      setError(null);
+      try {
+        if (isAdmin && previewRequested) {
+          const result = await previewPageContent(authorizedRequest, pageKey);
+          if (aborted) return;
+          if (!result.ok) {
+            setError(result.code);
+            setLocale(defaultLocaleContent(pageKey, language));
+            setPreview(false);
+            setReady(true);
+            return;
+          }
+          setLocale(localeFromRecord(result.document, language, pageKey));
+          setRevision(result.document.revision || 0);
+          setPreview(true);
+          setEditing(false);
+          setReady(true);
+          return;
+        }
+        const result = await getPublicPageContent(pageKey);
+        if (aborted) return;
+        if (!result.ok && result.code && result.code !== "NOT_FOUND") {
+          setError(result.code);
+        }
+        setLocale(localeFromRecord(result.document, language, pageKey));
+        setPreview(false);
+        setReady(true);
+      } catch {
+        if (!aborted) setReady(true);
+      }
+    }
+    void loadPublic();
+    return () => {
+      aborted = true;
+    };
+  }, [isAdmin, language, pageKey, previewRequested]);
 
   useEffect(() => {
     if (!dirty) return undefined;
@@ -211,7 +257,7 @@ export default function PageContentSession({ pageKey, children }) {
           {errorText(t, "admin.pageContent", error)}
         </p>
       ) : null}
-      {typeof children === "function" ? children({ locale, editing, saving, canUpload, replaceImage }) : children}
+      {typeof children === "function" ? children({ locale, ready, editing, saving, canUpload, replaceImage }) : children}
       <ConfirmDialog
         open={Boolean(confirm)}
         title={confirm === "publish" ? t("admin.pageContent.confirmPublishTitle") : t("admin.pageContent.confirmCancelTitle")}

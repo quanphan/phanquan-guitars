@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { errorText } from "../../auth/errorText.js";
 import { useLanguage } from "../../i18n/LanguageContext.jsx";
+import ContentImage from "../ContentImage.jsx";
 
 export default function EditableFixedImage({
   editing = false,
@@ -12,6 +13,7 @@ export default function EditableFixedImage({
   wrapperClassName = "",
   loading = "lazy",
   decoding = "async",
+  fetchPriority,
   disabled = false,
   onConfirmFile,
 }) {
@@ -59,15 +61,16 @@ export default function EditableFixedImage({
   const shownSrcSet = pending ? undefined : srcSet;
 
   return (
-    <div className={`relative ${wrapperClassName}`.trim()}>
-      <img
+    <div className={`relative overflow-hidden bg-ink ${wrapperClassName}`.trim()}>
+      <ContentImage
         src={shownSrc}
         srcSet={shownSrcSet}
         sizes={sizes}
         alt={alt}
+        className={className}
         loading={loading}
         decoding={decoding}
-        className={className}
+        fetchPriority={fetchPriority}
       />
       {editing ? (
         <>

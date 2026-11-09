@@ -1,23 +1,23 @@
 import Button from "../Button.jsx";
+import ContentImage from "../ContentImage.jsx";
 import PageHeader from "../PageHeader.jsx";
 import Reveal from "../Reveal.jsx";
 import SectionHeading from "../SectionHeading.jsx";
 import { mediaUrl } from "../../config/api.js";
 import { splitParagraphs, visibleSections } from "../../data/pageContent.js";
 
-function StoryImage({ src, srcSet, alt, wide = false }) {
-  if (!src) {
-    return <div className={`w-full border border-white/10 bg-ink/50 ${wide ? "min-h-[16rem]" : "min-h-[18rem]"}`} aria-hidden="true" />;
-  }
+function StoryImage({ src, srcSet, alt, wide = false, priority = false }) {
+  const frame = `${wide ? "aspect-[16/10]" : "aspect-[4/5]"} w-full object-cover object-center`;
   return (
-    <img
+    <ContentImage
       src={src}
       srcSet={srcSet}
       sizes="(min-width: 1024px) 42vw, 100vw"
       alt={alt || ""}
-      loading="lazy"
+      loading={priority ? "eager" : "lazy"}
       decoding="async"
-      className={`${wide ? "aspect-[16/10]" : "aspect-[4/5]"} w-full object-cover object-center`}
+      fetchPriority={priority ? "high" : undefined}
+      className={frame}
     />
   );
 }
@@ -67,11 +67,11 @@ function StorySection({ heading, image, reverse = false, children }) {
   );
 }
 
-function ProcessSection({ section, image, reverse }) {
+function ProcessSection({ section, image, reverse, priority = false }) {
   return (
     <section className="mx-auto grid max-w-7xl items-start gap-10 px-6 pt-14 lg:grid-cols-2 lg:gap-16 lg:px-10 lg:pt-24">
       <Reveal className={`min-w-0 ${reverse ? "lg:order-2" : ""}`}>
-        <StoryImage src={image.src} srcSet={image.srcSet} alt={section.imageAlt} wide />
+        <StoryImage src={image.src} srcSet={image.srcSet} alt={section.imageAlt} wide priority={priority} />
       </Reveal>
       <Reveal className={`min-w-0 ${reverse ? "lg:order-1" : ""}`} delay={80}>
         {section.number ? <p className="text-[11px] uppercase tracking-[0.32em] text-gold">{section.number}</p> : null}
@@ -89,7 +89,7 @@ function ProcessSection({ section, image, reverse }) {
   );
 }
 
-function SectionView({ section, fallbacks }) {
+function SectionView({ section, fallbacks, priority = false }) {
   const image = resolveImage(section, fallbacks);
   const reverse = section.layout === "image-right";
 
@@ -98,7 +98,7 @@ function SectionView({ section, fallbacks }) {
   }
 
   if (section.type === "process-step") {
-    return <ProcessSection section={section} image={image} reverse={reverse} />;
+    return <ProcessSection section={section} image={image} reverse={reverse} priority={priority} />;
   }
 
   if (section.type === "cta") {
@@ -141,7 +141,7 @@ function SectionView({ section, fallbacks }) {
     return (
       <section className="mx-auto max-w-7xl px-6 pt-14 lg:px-10">
         <Reveal>
-          <StoryImage src={image.src} srcSet={image.srcSet} alt={section.imageAlt} wide />
+          <StoryImage src={image.src} srcSet={image.srcSet} alt={section.imageAlt} wide priority={priority} />
         </Reveal>
       </section>
     );
@@ -165,7 +165,14 @@ function SectionView({ section, fallbacks }) {
     return (
       <section className="mx-auto grid max-w-7xl gap-4 px-6 pt-14 sm:grid-cols-2 lg:grid-cols-3 lg:px-10">
         {items.map((item) => (
-          <img key={item.path} src={mediaUrl(item.path)} alt={item.alt || ""} className="aspect-[4/5] w-full object-cover" />
+          <ContentImage
+            key={item.path}
+            src={mediaUrl(item.path)}
+            alt={item.alt || ""}
+            className="aspect-[4/5] w-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
         ))}
       </section>
     );
@@ -193,7 +200,7 @@ function SectionView({ section, fallbacks }) {
     <StorySection
       heading={section.title}
       reverse={reverse}
-      image={<StoryImage src={image.src} srcSet={image.srcSet} alt={section.imageAlt} />}
+      image={<StoryImage src={image.src} srcSet={image.srcSet} alt={section.imageAlt} priority={priority} />}
     >
       <Paragraphs text={section.body} quote={section.quote} />
     </StorySection>
@@ -202,10 +209,14 @@ function SectionView({ section, fallbacks }) {
 
 export default function PageContentRenderer({ locale, fallbacks, wrapSection }) {
   const sections = visibleSections(locale);
+  let assignedPriority = false;
   return (
     <article className="overflow-x-hidden pb-24">
       {sections.map((section) => {
-        const view = <SectionView section={section} fallbacks={fallbacks} />;
+        const usesImage = Boolean(section.image || (section.images || []).length || fallbacks?.[section.id]?.src);
+        const priority = usesImage && !assignedPriority;
+        if (priority) assignedPriority = true;
+        const view = <SectionView section={section} fallbacks={fallbacks} priority={priority} />;
         return wrapSection ? wrapSection(section, view) : <div key={section.id}>{view}</div>;
       })}
     </article>

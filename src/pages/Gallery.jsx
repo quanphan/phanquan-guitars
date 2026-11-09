@@ -433,7 +433,13 @@ export default function Gallery() {
                 {t("gallery.loadingMore")}
               </p>
             ) : null}
-            <Button type="button" variant="outline" onClick={() => void loadMore()} disabled={loadingMore}>
+            <Button
+              type="button"
+              variant="outline"
+              className="max-w-full whitespace-nowrap px-5 tracking-[0.16em] sm:px-7 sm:tracking-[0.22em]"
+              onClick={() => void loadMore()}
+              disabled={loadingMore}
+            >
               {t("gallery.showMore")}
             </Button>
           </div>

@@ -20,6 +20,7 @@ import {
   SERVICES_EXPERTISE_SECTION_ID,
   setSectionImage,
   storedSectionImage,
+  publishedSectionImage,
   splitParagraphs,
   updateGalleryImage,
   visibleSections,
@@ -171,4 +172,26 @@ test("contact hero image uses a dedicated page-content slot shared across langua
   const vi = copySharedSectionImages(withImage, defaultLocaleContent("contact", "vi"));
   assert.equal(vi.sections[0].image, path);
   assert.equal(vi.title, defaultLocaleContent("contact", "vi").title);
+});
+
+test("published section images stay empty until content is ready so fallbacks do not flash", () => {
+  const path = "/uploads/pages/dddddddddddddddddddddddddddddddd.jpg";
+  const fallback = { src: "workshop-back.jpg", srcSet: "small.jpg 900w" };
+  const empty = defaultLocaleContent("contact", "en");
+  const pending = publishedSectionImage(empty, CONTACT_HERO_SECTION_ID, "image", fallback, { ready: false });
+  assert.equal(pending.src, "");
+  assert.equal(pending.pending, true);
+  const unspecified = publishedSectionImage(empty, CONTACT_HERO_SECTION_ID, "image", fallback);
+  assert.equal(unspecified.src, fallback.src);
+  const afterLoad = publishedSectionImage(empty, CONTACT_HERO_SECTION_ID, "image", fallback, { ready: true });
+  assert.equal(afterLoad.src, fallback.src);
+  assert.equal(afterLoad.stored, false);
+  const stored = setSectionImage(empty, CONTACT_HERO_SECTION_ID, "image", path);
+  const resolved = publishedSectionImage(stored, CONTACT_HERO_SECTION_ID, "image", fallback, {
+    ready: true,
+    toUrl: (value) => `https://cdn.example${value}`,
+  });
+  assert.equal(resolved.src, `https://cdn.example${path}`);
+  assert.equal(resolved.stored, true);
+  assert.equal(resolved.srcSet, undefined);
 });

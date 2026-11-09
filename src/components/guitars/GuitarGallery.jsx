@@ -6,10 +6,16 @@ import FitImage from "../FitImage.jsx";
 export default function GuitarGallery({ guitar }) {
   const { t } = useLanguage();
   const images = guitar.images ?? [];
+  const guitarId = guitar.id || guitar.slug || guitar.name;
   const [index, setIndex] = useState(0);
   const [lightbox, setLightbox] = useState(false);
   const total = images.length;
   const current = images[index] ?? images[0];
+
+  useEffect(() => {
+    setIndex(0);
+    setLightbox(false);
+  }, [guitarId]);
 
   const go = useCallback(
     (next) => {

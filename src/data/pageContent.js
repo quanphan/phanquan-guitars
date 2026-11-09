@@ -346,6 +346,22 @@ export function storedSectionImage(locale, sectionId, field, fallback) {
   return { ...fallback, stored: false };
 }
 
+export function publishedSectionImage(locale, sectionId, field, fallback, { ready = true, toUrl } = {}) {
+  if (ready === false) {
+    return { src: "", srcSet: undefined, stored: false, pending: true };
+  }
+  const stored = storedSectionImage(locale, sectionId, field, fallback);
+  if (stored.stored) {
+    return {
+      src: typeof toUrl === "function" ? toUrl(stored.src) : stored.src,
+      srcSet: undefined,
+      stored: true,
+      pending: false,
+    };
+  }
+  return { ...fallback, stored: false, pending: false };
+}
+
 export function addGalleryImage(section, item) {
   const images = Array.isArray(section?.images) ? [...section.images] : [];
   const path = typeof item?.path === "string" ? item.path.trim() : "";

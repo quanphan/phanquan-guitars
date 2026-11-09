@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { errorText } from "../../auth/errorText.js";
@@ -34,20 +34,24 @@ export default function EditablePublicPage({ pageKey, fallbacks }) {
   const [error, setError] = useState(null);
   const [status, setStatus] = useState("");
   const [confirm, setConfirm] = useState(null);
+  const loadedOnce = useRef(false);
 
   const dirty = useMemo(() => editing && JSON.stringify(locale) !== snapshot, [editing, locale, snapshot]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (signal) => {
+    const cancelled = () => signal?.aborted;
+    if (!loadedOnce.current) setLoading(true);
     setError(null);
     const wantPreview = isAdmin && previewRequested;
     if (wantPreview) {
       const result = await previewPageContent(authorizedRequest, pageKey);
+      if (cancelled()) return;
       if (!result.ok) {
         setError(result.code);
         setLocale(defaultLocaleContent(pageKey, language));
         setPreview(false);
         setLoading(false);
+        loadedOnce.current = true;
         return;
       }
       setLocale(localeFromRecord(result.document, language, pageKey));
@@ -55,20 +59,31 @@ export default function EditablePublicPage({ pageKey, fallbacks }) {
       setPreview(true);
       setEditing(false);
       setLoading(false);
+      loadedOnce.current = true;
       return;
     }
     const result = await getPublicPageContent(pageKey);
+    if (cancelled()) return;
     if (!result.ok && result.code && result.code !== "NOT_FOUND") {
       setError(result.code);
     }
     setLocale(localeFromRecord(result.document, language, pageKey));
     setPreview(false);
     setLoading(false);
+    loadedOnce.current = true;
   }, [authorizedRequest, isAdmin, language, pageKey, previewRequested]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    loadedOnce.current = false;
+  }, [pageKey]);
+
+  useEffect(() => {
+    const signal = { aborted: false };
+    void load(signal);
+    return () => {
+      signal.aborted = true;
+    };
+  }, [pageKey, language, isAdmin, previewRequested]);
 
   useEffect(() => {
     if (!dirty) return undefined;

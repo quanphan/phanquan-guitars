@@ -9,6 +9,7 @@ import {
   recordRange,
   visiblePageNumbers,
 } from "../src/auth/catalog.js";
+import { tFor } from "../src/i18n/translations.js";
 
 function sortItems(items) {
   return [...items].sort(compareListingOrder);
@@ -54,6 +55,13 @@ test("SHOW MORE appends unique products only", () => {
   const merged = mergeUniqueById(first, second);
   assert.equal(merged.length, 12);
   assert.equal(new Set(merged.map((item) => item.id)).size, 12);
+});
+
+test("load-more labels follow the selected site language", () => {
+  assert.equal(tFor("en", "guitars.collection.showMore"), "SHOW MORE");
+  assert.equal(tFor("vi", "guitars.collection.showMore"), "THÊM NỘI DUNG");
+  assert.equal(tFor("en", "gallery.showMore"), "SHOW MORE");
+  assert.equal(tFor("vi", "gallery.showMore"), "THÊM NỘI DUNG");
 });
 
 test("SHOW MORE is hidden when every product already fits the first page", () => {

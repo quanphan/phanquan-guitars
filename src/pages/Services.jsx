@@ -9,13 +9,14 @@ import workshopCraft from "../assets/guitars/optimized/workshop-craft.jpg";
 import workshopCraftSm from "../assets/guitars/optimized/workshop-craft-700.jpg";
 import construction from "../assets/buildProcess/construction.jpg";
 import Button from "../components/Button.jsx";
+import { ImageSkeleton } from "../components/ContentImage.jsx";
 import EditableFixedImage from "../components/page-content/EditableFixedImage.jsx";
 import PageContentSession from "../components/page-content/PageContentSession.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import Reveal from "../components/Reveal.jsx";
 import SectionHeading from "../components/SectionHeading.jsx";
 import { mediaUrl } from "../config/api.js";
-import { SERVICES_EXPERTISE_SECTION_ID, storedSectionImage } from "../data/pageContent.js";
+import { SERVICES_EXPERTISE_SECTION_ID, publishedSectionImage } from "../data/pageContent.js";
 import { categoryFallbackKey, mergePublicCategories, serviceLocale } from "../data/services.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import { listPublicServices } from "../services/serviceCatalog.js";
@@ -46,12 +47,11 @@ const EXPERTISE_FALLBACKS = {
   },
 };
 
-function expertiseImage(locale, field) {
-  const stored = storedSectionImage(locale, SERVICES_EXPERTISE_SECTION_ID, field, EXPERTISE_FALLBACKS[field]);
-  if (stored.stored) {
-    return { src: mediaUrl(stored.src), srcSet: undefined };
-  }
-  return EXPERTISE_FALLBACKS[field];
+function expertiseImage(locale, field, ready) {
+  return publishedSectionImage(locale, SERVICES_EXPERTISE_SECTION_ID, field, EXPERTISE_FALLBACKS[field], {
+    ready,
+    toUrl: mediaUrl,
+  });
 }
 
 function usePageMeta(title, description) {
@@ -91,7 +91,8 @@ function categoryCopy(category, language, t) {
 
 export default function Services() {
   const { t, language } = useLanguage();
-  const [categories, setCategories] = useState(() => mergePublicCategories([]));
+  const [categories, setCategories] = useState([]);
+  const [categoriesReady, setCategoriesReady] = useState(false);
 
   usePageMeta(t("services.meta.title"), t("services.meta.description"));
 
@@ -100,6 +101,7 @@ export default function Services() {
     listPublicServices().then((result) => {
       if (cancelled) return;
       setCategories(mergePublicCategories(result.ok ? result.items : []));
+      setCategoriesReady(true);
     });
     return () => {
       cancelled = true;
@@ -109,8 +111,8 @@ export default function Services() {
   return (
     <PageContentSession pageKey="services">
       {(session) => {
-        const primary = expertiseImage(session.locale, "image");
-        const secondary = expertiseImage(session.locale, "imageSecondary");
+        const primary = expertiseImage(session.locale, "image", session.ready);
+        const secondary = expertiseImage(session.locale, "imageSecondary", session.ready);
         return (
     <>
       <PageHeader
@@ -121,7 +123,14 @@ export default function Services() {
 
       <section className="pb-24 lg:pb-32">
         <div className="mx-auto max-w-7xl space-y-16 px-6 pt-16 lg:space-y-24 lg:px-10">
-          {categories.map((category, index) => {
+          {!categoriesReady
+            ? [0, 1, 2].map((index) => (
+                <article key={`services-skeleton-${index}`} className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+                  <ImageSkeleton className="aspect-[4/5] w-full" />
+                  <div className="min-h-[8rem] bg-ink/40" aria-hidden="true" />
+                </article>
+              ))
+            : categories.map((category, index) => {
             const copy = categoryCopy(category, language, t);
             const reversed = index % 2 === 1;
             const details = category.linkMode !== "contact";
@@ -137,9 +146,11 @@ export default function Services() {
                         alt={copy.imageAlt}
                         loading={index === 0 ? "eager" : "lazy"}
                         decoding="async"
-                        className="aspect-[4/5] w-full object-cover"
+                        className="aspect-[4/5] w-full bg-ink object-cover"
                       />
-                    ) : null}
+                    ) : (
+                      <ImageSkeleton className="aspect-[4/5] w-full" />
+                    )}
                   </div>
                   <div className={reversed ? "lg:order-1" : undefined}>
                     <h2 className="font-display text-3xl tracking-wide text-ivory sm:text-4xl">
@@ -187,6 +198,7 @@ export default function Services() {
               srcSet={primary.srcSet}
               sizes="(min-width: 1024px) 40vw, 100vw"
               alt={t("services.expertise.imageAlt")}
+              loading="eager"
               className="aspect-[4/5] w-full object-cover"
               disabled={session.saving || !session.canUpload}
               onConfirmFile={(file) => session.replaceImage(SERVICES_EXPERTISE_SECTION_ID, "image", file)}

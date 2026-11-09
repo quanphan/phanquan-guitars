@@ -154,6 +154,7 @@ test("gallery copy exists in English and Vietnamese", () => {
   assert.equal(tFor("en", "gallery.add"), "Add New");
   assert.equal(tFor("en", "gallery.form.showAtHome"), "Show on Home");
   assert.equal(tFor("en", "gallery.showMore"), "SHOW MORE");
+  assert.equal(tFor("vi", "gallery.showMore"), "THÊM NỘI DUNG");
   assert.equal(tFor("en", "gallery.form.pin"), "Pin on Gallery");
   assert.equal(tFor("vi", "gallery.form.pin"), "Ghim trên trang Gallery");
   assert.equal(tFor("en", "gallery.categories.title"), "Gallery categories");

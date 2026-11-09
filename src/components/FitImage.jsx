@@ -1,3 +1,5 @@
+import ContentImage from "./ContentImage.jsx";
+
 const FIT = {
   contain: "object-contain object-center",
   cover: "object-cover object-center",
@@ -17,8 +19,8 @@ export default function FitImage({
   decoding = "async",
   fill = true,
 }) {
-  const image = src ? (
-    <img
+  const image = (
+    <ContentImage
       src={src}
       srcSet={srcSet}
       sizes={sizes}
@@ -29,8 +31,6 @@ export default function FitImage({
       decoding={decoding}
       className={`${fill ? "h-full w-full" : "h-auto w-auto"} max-h-full max-w-full ${FIT[fit] || FIT.contain} ${className}`}
     />
-  ) : (
-    <div className="h-full w-full bg-ink" aria-hidden="true" />
   );
 
   if (!frameClassName) return image;
