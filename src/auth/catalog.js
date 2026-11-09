@@ -263,15 +263,72 @@ export function buildTermPayload(form, { includeImagePath = true, kind } = {}) {
   return { ok: true, errors: {}, body };
 }
 
-export function buildProductListQuery({ search, status, page, limit } = {}) {
+export const ADMIN_PRODUCT_PAGE_SIZES = [20, 50, 100];
+export const PUBLIC_GUITAR_PAGE_SIZE = 10;
+
+export function buildProductListQuery({ search, status, productType, page, limit, sort = "listing" } = {}) {
   const params = new URLSearchParams();
   const q = typeof search === "string" ? search.trim().slice(0, 80) : "";
   if (q) params.set("search", q);
   if (status === "draft" || status === "published") params.set("status", status);
-  params.set("sort", "manual");
+  if (productType === "custom-order" || productType === "ready-stock") params.set("productType", productType);
+  params.set("sort", sort === "manual" ? "manual" : "listing");
   if (Number.isInteger(page) && page > 0) params.set("page", String(page));
   if (Number.isInteger(limit) && limit > 0) params.set("limit", String(limit));
   return params.toString();
+}
+
+export function parseProductStt(value) {
+  if (typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 10000) {
+    return { ok: true, value };
+  }
+  const text = String(value ?? "").trim();
+  if (!/^\d+$/.test(text)) return { ok: false, value: null };
+  const parsed = Number(text);
+  if (!Number.isInteger(parsed) || parsed < 0 || parsed > 10000) return { ok: false, value: null };
+  return { ok: true, value: parsed };
+}
+
+export function mergeUniqueById(existing, incoming) {
+  const next = Array.isArray(existing) ? [...existing] : [];
+  const seen = new Set(next.map((item) => item?.id).filter(Boolean));
+  for (const item of incoming || []) {
+    if (!item?.id || seen.has(item.id)) continue;
+    seen.add(item.id);
+    next.push(item);
+  }
+  return next;
+}
+
+export function compareListingOrder(left, right) {
+  const pinLeft = left?.pin === true ? 1 : 0;
+  const pinRight = right?.pin === true ? 1 : 0;
+  if (pinLeft !== pinRight) return pinRight - pinLeft;
+  const missingLeft = !Number.isInteger(left?.sortOrder);
+  const missingRight = !Number.isInteger(right?.sortOrder);
+  if (missingLeft !== missingRight) return missingLeft ? 1 : -1;
+  if (!missingLeft && left.sortOrder !== right.sortOrder) return left.sortOrder - right.sortOrder;
+  const timeLeft = left?.createdAt ? Date.parse(left.createdAt) : 0;
+  const timeRight = right?.createdAt ? Date.parse(right.createdAt) : 0;
+  if (timeLeft !== timeRight) return timeRight - timeLeft;
+  return String(right?.id || "").localeCompare(String(left?.id || ""));
+}
+
+export function visiblePageNumbers(current, total) {
+  if (!Number.isInteger(total) || total < 1) return [];
+  const page = Number.isInteger(current) && current > 0 ? current : 1;
+  const pages = new Set([1, total, page - 1, page, page + 1]);
+  return [...pages].filter((value) => value >= 1 && value <= total).sort((a, b) => a - b);
+}
+
+export function recordRange(page, limit, total) {
+  const safeTotal = Number(total) || 0;
+  if (safeTotal <= 0) return { from: 0, to: 0, total: 0 };
+  const safePage = Number.isInteger(page) && page > 0 ? page : 1;
+  const safeLimit = Number.isInteger(limit) && limit > 0 ? limit : 20;
+  const from = (safePage - 1) * safeLimit + 1;
+  const to = Math.min(safePage * safeLimit, safeTotal);
+  return { from, to, total: safeTotal };
 }
 
 export function buildProductPayload(form) {
@@ -305,6 +362,7 @@ export function buildProductPayload(form) {
   const body = {
     name,
     sortOrder,
+    pin: form.pin === true,
     status: form.status === "draft" ? "draft" : "published",
     productType: form.productType,
   };

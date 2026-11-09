@@ -1,18 +1,25 @@
 import { isPlayableGalleryVideo } from "./galleryVideo.js";
 
+export const GALLERY_SYSTEM_FILTERS = ["all", "video"];
 export const GALLERY_CATEGORIES = [
   "process",
   "art-of-making",
   "materials",
   "finish",
   "instruments",
-  "video",
 ];
-
-export const GALLERY_FILTERS = ["all", ...GALLERY_CATEGORIES];
+export const GALLERY_FILTERS = [...GALLERY_SYSTEM_FILTERS, ...GALLERY_CATEGORIES];
+export const FALLBACK_GALLERY_CATEGORIES = [
+  { slug: "process", sortOrder: 10, isActive: true, translations: { en: { name: "Build process" }, vi: { name: "Quá trình chế tác" } } },
+  { slug: "art-of-making", sortOrder: 20, isActive: true, translations: { en: { name: "Art of Making" }, vi: { name: "Nghệ thuật chế tác" } } },
+  { slug: "materials", sortOrder: 30, isActive: true, translations: { en: { name: "Materials & wood" }, vi: { name: "Vật liệu & gỗ" } } },
+  { slug: "finish", sortOrder: 40, isActive: true, translations: { en: { name: "Finish" }, vi: { name: "Hoàn thiện" } } },
+  { slug: "instruments", sortOrder: 50, isActive: true, translations: { en: { name: "Finished guitars" }, vi: { name: "Guitar hoàn thiện" } } },
+];
 
 export const GALLERY_IMAGE_MAX = 5;
 export const GALLERY_VIDEO_MAX = 5;
+export const PUBLIC_GALLERY_PAGE_SIZE = 12;
 
 export function galleryPostHasVideo(post) {
   const media = Array.isArray(post?.media) ? post.media : [];
@@ -26,6 +33,58 @@ export function filterGalleryPosts(posts, category) {
   if (!category || category === "all") return items;
   if (category === "video") return items.filter((post) => galleryPostHasVideo(post));
   return items.filter((post) => post.category === category);
+}
+
+export function galleryDisplayTime(post) {
+  const value = post?.publishedAt;
+  if (!value) return 0;
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
+export function sortGalleryPosts(posts) {
+  return [...(Array.isArray(posts) ? posts : [])].sort((a, b) => {
+    const pinLeft = a?.pin === true ? 1 : 0;
+    const pinRight = b?.pin === true ? 1 : 0;
+    if (pinLeft !== pinRight) return pinRight - pinLeft;
+    const hasDateLeft = galleryDisplayTime(a) > 0 ? 1 : 0;
+    const hasDateRight = galleryDisplayTime(b) > 0 ? 1 : 0;
+    if (hasDateLeft !== hasDateRight) return hasDateRight - hasDateLeft;
+    const dateDiff = galleryDisplayTime(b) - galleryDisplayTime(a);
+    if (dateDiff) return dateDiff;
+    return String(b?.id || "").localeCompare(String(a?.id || ""));
+  });
+}
+
+export function galleryCategoryName(category, language) {
+  if (!category) return "";
+  const current = category.translations?.[language]?.name;
+  if (current) return current;
+  const other = category.translations?.[language === "vi" ? "en" : "vi"]?.name;
+  return other || category.slug || "";
+}
+
+export function publicGalleryFilters(categories) {
+  const items = (Array.isArray(categories) ? categories : FALLBACK_GALLERY_CATEGORIES)
+    .filter((item) => item && item.isActive !== false && item.slug && !GALLERY_SYSTEM_FILTERS.includes(item.slug))
+    .slice()
+    .sort((a, b) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0) || String(a.slug).localeCompare(String(b.slug)));
+  return [
+    { id: "all", slug: "all", system: true },
+    { id: "video", slug: "video", system: true },
+    ...items.map((item) => ({ id: item.slug, slug: item.slug, system: false, category: item })),
+  ];
+}
+
+export function editorGalleryCategories(categories, currentSlug) {
+  const items = (Array.isArray(categories) ? categories : FALLBACK_GALLERY_CATEGORIES)
+    .filter((item) => item && item.slug && !GALLERY_SYSTEM_FILTERS.includes(item.slug))
+    .slice()
+    .sort((a, b) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0));
+  if (currentSlug && !items.some((item) => item.slug === currentSlug)) {
+    items.push({ slug: currentSlug, isActive: false, translations: {} });
+  }
+  return items;
 }
 
 export function galleryImages(media) {
@@ -102,6 +161,7 @@ export function emptyGalleryForm() {
     order: 0,
     coverMediaId: "",
     showAtHome: false,
+    pin: false,
     media: [],
   };
 }
@@ -112,7 +172,7 @@ export function galleryPostPath(id) {
 }
 
 export function homeGalleryPosts(posts) {
-  return (Array.isArray(posts) ? posts : []).filter((post) => Boolean(post?.showAtHome));
+  return sortGalleryPosts((Array.isArray(posts) ? posts : []).filter((post) => Boolean(post?.showAtHome)));
 }
 
 export function storyVideo(post) {

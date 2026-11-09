@@ -27,9 +27,9 @@ export default function GalleryMediaThumb({
         {showFacebook ? (
           <GalleryFacebookPoster poster={poster} title={alt} compact={compact} />
         ) : src ? (
-          <GalleryImage src={src} alt={alt} className="h-full w-full object-cover object-center" />
+          <GalleryImage src={src} alt={alt} className="h-full w-full object-contain object-center" />
         ) : fileSrc ? (
-          <GalleryUploadedVideo src={fileSrc} preview className="pointer-events-none absolute inset-0 z-0 h-full w-full object-cover [transform:translateZ(0)]" />
+          <GalleryUploadedVideo src={fileSrc} preview className="pointer-events-none absolute inset-0 z-0 h-full w-full object-contain [transform:translateZ(0)]" />
         ) : (
           <div className="h-full w-full bg-panel" />
         )}

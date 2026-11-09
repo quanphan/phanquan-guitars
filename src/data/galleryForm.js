@@ -33,10 +33,11 @@ export function formFromPost(post) {
     content: post.content || "",
     category: post.category || "process",
     status: post.status || "draft",
-    publishedAt: toDateInput(post.publishedAt || post.createdAt) || todayDateInput(),
+    publishedAt: toDateInput(post.publishedAt) || "",
     order: post.order || 0,
     coverMediaId: post.coverMediaId || post.cover?.id || "",
     showAtHome: Boolean(post.showAtHome),
+    pin: post.pin === true,
     media: Array.isArray(post.media) ? post.media.map((item) => hydrateGalleryMedia(item)) : [],
   };
 }
@@ -52,6 +53,7 @@ export function payloadFromForm(form) {
     order: Number(form.order) || 0,
     coverMediaId: form.coverMediaId,
     showAtHome: Boolean(form.showAtHome),
+    pin: form.pin === true,
     media: form.media.map((item, index) => {
       const hydrated = hydrateGalleryMedia(item);
       const sourceUrl = hydrated.sourceUrl || hydrated.url || hydrated.path || "";

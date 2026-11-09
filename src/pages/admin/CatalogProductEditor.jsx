@@ -37,6 +37,7 @@ const emptyForm = {
   descriptionDetail: "",
   status: "draft",
   sortOrder: 0,
+  pin: false,
   image: "",
   images: [],
   categoryId: "",
@@ -251,7 +252,17 @@ export default function CatalogProductEditor() {
                 <RelationSelect id="product-instrument" label={t("admin.catalog.fields.instrumentType")} value={form.instrumentTypeId} onChange={(value) => setField("instrumentTypeId", value)} items={terms["instrument-types"]} disabled={disabled} emptyLabel={t("admin.catalog.none")} />
                 <RelationSelect id="product-shape" label={t("admin.catalog.fields.bodyShape")} value={form.bodyShapeId} onChange={(value) => setField("bodyShapeId", value)} items={terms["body-shapes"]} disabled={disabled} emptyLabel={t("admin.catalog.none")} />
                 <RelationSelect id="product-series" label={t("admin.catalog.fields.series")} value={form.seriesId} onChange={(value) => setField("seriesId", value)} items={terms.series} disabled={disabled} emptyLabel={t("admin.catalog.none")} />
-                <Field id="product-sort" label={t("admin.catalog.fields.sortOrder")} type="number" value={String(form.sortOrder)} onChange={(value) => setField("sortOrder", value === "" ? 0 : Number(value))} disabled={disabled} error={fieldErrors.sortOrder} />
+                <label className="flex items-center gap-3 text-[11px] uppercase tracking-[0.18em] text-gold">
+                  <input
+                    type="checkbox"
+                    checked={form.pin === true}
+                    onChange={(event) => setField("pin", event.target.checked)}
+                    disabled={disabled}
+                    className="accent-gold"
+                  />
+                  {t("admin.catalog.fields.pin")}
+                </label>
+                <Field id="product-sort" label={t("admin.catalog.fields.stt")} type="number" value={String(form.sortOrder)} onChange={(value) => setField("sortOrder", value === "" ? 0 : Number(value))} disabled={disabled} error={fieldErrors.sortOrder} />
                 <Field id="product-qty" label={t("admin.catalog.fields.qty")} type="number" value={String(form.qty)} onChange={(value) => setField("qty", value)} disabled={disabled} error={fieldErrors.qty} />
                 <div className="grid grid-cols-2 gap-3">
                   <Field id="product-price" label={t("admin.catalog.fields.price")} type="number" value={form.price} onChange={(value) => setField("price", value)} disabled={disabled} error={fieldErrors.price} />

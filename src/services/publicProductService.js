@@ -15,6 +15,27 @@ export async function listPublicCatalogTerms(kind) {
   return { ok: true, code: null, items: result.payload.data };
 }
 
+export async function listPublicProductPage(productType, { page = 1, limit = 10, sort = "listing", seriesId } = {}) {
+  const params = new URLSearchParams();
+  params.set("page", String(page));
+  params.set("limit", String(limit));
+  params.set("sort", sort);
+  if (productType === "custom-order" || productType === "ready-stock") {
+    params.set("productType", productType);
+  }
+  if (seriesId) params.set("seriesId", seriesId);
+  const result = await requestJson(`/api/products?${params.toString()}`);
+  if (!result.ok || result.payload?.success !== true || !Array.isArray(result.payload.data)) {
+    return { ...failure(result), items: [], meta: null };
+  }
+  return {
+    ok: true,
+    code: null,
+    items: result.payload.data,
+    meta: result.payload.meta ?? null,
+  };
+}
+
 export async function listPublicProducts(productType, { seriesId } = {}) {
   const items = [];
   let page = 1;

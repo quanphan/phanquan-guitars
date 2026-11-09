@@ -22,6 +22,7 @@ test("copy form keeps specs and images but not id, sku, qty, or published status
     productType: "custom-order",
     status: "published",
     sortOrder: 9,
+    pin: true,
     qty: 4,
     inventory: { quantity: 4 },
     image: "/uploads/guitars/a.png",
@@ -36,6 +37,7 @@ test("copy form keeps specs and images but not id, sku, qty, or published status
   assert.equal(form.productType, "custom-order");
   assert.equal(form.status, "draft");
   assert.equal(form.sortOrder, 0);
+  assert.equal(form.pin, false);
   assert.equal(form.code, "");
   assert.equal(form.qty, "");
   assert.equal(form.id, undefined);

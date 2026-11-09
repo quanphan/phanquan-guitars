@@ -1,13 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { mergeUniqueById } from "../src/auth/catalog.js";
 import {
   GALLERY_CATEGORIES,
   GALLERY_FILTERS,
+  GALLERY_SYSTEM_FILTERS,
+  PUBLIC_GALLERY_PAGE_SIZE,
   emptyGalleryForm,
   filterGalleryPosts,
   galleryPostHasVideo,
   galleryPostPath,
   homeGalleryPosts,
+  publicGalleryFilters,
+  sortGalleryPosts,
   storyVideo,
   orderedGalleryImages,
   orderedGalleryMedia,
@@ -41,6 +46,55 @@ test("gallery filters hide other categories and keep published-looking lists int
   assert.ok(GALLERY_CATEGORIES.includes("art-of-making"));
   assert.ok(GALLERY_FILTERS.includes("art-of-making"));
   assert.ok(GALLERY_CATEGORIES.includes("process"));
+  assert.ok(!GALLERY_CATEGORIES.includes("video"));
+  assert.deepEqual(GALLERY_SYSTEM_FILTERS, ["all", "video"]);
+});
+
+test("public filters keep ALL and VIDEO then enabled categories by sortOrder", () => {
+  const filters = publicGalleryFilters([
+    { slug: "finish", sortOrder: 40, isActive: true, translations: { en: { name: "Finish" } } },
+    { slug: "process", sortOrder: 10, isActive: true, translations: { en: { name: "Build process" } } },
+    { slug: "hidden", sortOrder: 5, isActive: false, translations: { en: { name: "Hidden" } } },
+  ]);
+  assert.deepEqual(filters.map((item) => item.id), ["all", "video", "process", "finish"]);
+});
+
+test("gallery posts sort by display date newest first and keep undated items last", () => {
+  const sorted = sortGalleryPosts([
+    { id: "old", publishedAt: "2024-01-01T00:00:00.000Z", order: 1 },
+    { id: "new", publishedAt: "2026-05-01T00:00:00.000Z", order: 9 },
+    { id: "same-b", publishedAt: "2025-06-01T00:00:00.000Z", order: 2 },
+    { id: "same-a", publishedAt: "2025-06-01T00:00:00.000Z", order: 1 },
+    { id: "none", publishedAt: null, order: 0 },
+  ]);
+  assert.deepEqual(sorted.map((item) => item.id), ["new", "same-b", "same-a", "old", "none"]);
+});
+
+test("gallery posts pin first then display date, with undated items last in each pin group", () => {
+  const sorted = sortGalleryPosts([
+    { id: "unpinned-new", pin: false, publishedAt: "2026-05-01T00:00:00.000Z" },
+    { id: "pinned-old", pin: true, publishedAt: "2024-01-01T00:00:00.000Z" },
+    { id: "pinned-none", pin: true, publishedAt: null },
+    { id: "unpinned-none", pin: false, publishedAt: null },
+    { id: "pinned-new", pin: true, publishedAt: "2026-08-01T00:00:00.000Z" },
+  ]);
+  assert.deepEqual(sorted.map((item) => item.id), [
+    "pinned-new",
+    "pinned-old",
+    "pinned-none",
+    "unpinned-new",
+    "unpinned-none",
+  ]);
+});
+
+test("gallery page size is 12 and SHOW MORE appends unique ids without dropping prior items", () => {
+  assert.equal(PUBLIC_GALLERY_PAGE_SIZE, 12);
+  const page1 = Array.from({ length: 12 }, (_, index) => ({ id: `g-${index}` }));
+  const page2 = [{ id: "g-11" }, { id: "g-12" }, { id: "g-13" }];
+  const merged = mergeUniqueById(page1, page2);
+  assert.equal(merged.length, 14);
+  assert.equal(merged[0].id, "g-0");
+  assert.equal(new Set(merged.map((item) => item.id)).size, 14);
 });
 
 test("VIDEO tab lists posts by playable media, not category", () => {
@@ -98,6 +152,11 @@ test("gallery copy exists in English and Vietnamese", () => {
   assert.equal(tFor("en", "gallery.video.unsupported"), "This uploaded video cannot play in this browser. Use MP4 (H.264/AAC) if possible.");
   assert.equal(tFor("en", "gallery.add"), "Add New");
   assert.equal(tFor("en", "gallery.form.showAtHome"), "Show on Home");
+  assert.equal(tFor("en", "gallery.showMore"), "SHOW MORE");
+  assert.equal(tFor("en", "gallery.form.pin"), "Pin on Gallery");
+  assert.equal(tFor("vi", "gallery.form.pin"), "Ghim trên trang Gallery");
+  assert.equal(tFor("en", "gallery.categories.title"), "Gallery categories");
+  assert.equal(tFor("vi", "gallery.categories.add"), "Thêm danh mục");
   assert.equal(tFor("vi", "gallery.form.showAtHome"), "Hiện trên trang chủ");
   assert.equal(tFor("en", "home.artOfMaking.playVideo"), "Play video");
   assert.equal(tFor("vi", "home.artOfMaking.playVideo"), "Phát video");
@@ -124,6 +183,7 @@ test("gallery copy exists in English and Vietnamese", () => {
 
 test("home gallery posts stay on the gallery collection and default off the home section", () => {
   assert.equal(emptyGalleryForm().showAtHome, false);
+  assert.equal(emptyGalleryForm().pin, false);
   assert.equal(galleryPostPath("abc123"), "/gallery/abc123");
   const posts = [
     { id: "1", title: "On home", category: "process", showAtHome: true },
@@ -324,10 +384,23 @@ test("gallery editor keeps original video URLs through add, hydrate, and title u
     assert.equal(form.media[0].sourceUrl, url);
     const payload = payloadFromForm({ ...form, title: "Session updated", excerpt: "Edited" });
     assert.equal(payload.title, "Session updated");
+    assert.equal(form.pin, false);
+    assert.equal(payload.pin, false);
     assert.equal(payload.media[0].sourceUrl, url);
     assert.equal(payload.media[0].url, url);
     assert.equal(payload.media[0].kind, "video");
   }
+
+  const pinned = formFromPost({
+    id: "pin-1",
+    title: "Pinned story",
+    category: "process",
+    status: "published",
+    pin: true,
+    media: [{ id: "i1", kind: "image", path: "/uploads/gallery/images/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png", provider: "upload" }],
+  });
+  assert.equal(pinned.pin, true);
+  assert.equal(payloadFromForm(pinned).pin, true);
 
   const imageOnly = formFromPost({
     id: "img",

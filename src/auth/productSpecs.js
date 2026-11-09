@@ -133,7 +133,8 @@ export function editorFormFromProduct(item) {
     description: item?.description || "",
     descriptionDetail: item?.descriptionDetail || "",
     status: item?.status === "published" ? "published" : "draft",
-    sortOrder: item?.sortOrder || 0,
+    sortOrder: Number.isInteger(item?.sortOrder) ? item.sortOrder : 0,
+    pin: item?.pin === true,
     image: productImagePaths(item)[0] || "",
     images: productImagePaths(item),
     categoryId: item?.category?.id || "",
@@ -151,6 +152,7 @@ export function copyFormFromProduct(item) {
     qty: "",
     status: "draft",
     sortOrder: 0,
+    pin: false,
   };
 }
 

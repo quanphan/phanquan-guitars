@@ -2,9 +2,10 @@ import { useState } from "react";
 import Field from "../auth/Field.jsx";
 import Button from "../Button.jsx";
 import {
-  GALLERY_CATEGORIES,
   GALLERY_IMAGE_MAX,
   GALLERY_VIDEO_MAX,
+  editorGalleryCategories,
+  galleryCategoryName,
   galleryImages,
   galleryVideos,
 } from "../../data/gallery.js";
@@ -31,8 +32,9 @@ export default function GalleryEditor({
   onSave,
   onClose,
   onRemoveMedia,
+  categories = [],
 }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [mediaType, setMediaType] = useState("image");
   const [videoProvider, setVideoProvider] = useState("auto");
   const [videoUrl, setVideoUrl] = useState("");
@@ -177,9 +179,9 @@ export default function GalleryEditor({
                 disabled={saving}
                 className="mt-2 w-full border border-white/10 bg-ink px-4 py-3 text-sm text-ivory"
               >
-                {GALLERY_CATEGORIES.map((id) => (
-                  <option key={id} value={id}>
-                    {t(`gallery.filters.${id}`)}
+                {editorGalleryCategories(categories, form.category).map((item) => (
+                  <option key={item.slug} value={item.slug}>
+                    {galleryCategoryName(item, language) || item.slug}
                   </option>
                 ))}
               </select>
@@ -216,6 +218,23 @@ export default function GalleryEditor({
               disabled={saving}
             />
           </div>
+
+          <label className="flex items-start gap-3 text-sm leading-relaxed text-ivory">
+            <input
+              id="gallery-pin"
+              type="checkbox"
+              checked={form.pin === true}
+              onChange={(event) => update("pin", event.target.checked)}
+              disabled={saving}
+              className="mt-1 size-4 shrink-0 accent-gold"
+            />
+            <span>
+              <span className="block text-[11px] uppercase tracking-[0.18em] text-gold">
+                {t("gallery.form.pin")}
+              </span>
+              <span className="mt-1 block text-sm text-muted">{t("gallery.form.pinHelp")}</span>
+            </span>
+          </label>
 
           <label className="flex items-start gap-3 text-sm leading-relaxed text-ivory">
             <input

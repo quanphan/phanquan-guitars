@@ -1,6 +1,6 @@
 import { isCustomBuildApiConfigured } from "../config/api.js";
 import { requestJson } from "./apiClient.js";
-import { GALLERY_CATEGORIES } from "../data/gallery.js";
+import { PUBLIC_GALLERY_PAGE_SIZE } from "../data/gallery.js";
 
 const IMAGE_MAX = 8 * 1024 * 1024;
 const VIDEO_MAX = 50 * 1024 * 1024;
@@ -20,14 +20,14 @@ function failure(result, fallback = "failure") {
   };
 }
 
-export async function listPublicGallery({ category, showAtHome = false, page = 1, limit = 50 } = {}) {
+export async function listPublicGallery({ category, showAtHome = false, page = 1, limit = PUBLIC_GALLERY_PAGE_SIZE } = {}) {
   if (!isCustomBuildApiConfigured()) {
     return { ok: false, code: "UNAVAILABLE", items: [], meta: null };
   }
   const params = new URLSearchParams();
   params.set("page", String(page));
   params.set("limit", String(limit));
-  if (GALLERY_CATEGORIES.includes(category)) params.set("category", category);
+  if (category && category !== "all") params.set("category", category);
   if (showAtHome) params.set("showAtHome", "true");
   const result = await requestJson(`/api/gallery?${params.toString()}`);
   if (!result.ok || result.payload?.success !== true || !Array.isArray(result.payload.data)) {
@@ -47,11 +47,11 @@ export async function getPublicGalleryPost(id) {
   return { ok: true, code: null, post: result.payload.data };
 }
 
-export async function listAdminGallery(request, { category, status, page = 1, limit = 50 } = {}) {
+export async function listAdminGallery(request, { category, status, page = 1, limit = PUBLIC_GALLERY_PAGE_SIZE } = {}) {
   const params = new URLSearchParams();
   params.set("page", String(page));
   params.set("limit", String(limit));
-  if (GALLERY_CATEGORIES.includes(category)) params.set("category", category);
+  if (category && category !== "all") params.set("category", category);
   if (status === "draft" || status === "published") params.set("status", status);
   const result = await request(`/api/admin/gallery?${params.toString()}`);
   if (!result.ok || result.payload?.success !== true || !Array.isArray(result.payload.data)) {
@@ -75,6 +75,48 @@ export async function saveGalleryPost(request, payload, id) {
 
 export async function deleteGalleryPost(request, id) {
   const result = await request(`/api/admin/gallery/${encodeURIComponent(id)}`, { method: "DELETE" });
+  if (!result.ok || result.payload?.success !== true) return failure(result);
+  return { ok: true, code: null };
+}
+
+export async function listPublicGalleryCategories() {
+  if (!isCustomBuildApiConfigured()) {
+    return { ok: false, code: "UNAVAILABLE", items: [] };
+  }
+  const result = await requestJson("/api/gallery/categories");
+  if (!result.ok || result.payload?.success !== true || !Array.isArray(result.payload.data)) {
+    return { ...failure(result), items: [] };
+  }
+  return { ok: true, code: null, items: result.payload.data };
+}
+
+export async function listAdminGalleryCategories(request) {
+  const result = await request("/api/admin/gallery/categories");
+  if (!result.ok || result.payload?.success !== true || !Array.isArray(result.payload.data)) {
+    return { ...failure(result), items: [] };
+  }
+  return { ok: true, code: null, items: result.payload.data };
+}
+
+export async function saveGalleryCategory(request, payload, id) {
+  const path = id ? `/api/admin/gallery/categories/${encodeURIComponent(id)}` : "/api/admin/gallery/categories";
+  const result = await request(path, { method: id ? "PATCH" : "POST", body: payload });
+  if (!result.ok || result.payload?.success !== true || !result.payload.data) {
+    return { ...failure(result), item: null };
+  }
+  return { ok: true, code: null, item: result.payload.data };
+}
+
+export async function reorderGalleryCategories(request, ids) {
+  const result = await request("/api/admin/gallery/categories/reorder", { method: "PATCH", body: { ids } });
+  if (!result.ok || result.payload?.success !== true || !Array.isArray(result.payload.data)) {
+    return { ...failure(result), items: [] };
+  }
+  return { ok: true, code: null, items: result.payload.data };
+}
+
+export async function deleteGalleryCategory(request, id) {
+  const result = await request(`/api/admin/gallery/categories/${encodeURIComponent(id)}`, { method: "DELETE" });
   if (!result.ok || result.payload?.success !== true) return failure(result);
   return { ok: true, code: null };
 }

@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext.jsx";
-import { moveId } from "../../auth/catalog.js";
+import {
+  ADMIN_PRODUCT_PAGE_SIZES,
+  recordRange,
+  visiblePageNumbers,
+} from "../../auth/catalog.js";
 import { errorText } from "../../auth/errorText.js";
+import { PRODUCT_TYPES } from "../../auth/productSpecs.js";
 import ConfirmDialog from "../../components/admin/ConfirmDialog.jsx";
+import ProductPinToggle from "../../components/admin/ProductPinToggle.jsx";
+import ProductSttCell from "../../components/admin/ProductSttCell.jsx";
 import Button from "../../components/Button.jsx";
 import FitImage from "../../components/FitImage.jsx";
 import PageHeader from "../../components/PageHeader.jsx";
@@ -13,10 +20,9 @@ import { useLanguage } from "../../i18n/LanguageContext.jsx";
 import {
   deleteAdminProduct,
   listAdminCatalogProducts,
-  reorderAdminCatalogProducts,
+  updateAdminCatalogProduct,
 } from "../../services/adminCatalogService.js";
 
-const PAGE_SIZE = 10;
 const inputClass =
   "mt-2 w-full border border-white/10 bg-ink px-3 py-2.5 text-sm text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold";
 
@@ -27,39 +33,37 @@ export default function CatalogProductsPage() {
   const [searchInput, setSearchInput] = useState("");
   const search = useDebouncedValue(searchInput, 400);
   const [status, setStatus] = useState("");
+  const [productType, setProductType] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [items, setItems] = useState([]);
-  const [orderIds, setOrderIds] = useState([]);
   const [meta, setMeta] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
   const [pendingDelete, setPendingDelete] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [rowState, setRowState] = useState({});
   const canRead = hasPermission("catalog.read");
   const canWrite = hasPermission("catalog.write");
   const canDelete = hasPermission("catalog.delete");
 
-  const load = useCallback(async () => {
+  const load = useCallback(async ({ silent = false } = {}) => {
     if (!canRead) {
       setItems([]);
       setError("FORBIDDEN");
       setLoading(false);
       return;
     }
-    setLoading(true);
+    if (!silent) setLoading(true);
     setError(null);
     const listed = await listAdminCatalogProducts(authorizedRequest, {
       search,
       status,
+      productType,
       page,
-      limit: PAGE_SIZE,
-    });
-    const order = await listAdminCatalogProducts(authorizedRequest, {
-      search: "",
-      status: "",
-      page: 1,
-      limit: 50,
+      limit: pageSize,
+      sort: "listing",
     });
     if (!listed.ok) {
       setItems([]);
@@ -73,9 +77,8 @@ export default function CatalogProductsPage() {
     }
     setItems(listed.items);
     setMeta(listed.meta);
-    setOrderIds(order.ok ? order.items.map((item) => item.id) : listed.items.map((item) => item.id));
     setLoading(false);
-  }, [authorizedRequest, canRead, navigate, page, search, status]);
+  }, [authorizedRequest, canRead, navigate, page, pageSize, productType, search, status]);
 
   useEffect(() => {
     void load();
@@ -83,22 +86,43 @@ export default function CatalogProductsPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [search, status]);
+  }, [search, status, productType, pageSize]);
 
-  async function move(id, direction) {
+  function patchRow(id, patch) {
+    setRowState((current) => ({ ...current, [id]: { ...current[id], ...patch } }));
+  }
+
+  async function togglePin(item) {
     if (!canWrite) return;
-    const nextIds = moveId(orderIds, id, direction);
-    if (!nextIds) return;
-    setBusy(true);
-    setError(null);
-    const result = await reorderAdminCatalogProducts(authorizedRequest, nextIds);
-    setBusy(false);
+    patchRow(item.id, { pinSaving: true });
+    const result = await updateAdminCatalogProduct(authorizedRequest, item.id, { pin: item.pin !== true });
     if (!result.ok) {
+      patchRow(item.id, { pinSaving: false, pinError: true });
       setError(result.code);
       return;
     }
-    setNotice("reordered");
-    await load();
+    patchRow(item.id, { pinSaving: false, pinError: false });
+    setNotice("pinUpdated");
+    await load({ silent: true });
+  }
+
+  async function saveStt(item, result) {
+    if (!canWrite) return;
+    if (!result.ok) {
+      patchRow(item.id, { sttStatus: "error", sttMessage: t("admin.catalog.sttInvalid") });
+      return;
+    }
+    patchRow(item.id, { sttSaving: true, sttStatus: "saving", sttMessage: t("admin.catalog.saving") });
+    const saved = await updateAdminCatalogProduct(authorizedRequest, item.id, { sortOrder: result.value });
+    if (!saved.ok) {
+      patchRow(item.id, { sttSaving: false, sttStatus: "error", sttMessage: errorText(t, "admin.catalog", saved.code) });
+      setError(saved.code);
+      await load({ silent: true });
+      return;
+    }
+    patchRow(item.id, { sttSaving: false, sttStatus: "saved", sttMessage: t("admin.catalog.notices.sttUpdated") });
+    setNotice("sttUpdated");
+    await load({ silent: true });
   }
 
   async function confirmDelete() {
@@ -112,8 +136,11 @@ export default function CatalogProductsPage() {
       return;
     }
     setNotice("deleted");
-    await load();
+    await load({ silent: true });
   }
+
+  const range = recordRange(meta?.page || page, meta?.limit || pageSize, meta?.total || 0);
+  const pages = visiblePageNumbers(meta?.page || page, meta?.totalPages || 0);
 
   return (
     <>
@@ -124,7 +151,7 @@ export default function CatalogProductsPage() {
       />
       <div className="mx-auto mt-8 max-w-7xl px-6 lg:px-10">
         <form
-          className="grid gap-4 border border-white/10 bg-panel/40 p-5 md:grid-cols-3"
+          className="grid gap-4 border border-white/10 bg-panel/40 p-5 md:grid-cols-2 lg:grid-cols-5"
           onSubmit={(event) => event.preventDefault()}
         >
           <label className="block text-[11px] uppercase tracking-[0.18em] text-gold">
@@ -144,6 +171,28 @@ export default function CatalogProductsPage() {
               <option value="">{t("admin.catalog.allStatuses")}</option>
               <option value="published">{t("admin.catalog.published")}</option>
               <option value="draft">{t("admin.catalog.draft")}</option>
+            </select>
+          </label>
+          <label className="block text-[11px] uppercase tracking-[0.18em] text-gold">
+            {t("admin.catalog.columns.productType")}
+            <select value={productType} onChange={(event) => setProductType(event.target.value)} className={inputClass}>
+              <option value="">{t("admin.catalog.allProductTypes")}</option>
+              <option value={PRODUCT_TYPES.CUSTOM_ORDER}>{t("admin.catalog.productTypes.custom-order")}</option>
+              <option value={PRODUCT_TYPES.READY_STOCK}>{t("admin.catalog.productTypes.ready-stock")}</option>
+            </select>
+          </label>
+          <label className="block text-[11px] uppercase tracking-[0.18em] text-gold">
+            {t("admin.catalog.perPage")}
+            <select
+              value={String(pageSize)}
+              onChange={(event) => setPageSize(Number(event.target.value))}
+              className={inputClass}
+            >
+              {ADMIN_PRODUCT_PAGE_SIZES.map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
             </select>
           </label>
           {canWrite ? (
@@ -192,47 +241,61 @@ export default function CatalogProductsPage() {
                   <th className="px-4 py-3 font-medium">{t("admin.catalog.columns.shape")}</th>
                   <th className="px-4 py-3 font-medium">{t("admin.catalog.columns.series")}</th>
                   <th className="px-4 py-3 font-medium">{t("admin.catalog.columns.status")}</th>
-                  <th className="px-4 py-3 font-medium">{t("admin.catalog.columns.sort")}</th>
+                  <th className="px-4 py-3 font-medium">{t("admin.catalog.columns.pin")}</th>
+                  <th className="px-4 py-3 font-medium">{t("admin.catalog.columns.stt")}</th>
                   <th className="px-4 py-3 font-medium">
                     <span className="sr-only">{t("admin.catalog.columns.actions")}</span>
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {items.map((item) => (
-                  <tr key={item.id} className="border-t border-white/8">
-                    <td className="px-4 py-3">
-                      {item.image ? (
-                        <FitImage src={mediaUrl(item.image)} alt="" fit="contain" frameClassName="h-12 w-12" />
-                      ) : (
-                        <span className="text-muted">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Link to={`/admin/catalog/products/${item.id}`} className="text-gold hover:text-gold-light">
-                        {item.name}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-muted">
-                      {item.productType || item.specs?.productType
-                        ? t(`admin.catalog.productTypes.${item.productType || item.specs.productType}`)
-                        : t("admin.catalog.productTypes.unset")}
-                    </td>
-                    <td className="px-4 py-3 text-muted">{item.instrumentType?.name || item.type || "—"}</td>
-                    <td className="px-4 py-3 text-muted">{item.bodyShape?.name || "—"}</td>
-                    <td className="px-4 py-3 text-muted">{item.series?.name || "—"}</td>
-                    <td className="px-4 py-3">{t(`admin.catalog.${item.status === "draft" ? "draft" : "published"}`)}</td>
-                    <td className="px-4 py-3">{item.sortOrder}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-3">
-                        {canWrite ? (
-                          <>
-                            <button type="button" disabled={busy} onClick={() => void move(item.id, -1)} className="text-[11px] uppercase tracking-[0.16em] text-gold disabled:opacity-40">
-                              {t("admin.catalog.up")}
-                            </button>
-                            <button type="button" disabled={busy} onClick={() => void move(item.id, 1)} className="text-[11px] uppercase tracking-[0.16em] text-gold disabled:opacity-40">
-                              {t("admin.catalog.down")}
-                            </button>
+                {items.map((item) => {
+                  const row = rowState[item.id] || {};
+                  return (
+                    <tr key={item.id} className="border-t border-white/8">
+                      <td className="px-4 py-3">
+                        {item.image ? (
+                          <FitImage src={mediaUrl(item.image)} alt="" fit="contain" frameClassName="h-12 w-12" />
+                        ) : (
+                          <span className="text-muted">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Link to={`/admin/catalog/products/${item.id}`} className="text-gold hover:text-gold-light">
+                          {item.name}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-muted">
+                        {item.productType || item.specs?.productType
+                          ? t(`admin.catalog.productTypes.${item.productType || item.specs.productType}`)
+                          : t("admin.catalog.productTypes.unset")}
+                      </td>
+                      <td className="px-4 py-3 text-muted">{item.instrumentType?.name || item.type || "—"}</td>
+                      <td className="px-4 py-3 text-muted">{item.bodyShape?.name || "—"}</td>
+                      <td className="px-4 py-3 text-muted">{item.series?.name || "—"}</td>
+                      <td className="px-4 py-3">{t(`admin.catalog.${item.status === "draft" ? "draft" : "published"}`)}</td>
+                      <td className="px-4 py-3">
+                        <ProductPinToggle
+                          pinned={item.pin === true}
+                          disabled={!canWrite}
+                          saving={row.pinSaving}
+                          label={item.pin === true ? t("admin.catalog.pinned") : t("admin.catalog.pin")}
+                          onToggle={() => void togglePin(item)}
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <ProductSttCell
+                          value={item.sortOrder}
+                          disabled={!canWrite}
+                          saving={row.sttSaving}
+                          status={row.sttMessage}
+                          message={row.sttStatus === "saved" || row.sttStatus === "error" ? row.sttMessage : null}
+                          onSave={(result) => void saveStt(item, result)}
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-3">
+                          {canWrite ? (
                             <button
                               type="button"
                               disabled={busy}
@@ -241,37 +304,66 @@ export default function CatalogProductsPage() {
                             >
                               {t("admin.catalog.copy")}
                             </button>
-                          </>
-                        ) : null}
-                        {canDelete ? (
-                          <button type="button" onClick={() => setPendingDelete(item)} className="text-[11px] uppercase tracking-[0.16em] text-gold">
-                            {t("admin.delete")}
-                          </button>
-                        ) : null}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          ) : null}
+                          {canDelete ? (
+                            <button type="button" onClick={() => setPendingDelete(item)} className="text-[11px] uppercase tracking-[0.16em] text-gold">
+                              {t("admin.delete")}
+                            </button>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         ) : null}
 
-        {meta && meta.totalPages > 1 ? (
-          <div className="mt-6 flex items-center justify-between text-sm text-muted">
+        {meta ? (
+          <div className="mt-6 flex flex-col gap-4 text-sm text-muted md:flex-row md:items-center md:justify-between">
             <p>
-              {t("admin.inquiries.page")
-                .replace("{page}", String(meta.page))
-                .replace("{total}", String(meta.totalPages))}
+              {t("admin.catalog.showing")
+                .replace("{from}", String(range.from))
+                .replace("{to}", String(range.to))
+                .replace("{total}", String(range.total))}
             </p>
-            <div className="flex gap-3">
-              <button type="button" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))} className="uppercase tracking-[0.16em] text-gold disabled:opacity-40">
-                {t("admin.inquiries.previous")}
-              </button>
-              <button type="button" disabled={page >= meta.totalPages} onClick={() => setPage((value) => value + 1)} className="uppercase tracking-[0.16em] text-gold disabled:opacity-40">
-                {t("admin.inquiries.next")}
-              </button>
-            </div>
+            {meta.totalPages > 1 ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  disabled={page <= 1}
+                  onClick={() => setPage((value) => Math.max(1, value - 1))}
+                  className="uppercase tracking-[0.16em] text-gold disabled:opacity-40"
+                >
+                  {t("admin.catalog.previous")}
+                </button>
+                {pages.map((value, index) => {
+                  const previous = pages[index - 1];
+                  return (
+                    <span key={value} className="flex items-center gap-3">
+                      {previous && value - previous > 1 ? <span>…</span> : null}
+                      <button
+                        type="button"
+                        onClick={() => setPage(value)}
+                        className={`uppercase tracking-[0.16em] ${value === page ? "text-ivory" : "text-gold"}`}
+                        aria-current={value === page ? "page" : undefined}
+                      >
+                        {value}
+                      </button>
+                    </span>
+                  );
+                })}
+                <button
+                  type="button"
+                  disabled={page >= meta.totalPages}
+                  onClick={() => setPage((value) => value + 1)}
+                  className="uppercase tracking-[0.16em] text-gold disabled:opacity-40"
+                >
+                  {t("admin.catalog.next")}
+                </button>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>

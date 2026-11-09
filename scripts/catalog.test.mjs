@@ -178,11 +178,13 @@ test("catalog names prefer the shared name and descriptions follow the selected 
 });
 
 test("product list query uses backend search and status names", () => {
-  const query = buildProductListQuery({ search: "strat", status: "draft", page: 1, limit: 10 });
+  const query = buildProductListQuery({ search: "strat", status: "draft", productType: "custom-order", page: 1, limit: 10 });
   assert.equal(query.includes("search=strat"), true);
   assert.equal(query.includes("status=draft"), true);
-  assert.equal(query.includes("sort=manual"), true);
+  assert.equal(query.includes("productType=custom-order"), true);
+  assert.equal(query.includes("sort=listing"), true);
   assert.equal(query.includes("q="), false);
+  assert.equal(buildProductListQuery({ page: 1 }).includes("productType="), false);
 });
 
 test("product payload requires product type and omits legacy slug/type/brand", () => {
@@ -207,6 +209,7 @@ test("product payload requires product type and omits legacy slug/type/brand", (
   assert.equal(next.body.brand, undefined);
   assert.equal(next.body.slug, undefined);
   assert.equal(next.body.qty, 1);
+  assert.equal(next.body.pin, false);
   assert.equal(next.body.image, "/uploads/guitars/a.png");
   assert.equal(next.body.categoryId, null);
   assert.equal(next.body.specs.productType, undefined);

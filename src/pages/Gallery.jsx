@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import { Link } from "react-router-dom";
 import ConfirmDialog from "../components/admin/ConfirmDialog.jsx";
+import ProductPinToggle from "../components/admin/ProductPinToggle.jsx";
+import GalleryCategoryManager from "../components/gallery/GalleryCategoryManager.jsx";
 import GalleryEditor, { formFromPost, payloadFromForm, todayDateInput } from "../components/gallery/GalleryEditor.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import Reveal from "../components/Reveal.jsx";
@@ -11,21 +13,23 @@ import GalleryMediaPlayer from "../components/gallery/GalleryMediaPlayer.jsx";
 import GalleryMediaThumb from "../components/gallery/GalleryMediaThumb.jsx";
 import VideoModal from "../components/gallery/VideoModal.jsx";
 import {
-  GALLERY_FILTERS,
+  FALLBACK_GALLERY_CATEGORIES,
   emptyGalleryForm,
-  filterGalleryPosts,
+  galleryCategoryName,
   galleryPostPath,
   orderedGalleryMedia,
+  publicGalleryFilters,
   selectIncomingGalleryFiles,
   validateGalleryMedia,
 } from "../data/gallery.js";
+import { useGalleryFeed } from "../hooks/useGalleryFeed.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import { loadFacebookSdk } from "../services/facebookSdk.js";
 import { warmupFacebookMedia } from "../services/facebookPlayerPool.js";
 import {
   deleteGalleryPost,
-  listAdminGallery,
-  listPublicGallery,
+  listAdminGalleryCategories,
+  listPublicGalleryCategories,
   saveGalleryPost,
   uploadGalleryMedia,
 } from "../services/galleryService.js";
@@ -37,7 +41,7 @@ function formatDate(iso, language) {
   return new Intl.DateTimeFormat(language === "vi" ? "vi-VN" : "en-GB", { dateStyle: "medium" }).format(date);
 }
 
-function GalleryItem({ post, isAdmin, language, t, onOpen, onEdit, onDelete }) {
+function GalleryItem({ post, isAdmin, language, t, onOpen, onEdit, onDelete, onPin, pinSaving }) {
   const media = orderedGalleryMedia(post);
   const cover = post.cover || media[0];
   const [selectedId, setSelectedId] = useState(cover?.id || media[0]?.id || "");
@@ -53,18 +57,18 @@ function GalleryItem({ post, isAdmin, language, t, onOpen, onEdit, onDelete }) {
       {selected?.kind === "video" ? (
         <GalleryMediaThumb
           item={selected}
-          className="aspect-[4/5] w-full"
-          alt=""
+          className="h-[18rem] w-full sm:h-[22rem] lg:h-[24rem]"
+          alt={post.title || ""}
           onPlay={() => openAt(selected)}
           playLabel={t("gallery.video.play")}
         />
       ) : (
         <button type="button" className="block w-full text-left" onClick={() => openAt(selected)}>
-          <GalleryMediaThumb item={selected} className="aspect-[4/5] w-full" alt="" />
+          <GalleryMediaThumb item={selected} className="h-[18rem] w-full sm:h-[22rem] lg:h-[24rem]" alt={post.title || ""} />
         </button>
       )}
       <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-        <p className="text-xs text-muted">{formatDate(post.publishedAt || post.createdAt, language)}</p>
+        <p className="text-xs text-muted">{formatDate(post.publishedAt, language)}</p>
         {media.length > 1 ? (
           <div
             className="ml-auto flex justify-end gap-2 overflow-x-auto pb-1 sm:flex-wrap"
@@ -101,7 +105,13 @@ function GalleryItem({ post, isAdmin, language, t, onOpen, onEdit, onDelete }) {
       </h2>
       {post.excerpt ? <p className="mt-2 text-sm leading-relaxed text-muted">{post.excerpt}</p> : null}
       {isAdmin ? (
-        <div className="mt-4 flex gap-4">
+        <div className="mt-4 flex flex-wrap items-center gap-4">
+          <ProductPinToggle
+            pinned={post.pin === true}
+            saving={pinSaving}
+            label={post.pin === true ? t("gallery.pinned") : t("gallery.pin")}
+            onToggle={onPin}
+          />
           <button type="button" className="text-[11px] uppercase tracking-[0.16em] text-gold" onClick={onEdit}>
             {t("gallery.edit")}
           </button>
@@ -161,9 +171,18 @@ export default function Gallery() {
   const { t, language } = useLanguage();
   const { isAdmin, authorizedRequest, authorizedFormRequest } = useAuth();
   const [filter, setFilter] = useState("all");
-  const [items, setItems] = useState([]);
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState([]);
+  const {
+    items,
+    loading,
+    loadingMore,
+    error,
+    hasMore,
+    loadMore,
+    reloadLoaded,
+    reset,
+    setError,
+  } = useGalleryFeed({ isAdmin, request: authorizedRequest, filter });
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyGalleryForm);
@@ -173,28 +192,20 @@ export default function Gallery() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
   const [pendingDelete, setPendingDelete] = useState(null);
+  const [pinningId, setPinningId] = useState(null);
   const [pendingMedia, setPendingMedia] = useState(null);
   const [viewer, setViewer] = useState(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    const listed = isAdmin
-      ? await listAdminGallery(authorizedRequest, { limit: 50 })
-      : await listPublicGallery({ limit: 50 });
-    if (!listed.ok) {
-      setItems([]);
-      setError(listed.code);
-      setLoading(false);
-      return;
-    }
-    setItems(listed.items);
-    setLoading(false);
+  const loadCategories = useCallback(async () => {
+    const listedCategories = isAdmin
+      ? await listAdminGalleryCategories(authorizedRequest)
+      : await listPublicGalleryCategories();
+    setCategories(listedCategories.ok ? listedCategories.items : isAdmin ? [] : FALLBACK_GALLERY_CATEGORIES);
   }, [authorizedRequest, isAdmin]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    void loadCategories();
+  }, [loadCategories]);
 
   useEffect(() => {
     void loadFacebookSdk();
@@ -227,7 +238,11 @@ export default function Gallery() {
     return () => window.removeEventListener("keydown", onKey);
   }, [viewer]);
 
-  const visible = useMemo(() => filterGalleryPosts(items, filter), [filter, items]);
+  const filters = useMemo(() => publicGalleryFilters(categories), [categories]);
+
+  useEffect(() => {
+    if (!filters.some((item) => item.id === filter)) setFilter("all");
+  }, [filter, filters]);
 
   function openCreate() {
     setEditingId(null);
@@ -310,7 +325,19 @@ export default function Gallery() {
     }
     setPendingUpload(false);
     setEditorOpen(false);
-    await load();
+    reset();
+  }
+
+  async function togglePin(post) {
+    setPinningId(post.id);
+    setError(null);
+    const result = await saveGalleryPost(authorizedRequest, { pin: post.pin !== true }, post.id);
+    setPinningId(null);
+    if (!result.ok) {
+      setError(result.code);
+      return;
+    }
+    await reloadLoaded({ silent: true });
   }
 
   async function confirmDelete() {
@@ -322,7 +349,7 @@ export default function Gallery() {
       return;
     }
     setPendingDelete(null);
-    await load();
+    reset();
   }
 
   return (
@@ -342,30 +369,45 @@ export default function Gallery() {
         role="tablist"
         aria-label={t("gallery.title")}
       >
-        {GALLERY_FILTERS.map((id) => (
+        {filters.map((item) => (
           <button
-            key={id}
+            key={item.id}
             type="button"
-            onClick={() => setFilter(id)}
+            onClick={() => {
+              if (item.id !== filter) setFilter(item.id);
+            }}
             className={`border px-3 py-2 text-[11px] uppercase tracking-[0.14em] ${
-              filter === id
+              filter === item.id
                 ? "border-gold text-gold"
                 : "border-white/15 text-ivory hover:border-ivory/40 hover:text-ivory"
             }`}
           >
-            {t(`gallery.filters.${id}`)}
+            {item.system ? t(`gallery.filters.${item.id}`) : galleryCategoryName(item.category, language)}
           </button>
         ))}
       </div>
+      {isAdmin ? (
+        <GalleryCategoryManager
+          categories={categories}
+          authorizedRequest={authorizedRequest}
+          onChange={(next) => {
+            if (Array.isArray(next)) setCategories(next);
+            else {
+              void loadCategories();
+              reset();
+            }
+          }}
+        />
+      ) : null}
 
       <div className="mx-auto mt-10 max-w-7xl px-6 lg:px-10">
         {error ? <p className="text-sm text-gold">{t("gallery.unavailable")}</p> : null}
         {loading ? <p className="text-sm text-muted">{t("gallery.loading")}</p> : null}
-        {!loading && !error && visible.length === 0 ? (
+        {!loading && !error && items.length === 0 ? (
           <p className="text-sm text-muted">{filter === "all" ? t("gallery.empty") : t("gallery.emptyFilter")}</p>
         ) : null}
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {visible.map((post) => (
+          {items.map((post) => (
             <Reveal key={post.id}>
               <GalleryItem
                 post={post}
@@ -375,10 +417,24 @@ export default function Gallery() {
                 onOpen={setViewer}
                 onEdit={() => openEdit(post)}
                 onDelete={() => setPendingDelete(post)}
+                onPin={() => void togglePin(post)}
+                pinSaving={pinningId === post.id}
               />
             </Reveal>
           ))}
         </div>
+        {!loading && items.length > 0 && hasMore ? (
+          <div className="mt-12 flex flex-col items-center gap-3">
+            {loadingMore ? (
+              <p className="text-sm text-muted" role="status">
+                {t("gallery.loadingMore")}
+              </p>
+            ) : null}
+            <Button type="button" variant="outline" onClick={() => void loadMore()} disabled={loadingMore}>
+              {t("gallery.showMore")}
+            </Button>
+          </div>
+        ) : null}
       </div>
 
       {viewer ? (
@@ -412,6 +468,7 @@ export default function Gallery() {
           onSave={() => void onSave()}
           onClose={() => setEditorOpen(false)}
           onRemoveMedia={(item) => setPendingMedia(item)}
+          categories={categories}
         />
       ) : null}
 
