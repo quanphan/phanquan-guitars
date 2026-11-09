@@ -4,6 +4,7 @@ import {
   addGalleryImage,
   copySharedSectionImages,
   defaultLocaleContent,
+  mergeSharedSectionMedia,
   duplicateSection,
   editorLocaleFromDocument,
   emptySection,
@@ -75,6 +76,13 @@ test("admin editor hydrates from published when draft is empty and does not inve
   }, "en", "about");
   assert.equal(draftFirst.source, "draft");
   assert.equal(draftFirst.locale.title, "Draft EN");
+
+  const enWithViImages = editorLocaleFromDocument(document, "en", "about");
+  assert.equal(enWithViImages.locale.sections.find((section) => section.id === "about-opening").image, publishedVi.sections[1].image);
+  const publicEn = localeFromRecord({ locales: document.published }, "en", "about");
+  assert.equal(publicEn.title, defaultLocaleContent("about", "en").title);
+  assert.equal(publicEn.sections.find((section) => section.id === "about-opening").image, publishedVi.sections[1].image);
+  assert.equal(publicEn.sections.find((section) => section.id === "about-opening").body, defaultLocaleContent("about", "en").sections.find((section) => section.id === "about-opening").body);
 });
 
 test("inline editor and page manager share page keys and reorder helpers", () => {
@@ -118,6 +126,8 @@ test("page content copy exists in English and Vietnamese", () => {
   assert.equal(tFor("vi", "admin.tabs.pageContent"), "Nội dung trang");
   assert.equal(tFor("en", "admin.pageContent.previewBanner").includes("unpublished"), true);
   assert.equal(tFor("en", "admin.pageContent.publishedHint").includes("published"), true);
+  assert.equal(tFor("en", "admin.pageContent.imagesSharedHint").includes("shared"), true);
+  assert.equal(tFor("vi", "admin.pageContent.imagesSharedHint").includes("dùng chung"), true);
   assert.equal(tFor("vi", "admin.pageContent.loadFailed").includes("không bị xóa"), true);
   assert.equal(tFor("en", "admin.pageContent.addGalleryImage"), "Add gallery image");
   assert.equal(tFor("vi", "admin.pageContent.addGalleryImage"), "Thêm ảnh gallery");
@@ -147,6 +157,9 @@ test("services expertise image slots stay independent and shared across language
   assert.equal(vi.sections[0].image, nextLeft);
   assert.equal(vi.sections[0].imageSecondary, right);
   assert.equal(vi.title, defaultLocaleContent("services", "vi").title);
+  const filled = mergeSharedSectionMedia(defaultLocaleContent("services", "en"), vi);
+  assert.equal(filled.sections[0].image, nextLeft);
+  assert.equal(filled.title, defaultLocaleContent("services", "en").title);
 });
 
 test("contact hero image uses a dedicated page-content slot shared across languages", () => {

@@ -4,6 +4,7 @@ export const PAGE_KEYS = ["about", "build-process", "services", "contact"];
 export const SERVICES_EXPERTISE_SECTION_ID = "services-expertise";
 export const CONTACT_HERO_SECTION_ID = "contact-hero";
 export const SHARED_IMAGE_FIELDS = ["image", "imageSecondary"];
+export const SHARED_MEDIA_FIELDS = [...SHARED_IMAGE_FIELDS, "videoUrl"];
 export const PAGE_LANGUAGES = ["en", "vi"];
 export const SECTION_TYPES = [
   "hero",
@@ -210,24 +211,43 @@ export function normalizeLocaleContent(locale) {
   };
 }
 
+export function siblingLanguage(language) {
+  return language === "vi" ? "en" : "vi";
+}
+
+export function siblingLocaleFromRecord(record, language) {
+  const other = siblingLanguage(language);
+  const candidates = [record?.draft?.[other], record?.published?.[other], record?.locales?.[other]];
+  return candidates.find((item) => localeHasContent(item)) || null;
+}
+
 export function localeFromRecord(record, language, pageKey) {
   const locale = record?.locales?.[language] || record?.draft?.[language] || record?.published?.[language];
-  if (localeHasContent(locale)) {
-    return normalizeLocaleContent(locale);
-  }
-  return defaultLocaleContent(pageKey, language);
+  const base = localeHasContent(locale)
+    ? normalizeLocaleContent(locale)
+    : defaultLocaleContent(pageKey, language);
+  return mergeSharedSectionMedia(base, siblingLocaleFromRecord(record, language));
 }
 
 export function editorLocaleFromDocument(document, language, pageKey) {
   const draft = document?.draft?.[language];
   if (localeHasContent(draft)) {
-    return { locale: normalizeLocaleContent(draft), source: "draft" };
+    return {
+      locale: mergeSharedSectionMedia(normalizeLocaleContent(draft), siblingLocaleFromRecord(document, language)),
+      source: "draft",
+    };
   }
   const published = document?.published?.[language];
   if (localeHasContent(published)) {
-    return { locale: normalizeLocaleContent(published), source: "published" };
+    return {
+      locale: mergeSharedSectionMedia(normalizeLocaleContent(published), siblingLocaleFromRecord(document, language)),
+      source: "published",
+    };
   }
-  return { locale: defaultLocaleContent(pageKey, language), source: "fallback" };
+  return {
+    locale: mergeSharedSectionMedia(defaultLocaleContent(pageKey, language), siblingLocaleFromRecord(document, language)),
+    source: "fallback",
+  };
 }
 
 export function visibleSections(locale) {
@@ -270,22 +290,51 @@ export function setSectionImage(locale, sectionId, field, path) {
   return { ...locale, sections: nextSections };
 }
 
-export function copySharedSectionImages(sourceLocale, targetLocale) {
+function galleryItems(value) {
+  return Array.isArray(value)
+    ? value.map((item) => ({ path: typeof item?.path === "string" ? item.path : "", alt: typeof item?.alt === "string" ? item.alt : "" })).filter((item) => item.path)
+    : [];
+}
+
+function copyGalleryMedia(sourceImages, targetImages, overwrite) {
+  const source = galleryItems(sourceImages);
+  const target = galleryItems(targetImages);
+  if (!overwrite && target.length) return target;
+  return source.map((item, index) => ({
+    path: item.path,
+    alt: target[index]?.alt || item.alt || "",
+  }));
+}
+
+export function applySharedSectionMedia(sourceLocale, targetLocale, { overwrite = true } = {}) {
   const sourceSections = Array.isArray(sourceLocale?.sections) ? sourceLocale.sections : [];
   const targetSections = Array.isArray(targetLocale?.sections) ? targetLocale.sections.map((section) => ({ ...section })) : [];
   for (const source of sourceSections) {
     const index = targetSections.findIndex((section) => section.id === source.id);
-    const patch = {};
-    for (const field of SHARED_IMAGE_FIELDS) {
-      patch[field] = source[field] || "";
+    if (index === -1 && !overwrite) continue;
+    const current = index === -1 ? { ...emptySection(source.type || "image"), id: source.id, type: source.type || "image" } : targetSections[index];
+    const patch = { ...current };
+    for (const field of SHARED_MEDIA_FIELDS) {
+      const nextValue = typeof source[field] === "string" ? source[field] : "";
+      const currentValue = typeof current[field] === "string" ? current[field] : "";
+      patch[field] = overwrite || !currentValue.trim() ? nextValue : currentValue;
     }
-    if (index === -1) {
-      targetSections.push({ ...emptySection(source.type || "image"), id: source.id, type: source.type || "image", ...patch });
-    } else {
-      targetSections[index] = { ...targetSections[index], ...patch };
-    }
+    patch.images = copyGalleryMedia(source.images, current.images, overwrite);
+    if (index === -1) targetSections.push(patch);
+    else targetSections[index] = patch;
   }
   return { ...targetLocale, title: targetLocale?.title || "", sections: targetSections };
+}
+
+export function copySharedSectionImages(sourceLocale, targetLocale) {
+  return applySharedSectionMedia(sourceLocale, targetLocale, { overwrite: true });
+}
+
+export function mergeSharedSectionMedia(targetLocale, sourceLocale) {
+  if (!sourceLocale || !Array.isArray(sourceLocale.sections) || !sourceLocale.sections.length) {
+    return targetLocale;
+  }
+  return applySharedSectionMedia(sourceLocale, targetLocale, { overwrite: false });
 }
 
 export function storedSectionImage(locale, sectionId, field, fallback) {

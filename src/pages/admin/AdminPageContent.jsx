@@ -8,12 +8,14 @@ import Button from "../../components/Button.jsx";
 import PageHeader from "../../components/PageHeader.jsx";
 import PageContentEditor from "../../components/page-content/PageContentEditor.jsx";
 import {
+  copySharedSectionImages,
   defaultLocaleContent,
   editorLocaleFromDocument,
   isPageKey,
   PAGE_KEYS,
   PAGE_LANGUAGES,
   publicPagePath,
+  siblingLanguage,
 } from "../../data/pageContent.js";
 import { useLanguage } from "../../i18n/LanguageContext.jsx";
 import { uploadAdminImage } from "../../services/adminCatalogService.js";
@@ -113,14 +115,33 @@ export default function AdminPageContent() {
       locale,
       expectedRevision: revision,
     });
-    setSaving(false);
     if (!result.ok) {
+      setSaving(false);
       setError(result.code);
       return false;
     }
-    applyDocument(result.document, pageKey, language);
+    const otherLanguage = siblingLanguage(language);
+    const other = editorLocaleFromDocument(result.document, otherLanguage, pageKey);
+    if (other.source === "fallback") {
+      setSaving(false);
+      applyDocument(result.document, pageKey, language);
+      setSuccess(t("admin.pageContent.draftSaved"));
+      return result.document;
+    }
+    const second = await savePageContentDraft(authorizedRequest, pageKey, {
+      language: otherLanguage,
+      locale: copySharedSectionImages(locale, other.locale),
+      expectedRevision: result.document.revision,
+    });
+    setSaving(false);
+    if (!second.ok) {
+      setError(second.code);
+      applyDocument(result.document, pageKey, language);
+      return false;
+    }
+    applyDocument(second.document, pageKey, language);
     setSuccess(t("admin.pageContent.draftSaved"));
-    return result.document;
+    return second.document;
   }
 
   async function publish() {
@@ -232,6 +253,7 @@ export default function AdminPageContent() {
                 {t("admin.pageContent.preview")}
               </Link>
             </div>
+            <p className="text-sm text-muted">{t("admin.pageContent.imagesSharedHint")}</p>
             {source === "published" ? (
               <p className="text-sm text-muted">{t("admin.pageContent.publishedHint")}</p>
             ) : null}
