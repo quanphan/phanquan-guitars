@@ -1,9 +1,19 @@
 import { optionDescription, optionLabel } from "../../../data/wizardCatalog.js";
+import {
+  DEFAULT_FRET_COUNT,
+  isCustomScale,
+  isMultiscale,
+  isValidCustomScaleValue,
+  parsePositiveFretCount,
+  scaleDisplayValue,
+} from "../../../data/wizardScaleAttributes.js";
+import { fieldClass } from "../../auth/Field.jsx";
 import { mediaUrl } from "../../../config/api.js";
 import { useLanguage } from "../../../i18n/LanguageContext.jsx";
 import ChoiceButton from "../ChoiceButton.jsx";
 import InstrumentTypeIcon from "../InstrumentTypeIcon.jsx";
 import ShapeSilhouette from "../ShapeSilhouette.jsx";
+import WizardChoiceArt from "../WizardChoiceArt.jsx";
 
 const chipClass =
   "min-w-[5.5rem] px-4 py-3 text-[11px] uppercase tracking-[0.16em]";
@@ -31,15 +41,17 @@ export default function StepInstrumentShape({
   selectSeries,
   selectShape,
   selectScale,
+  setCustomScaleValue,
   selectStringCount,
   selectRadius,
+  selectFretCount,
 }) {
   const { t, language } = useLanguage();
   const hasType = Boolean(selections.instrumentTypeId);
   const hasSeries = Boolean(selections.seriesId);
   const hasShape = Boolean(selections.shapeId);
-  const hasScale = Boolean(selections.scaleId);
-  const hasStrings = selections.stringCount != null;
+  const selectedScale = availableScales.find((scale) => scale.id === selections.scaleId);
+  const customScaleSelected = isCustomScale(selectedScale);
 
   return (
     <div>
@@ -69,16 +81,18 @@ export default function StepInstrumentShape({
                 selected={selected}
                 onSelect={() => selectInstrumentType(type.id)}
                 label={name}
-                className="flex w-[7.25rem] flex-col items-center gap-2 px-3 py-3"
+                className="flex w-[8.25rem] flex-col items-center gap-2 px-3 py-3 sm:w-[9.25rem]"
               >
-                {type.image ? (
-                  <img src={mediaUrl(type.image)} alt="" className="h-9 w-8 object-contain" />
-                ) : (
-                <InstrumentTypeIcon
-                  id={type.icon || type.id}
-                  className={`h-9 w-8 ${selected ? "text-gold" : "text-ivory/55"}`}
+                <WizardChoiceArt
+                  src={type.image ? mediaUrl(type.image) : ""}
+                  size="type"
+                  fallback={(
+                    <InstrumentTypeIcon
+                      id={type.icon || type.id}
+                      className={`h-full w-full ${selected ? "text-gold" : "text-ivory/55"}`}
+                    />
+                  )}
                 />
-                )}
                 <span className="text-center text-[10px] uppercase tracking-[0.14em] text-current">
                   {name}
                 </span>
@@ -120,7 +134,7 @@ export default function StepInstrumentShape({
             <div
               role="radiogroup"
               aria-label={t("customBuild.step1.shapeLabel")}
-              className="grid grid-cols-2 gap-3 sm:grid-cols-4"
+              className="grid grid-cols-2 items-stretch gap-3 sm:grid-cols-4"
             >
               {availableShapes.map((shape) => {
                 const selected = selections.shapeId === shape.id;
@@ -131,13 +145,25 @@ export default function StepInstrumentShape({
                     selected={selected}
                     onSelect={() => selectShape(shape.id)}
                     label={name}
-                    className="flex flex-col items-center px-3 py-4"
+                    selectedFill={false}
+                    className="flex h-full flex-col overflow-hidden p-0"
                   >
-                    <ShapeSilhouette
-                      id={shape.silhouette}
-                      className={`h-20 w-auto ${selected ? "text-gold" : "text-ivory/40"}`}
+                    <WizardChoiceArt
+                      src={shape.image ? mediaUrl(shape.image) : ""}
+                      size="shapeCard"
+                      surface="white"
+                      fallback={(
+                        <ShapeSilhouette
+                          id={shape.silhouette}
+                          className="h-full w-full text-gold"
+                        />
+                      )}
                     />
-                    <span className="mt-2 text-center text-[10px] uppercase tracking-[0.14em]">
+                    <span
+                      className={`flex min-h-[2.75rem] w-full items-center justify-center px-3 py-3 text-center text-[10px] uppercase tracking-[0.14em] ${
+                        selected ? "bg-gold/15 text-gold" : "bg-ink text-ivory/80"
+                      }`}
+                    >
                       {name}
                     </span>
                   </ChoiceButton>
@@ -147,7 +173,7 @@ export default function StepInstrumentShape({
         </Section>
       ) : null}
 
-      {hasShape && availableScales.length > 0 ? (
+      {hasShape ? (
         <Section title={t("customBuild.step1.scaleLabel")}>
             <div
               role="radiogroup"
@@ -155,7 +181,11 @@ export default function StepInstrumentShape({
               className="flex flex-wrap gap-3"
             >
               {availableScales.map((scale) => {
-                const label = scale.display || optionLabel(scale, language, t, `customBuild.scales.${scale.id}`);
+                const custom = isCustomScale(scale);
+                const label = custom
+                  ? optionLabel(scale, language, t, `customBuild.scales.${scale.id}`) || t("customBuild.step1.customScaleLabel")
+                  : scaleDisplayValue(scale) || optionLabel(scale, language, t, `customBuild.scales.${scale.id}`);
+                const multi = isMultiscale(scale);
                 return (
                 <ChoiceButton
                   key={scale.id}
@@ -165,7 +195,7 @@ export default function StepInstrumentShape({
                   className={chipClass}
                 >
                   {label}
-                  {scale.type === "multiscale" ? (
+                  {multi && !custom ? (
                     <span className="mt-1 block text-[10px] font-normal normal-case tracking-normal text-muted">
                       {t("customBuild.step1.multiscaleHint")
                         .replace("{bass}", scale.bass)
@@ -176,10 +206,30 @@ export default function StepInstrumentShape({
                 );
               })}
             </div>
+            {customScaleSelected ? (
+              <label className="mt-4 block text-[11px] uppercase tracking-[0.18em] text-gold">
+                {t("customBuild.step1.customScaleInputLabel")}
+                <input
+                  value={selections.customScaleValue || ""}
+                  onChange={(event) => setCustomScaleValue?.(event.target.value)}
+                  placeholder={t("customBuild.step1.customScalePlaceholder")}
+                  className={fieldClass}
+                  aria-invalid={!isValidCustomScaleValue(selections.customScaleValue)}
+                />
+                <span className="mt-2 block text-[10px] font-normal normal-case tracking-normal text-muted">
+                  {t("customBuild.step1.customScaleInputHelp")}
+                </span>
+                {!isValidCustomScaleValue(selections.customScaleValue) ? (
+                  <span className="mt-2 block text-xs font-normal normal-case tracking-normal text-gold" role="alert">
+                    {t("customBuild.step1.customScaleError")}
+                  </span>
+                ) : null}
+              </label>
+            ) : null}
         </Section>
       ) : null}
 
-      {hasScale && availableStringCounts.length > 0 ? (
+      {hasShape ? (
         <Section title={t("customBuild.step1.stringsLabel")}>
             <div
               role="radiogroup"
@@ -211,7 +261,7 @@ export default function StepInstrumentShape({
         </Section>
       ) : null}
 
-      {hasStrings && availableRadii.length > 0 ? (
+      {hasShape ? (
         <Section title={t("customBuild.step1.radiusLabel")}>
             <div
               role="radiogroup"
@@ -233,6 +283,31 @@ export default function StepInstrumentShape({
                 );
               })}
             </div>
+        </Section>
+      ) : null}
+
+      {hasType ? (
+        <Section title={t("customBuild.step1.fretCountLabel")}>
+          <label className="block">
+            <input
+              type="number"
+              min="1"
+              step="1"
+              value={selections.fretCount ?? DEFAULT_FRET_COUNT}
+              onChange={(event) => selectFretCount?.(event.target.value === "" ? "" : event.target.value)}
+              className={fieldClass}
+              aria-label={t("customBuild.step1.fretCountLabel")}
+              aria-invalid={parsePositiveFretCount(selections.fretCount) == null}
+            />
+            <span className="mt-2 block text-[10px] font-normal normal-case tracking-normal text-muted">
+              {t("customBuild.step3.fretCountInputHelp")}
+            </span>
+            {parsePositiveFretCount(selections.fretCount) == null ? (
+              <span className="mt-2 block text-xs font-normal normal-case tracking-normal text-gold" role="alert">
+                {t("customBuild.step3.fretCountError")}
+              </span>
+            ) : null}
+          </label>
         </Section>
       ) : null}
     </div>

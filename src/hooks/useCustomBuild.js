@@ -215,6 +215,10 @@ export function useCustomBuild() {
     update({ scaleId });
   };
 
+  const setCustomScaleValue = (customScaleValue) => {
+    update({ customScaleValue });
+  };
+
   const selectStringCount = (stringCount) => {
     update({ stringCount });
   };
@@ -245,6 +249,10 @@ export function useCustomBuild() {
 
   const selectNeckProfile = (neckProfileId) => {
     update({ neckProfileId });
+  };
+
+  const selectFretCount = (fretCount) => {
+    update({ fretCount });
   };
 
   const selectFretSpec = (fretSpecId) => {
@@ -649,6 +657,7 @@ export function useCustomBuild() {
     inlay: getInlayById(selections.inlayId),
     engraving: getEngravingById(selections.engravingId),
     inheritedFretCount,
+    fretCount: inheritedFretCount,
     availableSeries,
     availableShapes,
     availableScales,
@@ -695,6 +704,7 @@ export function useCustomBuild() {
     selectSeries,
     selectShape,
     selectScale,
+    setCustomScaleValue,
     selectStringCount,
     selectRadius,
     selectBodyWood,
@@ -704,6 +714,7 @@ export function useCustomBuild() {
     selectFingerboardWood,
     selectNeckProfile,
     selectFretSpec,
+    selectFretCount,
     selectPickupConfig,
     selectPickupType,
     selectBridge,

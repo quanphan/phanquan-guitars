@@ -1,6 +1,7 @@
 import { sanitizeReferenceImages } from "../data/referenceImages.js";
 import { optionMatchesAlias, WIZARD_SETUP_GROUPS } from "../data/wizardCatalog.js";
-import { allowedCompatibilityFields, knownGroupStep } from "../data/wizardSetupLayout.js";
+import { allowedCompatibilityFields, isShapeChildGroup, knownGroupStep } from "../data/wizardSetupLayout.js";
+import { DEFAULT_FRET_COUNT, parsePositiveFretCount } from "../data/wizardScaleAttributes.js";
 import { isCustomerSuppliedParts, STEP4_OPTION_KEYS } from "../data/wizardSelection.js";
 
 const NOTES_MAX = 2000;
@@ -146,6 +147,7 @@ function wizardLines(selections) {
     "seriesId",
     "shapeId",
     "scaleId",
+    "customScaleValue",
     "stringCount",
     "radiusId",
     "bodyWoodId",
@@ -155,6 +157,7 @@ function wizardLines(selections) {
     "fingerboardWoodId",
     "neckProfileId",
     "fretSpecId",
+    "fretCount",
     "pickupConfigId",
     "pickupTypeId",
     "bridgeId",
@@ -359,7 +362,7 @@ export function evaluateMappedSelections(mapped, catalog) {
 
   for (const category of categories) {
     const step = category.step ?? knownGroupStep(category.id, categories);
-    if (Number(step) < 4) continue;
+    if (Number(step) < 4 && !isShapeChildGroup(category.id) && category.id !== "series" && category.id !== "body-shape") continue;
     const selectedId = normalized[category.id];
     if (!selectedId || Array.isArray(selectedId)) continue;
     const option = findOptionInCategory(category, selectedId);
@@ -454,7 +457,14 @@ export function buildInquiryPayload({
   const configuration = {
     selections: mapped,
   };
-  const notes = buildNotes({ selections, language, draftId });
+  const notes = buildNotes({
+    selections: {
+      ...selections,
+      fretCount: parsePositiveFretCount(selections.fretCount) ?? DEFAULT_FRET_COUNT,
+    },
+    language,
+    draftId,
+  });
   if (notes) configuration.notes = notes;
 
   const payload = { customer, configuration };

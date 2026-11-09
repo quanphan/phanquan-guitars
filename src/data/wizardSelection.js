@@ -1,4 +1,5 @@
 import { LIST_CATEGORY_IDS } from "./wizardCatalog.js";
+import { isCustomScale } from "./wizardScaleAttributes.js";
 import { allowedCompatibilityFields } from "./wizardSetupLayout.js";
 
 function asList(value) {
@@ -44,23 +45,35 @@ export function findSelectedOption(options, selected) {
   );
 }
 
-function listActiveAliases(options) {
+function listOptionAliases(options, { activeOnly = true } = {}) {
   const aliases = new Set();
   for (const option of options || []) {
-    if (!isActiveOption(option)) continue;
+    if (activeOnly && !isActiveOption(option)) continue;
     for (const value of selectionAliases(option, option.id)) aliases.add(String(value));
   }
   return aliases;
 }
 
-export function constraintAllows(allowed, selected, selectedOption, activeAliases) {
+function listActiveAliases(options) {
+  return listOptionAliases(options, { activeOnly: true });
+}
+
+function listCatalogAliases(options) {
+  return listOptionAliases(options, { activeOnly: false });
+}
+
+export function constraintAllows(allowed, selected, selectedOption, activeAliases, catalogAliases, ignoreMissingCatalog = false) {
   const list = asList(allowed);
   if (list === null) return false;
   if (list.length === 0) return true;
   const usable = activeAliases
     ? list.filter((value) => activeAliases.has(String(value)))
     : list;
-  if (!usable.length) return false;
+  if (!usable.length) {
+    if (catalogAliases && list.some((value) => catalogAliases.has(String(value)))) return false;
+    if (ignoreMissingCatalog && activeAliases) return true;
+    return false;
+  }
   if (selected == null || selected === "") return true;
   const aliases = selectionAliases(selectedOption, selected);
   return usable.some((value) => aliases.has(String(value)));
@@ -94,14 +107,23 @@ export function optionMatches(option, selections, lists = {}, categoryId) {
   const allowed = categoryId
     ? new Set(allowedCompatibilityFields(categoryId).map((field) => field.key))
     : null;
-  const check = (key, selected, selectedOption, listKey) => {
-    if (allowed && !allowed.has(key)) return true;
-    return constraintAllows(option[key], selected, selectedOption, listActiveAliases(lists[listKey]));
-  };
   const type = findSelectedOption(lists.instrumentTypes, selections.instrumentTypeId);
   const series = findSelectedOption(lists.series, selections.seriesId);
   const shape = findSelectedOption(lists.shapes, selections.shapeId);
   const scale = findSelectedOption(lists.scales, selections.scaleId);
+  const ignoreScaleIds = isCustomScale(scale);
+  const check = (key, selected, selectedOption, listKey) => {
+    if (allowed && !allowed.has(key)) return true;
+    if (ignoreScaleIds && key === "scaleIds") return true;
+    return constraintAllows(
+      option[key],
+      selected,
+      selectedOption,
+      listActiveAliases(lists[listKey]),
+      listCatalogAliases(lists[listKey]),
+      categoryId === "scale" && key === "seriesIds",
+    );
+  };
   const strings = findSelectedOption(lists.stringCounts, selections.stringCount);
   const body = findSelectedOption(lists.bodyWoods, selections.bodyWoodId);
   const top = findSelectedOption(lists.topWoods, selections.topWoodId);
@@ -213,39 +235,28 @@ export function pruneSelections(selections, lists) {
 
   if (next.shapeId && !available("shapes").some((item) => optionIdEquals(item, next.shapeId))) {
     next.shapeId = null;
+    next.bodyWoodId = null;
+    next.topWoodId = null;
+    clearStepThreeSelections(next);
+  }
+
+  if (!next.shapeId) {
     next.scaleId = null;
     next.stringCount = null;
     next.radiusId = null;
-    next.bodyWoodId = null;
-    next.topWoodId = null;
-    clearStepThreeSelections(next);
-  }
-
-  if (next.scaleId && !available("scales").some((item) => optionIdEquals(item, next.scaleId))) {
-    next.scaleId = null;
-    next.stringCount = null;
-    next.radiusId = null;
-    next.bodyWoodId = null;
-    next.topWoodId = null;
-    clearStepThreeSelections(next);
-  }
-
-  if (
-    next.stringCount != null &&
-    !available("stringCounts").some((item) => stringCountEquals(item, next.stringCount))
-  ) {
-    next.stringCount = null;
-    next.radiusId = null;
-    next.bodyWoodId = null;
-    next.topWoodId = null;
-    clearStepThreeSelections(next);
-  }
-
-  if (next.radiusId && !available("radii").some((item) => optionIdEquals(item, next.radiusId))) {
-    next.radiusId = null;
-    next.bodyWoodId = null;
-    next.topWoodId = null;
-    clearStepThreeSelections(next);
+  } else {
+    if (next.scaleId && !available("scales").some((item) => optionIdEquals(item, next.scaleId))) {
+      next.scaleId = null;
+    }
+    if (
+      next.stringCount != null
+      && !available("stringCounts").some((item) => stringCountEquals(item, next.stringCount))
+    ) {
+      next.stringCount = null;
+    }
+    if (next.radiusId && !available("radii").some((item) => optionIdEquals(item, next.radiusId))) {
+      next.radiusId = null;
+    }
   }
 
   if (next.bodyWoodId && !available("bodyWoods").some((item) => optionIdEquals(item, next.bodyWoodId))) {

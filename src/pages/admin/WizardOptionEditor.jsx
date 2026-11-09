@@ -5,10 +5,12 @@ import { slugifyName } from "../../auth/catalog.js";
 import { errorText } from "../../auth/errorText.js";
 import CompatibilityPicker, { DefaultForTypesPicker } from "../../components/admin/CompatibilityPicker.jsx";
 import ImageUploadField from "../../components/admin/ImageUploadField.jsx";
+import ScaleLengthFields from "../../components/admin/ScaleLengthFields.jsx";
+import SeriesNameAutocomplete from "../../components/admin/SeriesNameAutocomplete.jsx";
 import Field from "../../components/auth/Field.jsx";
 import Button from "../../components/Button.jsx";
 import PageHeader from "../../components/PageHeader.jsx";
-import { COMPATIBILITY_FIELDS, optionMatchesAlias } from "../../data/wizardCatalog.js";
+import { COMPATIBILITY_FIELDS } from "../../data/wizardCatalog.js";
 import {
   categoryStepId,
   compatibilityEditorOptions,
@@ -17,8 +19,25 @@ import {
   precedingGroupIds,
   WIZARD_STEP_COPY,
 } from "../../data/wizardSetupLayout.js";
+import {
+  applySeriesSuggestion,
+  buildWizardOptionCreatePayload,
+  buildWizardOptionUpdatePayload,
+  formFromWizardOption,
+  isIdentifierLocked,
+} from "../../data/wizardOptionPayload.js";
+import {
+  emptyScaleForm,
+  mergeScaleAttributes,
+  scaleFormFromAttributes,
+  validateScaleForm,
+} from "../../data/wizardScaleAttributes.js";
+import {
+  seriesCatalogSuggestions,
+  usesSeriesNameAutocomplete,
+} from "../../data/wizardSeriesSuggestions.js";
 import { useLanguage } from "../../i18n/LanguageContext.jsx";
-import { uploadAdminImage } from "../../services/adminCatalogService.js";
+import { listCatalogTerms, uploadAdminImage } from "../../services/adminCatalogService.js";
 import {
   createWizardOption,
   getWizardCategory,
@@ -59,6 +78,8 @@ export default function WizardOptionEditor() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
+  const [seriesSuggestions, setSeriesSuggestions] = useState([]);
+  const [scaleForm, setScaleForm] = useState(() => emptyScaleForm(categoryId === "scale" ? "custom" : "single"));
   const canWrite = hasPermission("catalog.write");
   const canUpload = hasPermission("uploads.write");
 
@@ -76,6 +97,7 @@ export default function WizardOptionEditor() {
     }
     setCategories(listed.categories);
     if (isNew) {
+      setScaleForm(emptyScaleForm((categoryId || "instrument-type") === "scale" ? "custom" : "single"));
       setLoading(false);
       return;
     }
@@ -91,24 +113,8 @@ export default function WizardOptionEditor() {
       setLoading(false);
       return;
     }
-    setForm({
-      categoryId,
-      code: option.code || "",
-      description: option.description || option.translations?.en?.description || option.translations?.vi?.description || "",
-      viName: option.translations?.vi?.name || "",
-      enName: option.translations?.en?.name || option.name || "",
-      icon: option.icon || "",
-      imagePath: option.imagePath || "",
-      active: option.active !== false,
-      isDefault: Boolean(option.isDefault),
-      defaultForInstrumentTypeIds: option.defaultForInstrumentTypeIds || [],
-      attributes: option.attributes && typeof option.attributes === "object" ? option.attributes : {},
-      compatibility: keepAllowedCompatibility(
-        { ...emptyCompatibility(), ...(option.compatibility || {}) },
-        categoryId,
-        listed.categories,
-      ),
-    });
+    setForm(formFromWizardOption(option, categoryId, listed.categories));
+    setScaleForm(scaleFormFromAttributes(option.attributes));
     setLoading(false);
   }, [authorizedRequest, categoryId, isNew, optionId]);
 
@@ -127,6 +133,7 @@ export default function WizardOptionEditor() {
   );
   const selectedCategory = categories.find((item) => item.id === form.categoryId);
   const selectedStepId = categoryStepId(selectedCategory || { id: form.categoryId });
+  const seriesNameAutocomplete = usesSeriesNameAutocomplete(selectedStepId, form.categoryId);
   const groupChoices = useMemo(
     () => categories.filter((item) => categoryStepId(item) === selectedStepId),
     [categories, selectedStepId],
@@ -141,6 +148,23 @@ export default function WizardOptionEditor() {
       : t("admin.wizardSetup.stepN").replace("{n}", String(selectedStepId));
   const listHref = `/admin/custom-build-setup${searchParams.get("step") ? `?${searchParams.toString()}` : selectedStepId ? `?step=${encodeURIComponent(selectedStepId)}` : ""}`;
 
+  useEffect(() => {
+    if (!seriesNameAutocomplete) {
+      setSeriesSuggestions([]);
+      return undefined;
+    }
+    let cancelled = false;
+    async function loadSeries() {
+      const listed = await listCatalogTerms(authorizedRequest, "series");
+      if (cancelled) return;
+      setSeriesSuggestions(listed.ok ? seriesCatalogSuggestions(listed.items) : []);
+    }
+    void loadSeries();
+    return () => {
+      cancelled = true;
+    };
+  }, [authorizedRequest, seriesNameAutocomplete]);
+
   function setCategory(nextId) {
     setForm((current) => ({
       ...current,
@@ -148,29 +172,22 @@ export default function WizardOptionEditor() {
       compatibility: keepAllowedCompatibility(current.compatibility, nextId, categories),
       defaultForInstrumentTypeIds: nextId === "instrument-type" ? [] : current.defaultForInstrumentTypeIds,
     }));
+    if (isNew && nextId === "scale") setScaleForm(emptyScaleForm("custom"));
   }
 
   function payload() {
-    return {
-      name: form.enName || form.viName,
-      code: form.code,
-      description: form.description,
-      icon: form.icon,
-      imagePath: form.imagePath,
-      active: form.active,
-      isDefault: form.isDefault,
-      defaultForInstrumentTypeIds: canScopeDefault
-        ? form.defaultForInstrumentTypeIds.filter((id) => compatibilityEditorOptions(instrumentTypes).some((option) => (
-          optionMatchesAlias(option, "instrument-type", id)
-        )))
-        : [],
-      translations: {
-        vi: { name: form.viName, description: form.description },
-        en: { name: form.enName || form.viName, description: form.description },
-      },
-      compatibility: keepAllowedCompatibility(form.compatibility, form.categoryId, categories),
-      attributes: form.attributes,
+    const attributes = form.categoryId === "scale"
+      ? mergeScaleAttributes(form.attributes, scaleForm)
+      : form.attributes;
+    const nextForm = { ...form, attributes };
+    const options = {
+      canScopeDefault,
+      instrumentTypes: compatibilityEditorOptions(instrumentTypes),
+      categories,
     };
+    return isNew
+      ? buildWizardOptionCreatePayload(nextForm, options)
+      : buildWizardOptionUpdatePayload(nextForm, options);
   }
 
   async function onSave(event) {
@@ -179,6 +196,14 @@ export default function WizardOptionEditor() {
     setSaving(true);
     setError(null);
     setFieldErrors({});
+    if (form.categoryId === "scale") {
+      const scaleErrors = validateScaleForm(scaleForm);
+      if (Object.keys(scaleErrors).length) {
+        setFieldErrors(scaleErrors);
+        setSaving(false);
+        return;
+      }
+    }
     const body = payload();
     const result = isNew
       ? await createWizardOption(authorizedRequest, form.categoryId, body)
@@ -230,19 +255,49 @@ export default function WizardOptionEditor() {
                 <input value={groupLabel(t, selectedCategory || { id: form.categoryId })} readOnly className="mt-2 w-full border border-white/10 bg-ink/60 px-4 py-3 text-sm text-ivory" />
               </label>
             )}
+            {form.categoryId === "scale" ? (
+              <ScaleLengthFields
+                form={scaleForm}
+                onChange={setScaleForm}
+                errors={fieldErrors}
+                t={t}
+              />
+            ) : null}
             <Field id="wizard-vi" label={t("admin.wizardSetup.fields.viName")} value={form.viName} onChange={(value) => setField("viName", value)} />
-            <Field id="wizard-en" label={t("admin.wizardSetup.fields.enName")} value={form.enName} onChange={(value) => setField("enName", value)} required error={fieldErrors.name} />
+            {seriesNameAutocomplete ? (
+              <SeriesNameAutocomplete
+                id="wizard-en"
+                label={t("admin.wizardSetup.fields.enName")}
+                value={form.enName}
+                onChange={(value) => setField("enName", value)}
+                onSelect={(item) => {
+                  setCodeTouched(true);
+                  setForm((current) => applySeriesSuggestion(current, item, { isNew }));
+                }}
+                suggestions={seriesSuggestions}
+                error={fieldErrors.name}
+                required
+                t={t}
+              />
+            ) : (
+              <Field id="wizard-en" label={t("admin.wizardSetup.fields.enName")} value={form.enName} onChange={(value) => setField("enName", value)} required error={fieldErrors.name} />
+            )}
             <Field
               id="wizard-code"
               label={t("admin.catalog.fields.slug")}
               value={form.code}
               onChange={(value) => {
+                if (isIdentifierLocked(isNew)) return;
                 setCodeTouched(true);
                 setField("code", value);
               }}
               required
+              disabled={isIdentifierLocked(isNew)}
               error={fieldErrors.code}
             />
+            {isIdentifierLocked(isNew) ? (
+              <p className="-mt-3 text-xs text-muted">{t("admin.wizardSetup.codeLocked")}</p>
+            ) : null}
             <Field id="wizard-desc" label={t("admin.catalog.fields.description")} value={form.description} onChange={(value) => setField("description", value)} multiline rows={3} />
             <Field id="wizard-icon" label={t("admin.wizardSetup.fields.icon")} value={form.icon} onChange={(value) => setField("icon", value)} />
             <ImageUploadField
@@ -275,7 +330,7 @@ export default function WizardOptionEditor() {
               categories={categories}
               currentCategoryId={form.categoryId}
               value={form.compatibility}
-              onChange={(value) => setField("compatibility", keepAllowedCompatibility(value, form.categoryId, categories))}
+              onChange={(value) => setField("compatibility", value)}
               language={language}
               t={t}
             />

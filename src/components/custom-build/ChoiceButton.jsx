@@ -5,6 +5,7 @@ export default function ChoiceButton({
   description,
   children,
   className = "",
+  selectedFill = true,
 }) {
   return (
     <button
@@ -15,7 +16,7 @@ export default function ChoiceButton({
       onClick={onSelect}
       className={`border text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
         selected
-          ? "border-gold bg-gold/15 text-gold"
+          ? `border-gold text-gold${selectedFill ? " bg-gold/15" : ""}`
           : "border-white/10 text-ivory/80 hover:border-gold/40"
       } ${className}`}
     >

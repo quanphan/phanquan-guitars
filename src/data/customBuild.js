@@ -62,7 +62,16 @@ import {
   PHONE_PATTERN,
   validateContact,
 } from "./customBuildContact.js";
+import { LIST_CATEGORY_IDS } from "./wizardCatalog.js";
 import { pickDefaultOption } from "./wizardDefaults.js";
+import {
+  DEFAULT_FRET_COUNT,
+  isCustomScale,
+  isValidCustomScaleValue,
+  isValidFretCountSelection,
+  parsePositiveFretCount,
+  shouldKeepCustomScaleValue,
+} from "./wizardScaleAttributes.js";
 import {
   filterOptions as filterListedOptions,
   findSelectedOption,
@@ -202,36 +211,42 @@ export const STRING_COUNTS = [
     value: 6,
     instrumentTypeIds: ["electric-guitar"],
     scaleIds: ["24.75", "25.5", "27", "25-25.5-multi"],
+    shapeIds: ["t-style", "offset", "double-cut", "modern-carve", "compact-modern"],
   },
   {
     id: "7",
     value: 7,
     instrumentTypeIds: ["electric-guitar"],
     scaleIds: ["25.5", "27"],
+    shapeIds: ["t-style", "offset", "double-cut", "modern-carve", "compact-modern"],
   },
   {
     id: "8",
     value: 8,
     instrumentTypeIds: ["electric-guitar"],
     scaleIds: ["25.5", "25-25.5-multi"],
+    shapeIds: ["t-style", "offset", "double-cut", "modern-carve", "compact-modern"],
   },
   {
     id: "4",
     value: 4,
     instrumentTypeIds: ["bass"],
     scaleIds: ["34"],
+    shapeIds: ["offset", "p-inspired", "j-inspired", "compact-modern"],
   },
   {
     id: "5",
     value: 5,
     instrumentTypeIds: ["bass"],
     scaleIds: ["34"],
+    shapeIds: ["offset", "p-inspired", "j-inspired", "compact-modern"],
   },
   {
     id: "6-bass",
     value: 6,
     instrumentTypeIds: ["bass"],
     scaleIds: ["34"],
+    shapeIds: ["offset", "p-inspired", "j-inspired", "compact-modern"],
   },
 ];
 
@@ -242,6 +257,7 @@ export const RADII = [
     display: "12″–16″ compound",
     instrumentTypeIds: ["electric-guitar"],
     scaleIds: ["25.5", "25-25.5-multi"],
+    shapeIds: ["t-style", "offset", "double-cut", "modern-carve", "compact-modern"],
   },
   {
     id: "16",
@@ -249,6 +265,7 @@ export const RADII = [
     display: "16″",
     instrumentTypeIds: ["bass"],
     scaleIds: ["34"],
+    shapeIds: ["offset", "p-inspired", "j-inspired", "compact-modern"],
   },
 ];
 
@@ -587,6 +604,7 @@ export const EMPTY_SELECTIONS = {
   seriesId: null,
   shapeId: null,
   scaleId: null,
+  customScaleValue: "",
   stringCount: null,
   radiusId: null,
   bodyWoodId: null,
@@ -596,6 +614,7 @@ export const EMPTY_SELECTIONS = {
   fingerboardWoodId: null,
   neckProfileId: null,
   fretSpecId: null,
+  fretCount: DEFAULT_FRET_COUNT,
   pickupConfigId: null,
   pickupTypeId: null,
   bridgeId: null,
@@ -628,8 +647,24 @@ export function optionMatches(option, selections) {
   return optionMatchesListed(option, selections, getWizardLists() || {}, dot > 0 ? raw.slice(0, dot) : "");
 }
 
+function categoryIdForOptions(options, lists) {
+  const first = options?.[0];
+  if (!first) return "";
+  const raw = String(first.optionId || first.id || "");
+  const dot = raw.indexOf(".");
+  if (dot > 0 && !/^[a-f0-9]{24}$/i.test(raw)) return raw.slice(0, dot);
+  for (const [listKey, categoryId] of Object.entries(LIST_CATEGORY_IDS)) {
+    const group = lists?.[listKey] || [];
+    if (group.some((item) => item === first || item.id === first.id || item.optionId === first.optionId)) {
+      return categoryId;
+    }
+  }
+  return "";
+}
+
 export function filterOptions(options, selections) {
-  return filterListedOptions(options, selections, getWizardLists() || {});
+  const lists = getWizardLists() || {};
+  return filterListedOptions(options, selections, lists, categoryIdForOptions(options, lists));
 }
 
 export function getInstrumentTypeById(id) {
@@ -761,10 +796,7 @@ export function getAvailableFretSpecs(selections) {
 }
 
 export function getInheritedFretCount(selections) {
-  const type = getInstrumentTypeById(selections.instrumentTypeId);
-  const configured = type?.fretCount ?? type?.attributes?.fretCount;
-  if (configured != null && Number.isFinite(Number(configured))) return Number(configured);
-  return INHERITED_FRET_COUNTS[selections.instrumentTypeId] ?? null;
+  return parsePositiveFretCount(selections?.fretCount) ?? DEFAULT_FRET_COUNT;
 }
 
 function clampSelectionNotes(next) {
@@ -885,13 +917,23 @@ export function pruneSelections(selections) {
   const lists = listsOrEmpty();
   const pruned = pruneListedSelections(selections, lists);
   const next = pruned && typeof pruned === "object" ? { ...pruned } : { ...(selections || {}) };
+  if (!shouldKeepCustomScaleValue(getScaleById(next.scaleId), next.scaleId)) {
+    next.customScaleValue = "";
+  }
+  if (next.fretCount == null || next.fretCount === "") {
+    next.fretCount = DEFAULT_FRET_COUNT;
+  }
   return clampSelectionNotes(next);
 }
 
 export function isStepOneComplete(selections) {
   if (!selections.instrumentTypeId || !selections.seriesId) return false;
   if (!selections.shapeId || !selections.scaleId) return false;
-  if (selections.stringCount == null) return false;
+  const scale = getScaleById(selections.scaleId);
+  if (isCustomScale(scale) && !isValidCustomScaleValue(selections.customScaleValue)) {
+    return false;
+  }
+  if (getAvailableStringCounts(selections).length > 0 && selections.stringCount == null) return false;
   const radii = getAvailableRadii(selections);
   if (radii.length === 0) return true;
   return Boolean(selections.radiusId);
@@ -929,7 +971,8 @@ export function isStepThreeComplete(selections) {
       getAvailableNeckProfiles(selections),
       selections.neckProfileId,
     ) &&
-    requiredIfOptions(getAvailableFretSpecs(selections), selections.fretSpecId)
+    requiredIfOptions(getAvailableFretSpecs(selections), selections.fretSpecId) &&
+    isValidFretCountSelection(selections.fretCount)
   );
 }
 

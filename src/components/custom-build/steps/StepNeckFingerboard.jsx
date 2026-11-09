@@ -1,6 +1,8 @@
 import { mediaUrl } from "../../../config/api.js";
 import FitImage from "../../FitImage.jsx";
 import { choiceImageSrc, optionDescription, optionLabel } from "../../../data/wizardCatalog.js";
+import { DEFAULT_FRET_COUNT, parsePositiveFretCount } from "../../../data/wizardScaleAttributes.js";
+import { fieldClass } from "../../auth/Field.jsx";
 import { useLanguage } from "../../../i18n/LanguageContext.jsx";
 import ChoiceButton from "../ChoiceButton.jsx";
 
@@ -75,12 +77,12 @@ export default function StepNeckFingerboard({
   availableFingerboardWoods,
   availableNeckProfiles,
   availableFretSpecs,
-  inheritedFretCount,
   selectNeckWood,
   selectNeckConstruction,
   selectFingerboardWood,
   selectNeckProfile,
   selectFretSpec,
+  selectFretCount,
 }) {
   const { t, language } = useLanguage();
 
@@ -207,21 +209,33 @@ export default function StepNeckFingerboard({
       </section>
       ) : null}
 
-      {inheritedFretCount != null ? (
       <section className="mt-10">
         <h3 className="text-[11px] uppercase tracking-[0.22em] text-gold">
           {t("customBuild.step3.fretCountLabel")}
         </h3>
         <div className="mt-4">
-            <p className="border border-white/10 bg-panel/60 px-4 py-3 text-sm text-ivory">
-              {t("customBuild.step3.fretCountInherited").replace(
-                "{count}",
-                String(inheritedFretCount),
-              )}
-            </p>
+          <label className="block">
+            <input
+              type="number"
+              min="1"
+              step="1"
+              value={selections.fretCount ?? DEFAULT_FRET_COUNT}
+              onChange={(event) => selectFretCount?.(event.target.value === "" ? "" : event.target.value)}
+              className={fieldClass}
+              aria-label={t("customBuild.step3.fretCountLabel")}
+              aria-invalid={parsePositiveFretCount(selections.fretCount) == null}
+            />
+            <span className="mt-2 block text-[10px] font-normal normal-case tracking-normal text-muted">
+              {t("customBuild.step3.fretCountInputHelp")}
+            </span>
+            {parsePositiveFretCount(selections.fretCount) == null ? (
+              <span className="mt-2 block text-xs text-gold" role="alert">
+                {t("customBuild.step3.fretCountError")}
+              </span>
+            ) : null}
+          </label>
         </div>
       </section>
-      ) : null}
     </div>
   );
 }

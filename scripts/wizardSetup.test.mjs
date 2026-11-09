@@ -33,6 +33,7 @@ test("wizard setup copy exists in English and Vietnamese", () => {
   assert.equal(tFor("en", "admin.wizardSetup.deleting"), "Deleting…");
   assert.equal(tFor("vi", "admin.wizardSetup.allGroups"), "Tất cả Group");
   assert.equal(tFor("en", "admin.wizardSetup.fields.wizardStep"), "Wizard step");
+  assert.equal(tFor("en", "admin.wizardSetup.scaleTypes.custom"), "Custom Scale");
   assert.equal(tFor("vi", "admin.wizardSetup.selectAll"), "Tất cả");
   assert.equal(tFor("en", "admin.wizardSetup.selectAll"), "All");
   assert.equal(tFor("vi", "admin.wizardSetup.compatNone"), "Không có nhóm đứng trước.");
@@ -206,7 +207,7 @@ test("inactive wizard options stay out of lists, defaults, and compatibility fil
   );
 });
 
-test("compatibility editor hides inactive options and does not keep them on save", () => {
+test("compatibility editor hides inactive options; create sanitizer drops inactive aliases", () => {
   const categories = [
     {
       id: "instrument-type",
@@ -282,14 +283,14 @@ test("compatibility select-all only snapshots currently active options", () => {
   assert.equal(partial.selectedCount, 1);
 
   const allSelected = applyCompatibilitySelectAll(["hidden"], active, field, "series", true);
-  assert.deepEqual(allSelected, ["solid-body", "headless"]);
-  assert.equal(allSelected.includes("hidden"), false);
+  assert.deepEqual(allSelected, ["hidden", "solid-body", "headless"]);
+  assert.equal(allSelected.includes("hidden"), true);
   const allState = compatibilitySelectAllState(allSelected, active, "series");
   assert.equal(allState.checked, true);
   assert.equal(allState.indeterminate, false);
 
   const cleared = applyCompatibilitySelectAll(allSelected, active, field, "series", false);
-  assert.deepEqual(cleared, []);
+  assert.deepEqual(cleared, ["hidden"]);
 
   const categories = [
     { id: "instrument-type", options: [{ id: "instrument-type.electric-guitar", code: "electric-guitar", active: true }] },
@@ -508,10 +509,20 @@ test("wizard setup tabs and group filters follow API category steps", () => {
 test("compatibility only includes earlier wizard groups", () => {
   assert.deepEqual(precedingGroupIds("series"), ["instrument-type"]);
   assert.deepEqual(precedingGroupIds("body-shape"), ["instrument-type", "series"]);
+  assert.deepEqual(
+    allowedCompatibilityFields("body-shape").map((item) => item.key),
+    ["instrumentTypeIds", "seriesIds"],
+  );
   const scaleKeys = allowedCompatibilityFields("scale").map((item) => item.key);
-  assert.equal(scaleKeys.includes("instrumentTypeIds"), true);
-  assert.equal(scaleKeys.includes("seriesIds"), true);
-  assert.equal(scaleKeys.includes("shapeIds"), true);
+  assert.deepEqual(scaleKeys, ["instrumentTypeIds", "seriesIds", "shapeIds"]);
+  assert.deepEqual(
+    allowedCompatibilityFields("string-count").map((item) => item.key),
+    ["instrumentTypeIds", "seriesIds", "shapeIds"],
+  );
+  assert.deepEqual(
+    allowedCompatibilityFields("radius").map((item) => item.key),
+    ["instrumentTypeIds", "seriesIds", "shapeIds"],
+  );
   assert.equal(scaleKeys.includes("stringCounts"), false);
   assert.equal(scaleKeys.includes("bodyWoodIds"), false);
   assert.deepEqual(allowedCompatibilityFields("instrument-type"), []);
@@ -574,14 +585,23 @@ test("compatibility only includes earlier wizard groups", () => {
     id: "25.5",
     optionId: "scale.25-5",
     instrumentTypeIds: ["electric-guitar"],
+    shapeIds: ["compact-modern"],
     stringCounts: ["6"],
   };
+  const shapeLists = {
+    ...lists,
+    shapes: [{ id: "compact-modern", optionId: "body-shape.compact-modern", code: "compact-modern" }],
+  };
   assert.equal(
-    optionMatches(scale, { instrumentTypeId: "electric-guitar", stringCount: "7" }, lists, "scale"),
+    optionMatches(scale, { instrumentTypeId: "bass", shapeId: "compact-modern", stringCount: "7" }, shapeLists, "scale"),
+    false,
+  );
+  assert.equal(
+    optionMatches(scale, { instrumentTypeId: "electric-guitar", shapeId: "compact-modern", stringCount: "7" }, shapeLists, "scale"),
     true,
   );
   assert.equal(
-    optionMatches(scale, { instrumentTypeId: "bass", stringCount: "6" }, lists, "scale"),
+    optionMatches(scale, { instrumentTypeId: "electric-guitar", shapeId: "offset", stringCount: "6" }, shapeLists, "scale"),
     false,
   );
   const series = {

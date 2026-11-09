@@ -1,3 +1,10 @@
+export function accountDisplayName(user) {
+  const name = typeof user?.name === "string" ? user.name.trim() : "";
+  if (name) return name;
+  const username = typeof user?.username === "string" ? user.username.trim() : "";
+  return username;
+}
+
 export function accountMenuLinks({ isAuthenticated, isAdmin }) {
   if (isAuthenticated) {
     const links = [{ to: "/account", key: "nav.myAccount" }];

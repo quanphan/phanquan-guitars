@@ -14,6 +14,7 @@ import {
   wizardSetupSteps,
   WIZARD_STEP_COPY,
 } from "../../data/wizardSetupLayout.js";
+import { scaleListSummary } from "../../data/wizardScaleAttributes.js";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue.js";
 import { useLanguage } from "../../i18n/LanguageContext.jsx";
 import {
@@ -131,9 +132,6 @@ export default function AdminCustomBuildSetup() {
     setError(null);
     const nextActive = option.active === false;
     const result = await updateWizardOption(authorizedRequest, category.id, option.id, {
-      ...option,
-      code: option.code,
-      name: option.name,
       active: nextActive,
       isDefault: nextActive ? option.isDefault : false,
       defaultForInstrumentTypeIds: nextActive ? option.defaultForInstrumentTypeIds || [] : [],
@@ -195,9 +193,6 @@ export default function AdminCustomBuildSetup() {
     setBusyId(current.option.id);
     setError(null);
     const result = await updateWizardOption(authorizedRequest, current.category.id, current.option.id, {
-      ...current.option,
-      code: current.option.code,
-      name: current.option.name,
       active: false,
       isDefault: false,
       defaultForInstrumentTypeIds: [],
@@ -323,6 +318,11 @@ export default function AdminCustomBuildSetup() {
           </div>
         ) : null}
         {loading ? <p className="mt-8 text-sm text-muted">{t("admin.loadingBody")}</p> : null}
+        {groupId === "scale" || rows.some(({ category }) => category.id === "scale") ? (
+          <p className="mt-6 border border-gold/40 bg-gold/10 px-4 py-3 text-sm text-ivory">
+            {t("admin.wizardSetup.scaleGroupHelp")}
+          </p>
+        ) : null}
         {!loading && rows.length === 0 ? (
           <p className="mt-8 border border-white/10 px-4 py-6 text-sm text-muted">{t("admin.wizardSetup.empty")}</p>
         ) : null}
@@ -352,6 +352,11 @@ export default function AdminCustomBuildSetup() {
                         <Link to={`/admin/custom-build-setup/${category.id}/${encodeURIComponent(option.id)}${listQuery}`} className="text-gold hover:text-gold-light">
                           {label}
                         </Link>
+                        {category.id === "scale" ? (
+                          <span className="mt-1 block text-[10px] uppercase tracking-[0.14em] text-muted">
+                            {scaleListSummary(option, t)}
+                          </span>
+                        ) : null}
                       </td>
                       <td className="px-4 py-3 text-muted">{option.code}</td>
                       <td className="px-4 py-3">{option.active === false ? t("admin.catalog.inactive") : t("admin.catalog.active")}</td>

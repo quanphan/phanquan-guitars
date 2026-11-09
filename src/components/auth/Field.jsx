@@ -34,7 +34,7 @@ export default function Field({
     maxLength,
     placeholder,
     "aria-invalid": Boolean(error),
-    className: `${error ? errorFieldClass : fieldClass}${multiline ? " min-h-24 resize-y" : ""}`,
+    className: `${error ? errorFieldClass : fieldClass}${disabled ? " cursor-not-allowed bg-ink/60 text-muted" : ""}${multiline ? " min-h-24 resize-y" : ""}`,
   };
   return (
     <div>

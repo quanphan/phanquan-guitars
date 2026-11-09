@@ -5,6 +5,7 @@ import {
   optionMatchesAlias,
   translatedLabel,
 } from "../data/wizardCatalog.js";
+import { inquiryFretCount, scaleDisplayValue } from "../data/wizardScaleAttributes.js";
 
 export { humanizeOptionId };
 
@@ -210,6 +211,9 @@ export function resolveChoiceLabel(t, field, raw, { catalog, selections, languag
   if (field === "customColorNote" || field === "specialRequests") return id;
 
   if (field === "scaleId") {
+    const option = findCatalogOption(catalog, id);
+    const configured = option ? scaleDisplayValue(option) : "";
+    if (configured) return configured;
     if (id === "25-25.5-multi") {
       const hint = named(t, "customBuild.step1.multiscaleHint");
       if (hint) {
@@ -217,6 +221,11 @@ export function resolveChoiceLabel(t, field, raw, { catalog, selections, languag
       }
     }
     return SCALE_DISPLAY[id] || catalogName(catalog, id, t, language) || humanizeOptionId(id);
+  }
+
+  if (field === "fretCount") {
+    return named(t, "customBuild.step3.fretCountValue")?.replace("{count}", String(inquiryFretCount(id)))
+      || String(inquiryFretCount(id));
   }
 
   if (field === "stringCount") {
@@ -289,7 +298,12 @@ export function buildInquiryDisplay(inquiry, t, { catalog, language } = {}) {
         row(t, "customBuild.summary.instrument", resolveChoiceLabel(t, "instrumentTypeId", wizard.instrumentTypeId, choiceOpts)),
         row(t, "customBuild.summary.series", resolveChoiceLabel(t, "seriesId", wizard.seriesId, choiceOpts)),
         row(t, "customBuild.summary.shape", resolveChoiceLabel(t, "shapeId", wizard.shapeId, choiceOpts)),
-        row(t, "customBuild.summary.scale", resolveChoiceLabel(t, "scaleId", wizard.scaleId, choiceOpts)),
+        row(
+          t,
+          "customBuild.summary.scale",
+          wizard.customScaleValue
+            || resolveChoiceLabel(t, "scaleId", wizard.scaleId, choiceOpts),
+        ),
         row(t, "customBuild.summary.strings", resolveChoiceLabel(t, "stringCount", wizard.stringCount, choiceOpts)),
         row(t, "customBuild.summary.radius", resolveChoiceLabel(t, "radiusId", wizard.radiusId, choiceOpts)),
       ],
@@ -311,6 +325,13 @@ export function buildInquiryDisplay(inquiry, t, { catalog, language } = {}) {
         row(t, "customBuild.summary.fingerboard", resolveChoiceLabel(t, "fingerboardWoodId", wizard.fingerboardWoodId, choiceOpts)),
         row(t, "customBuild.summary.neckProfile", resolveChoiceLabel(t, "neckProfileId", wizard.neckProfileId, choiceOpts)),
         row(t, "customBuild.summary.frets", resolveChoiceLabel(t, "fretSpecId", wizard.fretSpecId, choiceOpts)),
+        row(
+          t,
+          "customBuild.summary.fretCount",
+          wizard.instrumentTypeId || wizard.scaleId || wizard.fretCount
+            ? resolveChoiceLabel(t, "fretCount", wizard.fretCount ?? inquiryFretCount(wizard.fretCount), choiceOpts)
+            : null,
+        ),
       ],
     },
     {

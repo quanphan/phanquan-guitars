@@ -106,7 +106,17 @@ export function knownGroupStep(categoryId, categories) {
   return known?.step ?? null;
 }
 
+export const SHAPE_CHILD_GROUP_IDS = ["scale", "string-count", "radius"];
+export const BODY_SHAPE_UPSTREAM_GROUP_IDS = ["instrument-type", "series"];
+
+export function isShapeChildGroup(categoryId) {
+  return SHAPE_CHILD_GROUP_IDS.includes(String(categoryId || ""));
+}
+
 export function allowedCompatibilityGroupIds(categoryId, categories) {
+  if (categoryId === "series") return ["instrument-type"];
+  if (categoryId === "body-shape") return [...BODY_SHAPE_UPSTREAM_GROUP_IDS];
+  if (isShapeChildGroup(categoryId)) return [...BODY_SHAPE_UPSTREAM_GROUP_IDS, "body-shape"];
   const preceding = precedingGroupIds(categoryId, categories);
   const step = knownGroupStep(categoryId, categories);
   if (Number(step) >= 4) {
@@ -181,8 +191,11 @@ export function compatibilitySelectAllState(selected, options, categoryId) {
 }
 
 export function applyCompatibilitySelectAll(selected, options, field, categoryId, selectAll) {
-  if (!selectAll) return [];
-  return (options || []).map((option) => compatibilityStoredValue(field, option, categoryId));
+  const hidden = (selected || []).filter((value) => (
+    !(options || []).some((option) => optionMatchesAlias(option, categoryId, value))
+  ));
+  if (!selectAll) return hidden;
+  return [...hidden, ...(options || []).map((option) => compatibilityStoredValue(field, option, categoryId))];
 }
 
 export function groupLabel(t, category) {

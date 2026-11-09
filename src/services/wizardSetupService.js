@@ -7,6 +7,15 @@ function failure(result, fallback = "failure") {
   if (result.status === 401) return { ok: false, code: "UNAUTHORIZED", status: 401, message };
   if (result.status === 403) return { ok: false, code: "FORBIDDEN", status: 403, message };
   if (result.status === 404) return { ok: false, code: "NOT_FOUND", status: 404, message };
+  if (result.status === 422) {
+    return {
+      ok: false,
+      code: result.payload?.error?.details?.[0]?.code || result.payload?.error?.code || "VALIDATION_ERROR",
+      status: 422,
+      details: result.payload?.error?.details,
+      message,
+    };
+  }
   if (result.status === 409) {
     return {
       ok: false,

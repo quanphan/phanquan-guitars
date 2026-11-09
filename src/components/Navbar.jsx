@@ -46,6 +46,11 @@ function LanguageSwitcher({ className = "" }) {
 function CartLink({ className = "", onNavigate }) {
   const { t } = useLanguage();
   const { itemCount } = useCart();
+  const slotClass = `relative inline-flex shrink-0 items-center justify-center ${className}`;
+
+  if (itemCount <= 0) {
+    return <span className={`${slotClass} pointer-events-none`} aria-hidden="true" />;
+  }
 
   return (
     <NavLink
@@ -53,18 +58,16 @@ function CartLink({ className = "", onNavigate }) {
       end
       onClick={onNavigate}
       className={({ isActive }) =>
-        `relative inline-flex items-center justify-center text-ivory/75 transition-colors duration-300 hover:text-ivory ${
+        `${slotClass} text-ivory/75 transition-colors duration-300 hover:text-ivory ${
           isActive ? "text-gold" : ""
-        } ${className}`
+        }`
       }
-      aria-label={t("nav.cart")}
+      aria-label={t("nav.cartWithCount").replace("{count}", String(itemCount))}
     >
       <ShoppingBag className="h-5 w-5" aria-hidden="true" />
-      {itemCount > 0 ? (
-        <span className="absolute -right-2 -top-2 min-w-4 rounded-full bg-gold px-1 text-center text-[10px] leading-4 text-charcoal">
-          {itemCount > 99 ? "99+" : itemCount}
-        </span>
-      ) : null}
+      <span className="absolute right-0.5 top-0.5 min-w-4 rounded-full bg-gold px-1 text-center text-[10px] leading-4 text-charcoal sm:right-1 sm:top-1">
+        {itemCount > 99 ? "99+" : itemCount}
+      </span>
     </NavLink>
   );
 }
@@ -113,7 +116,7 @@ export default function Navbar() {
             </NavLink>
           ))}
           <AccountMenu />
-          <CartLink />
+          <CartLink className="h-11 w-11" />
           <LanguageSwitcher />
         </nav>
 

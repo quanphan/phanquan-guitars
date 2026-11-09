@@ -49,6 +49,9 @@ function sanitizeSelections(raw) {
         const count = Number(raw[key]);
         next[key] = Number.isFinite(count) ? count : null;
       }
+    } else if (key === "fretCount") {
+      const count = Number(raw[key]);
+      next[key] = Number.isInteger(count) && count > 0 ? count : EMPTY_SELECTIONS.fretCount;
     } else if (key === "acknowledgement" || key === "customerSuppliedParts") {
       next[key] = Boolean(raw[key]);
     } else if (key === "referenceImages") {

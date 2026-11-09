@@ -25,9 +25,11 @@ export const translations = {
       register: "Register",
       account: "Account",
       accountMenu: "Account menu",
+      accountMenuSignedIn: "Account menu, signed in",
       myAccount: "My account",
       adminAccess: "Administration",
       cart: "Cart",
+      cartWithCount: "Cart, {count} items",
     },
     auth: {
       eyebrow: "Account",
@@ -648,10 +650,26 @@ export const translations = {
         delete: "Delete",
         deleting: "Deleting…",
         compatibilityHelp: "Leave a group unchecked to show this option for every earlier choice in that group. Checked items limit visibility to those codes.",
+        codeLocked: "The code is the permanent identifier. It cannot be changed after the option is created.",
         compatNone: "There are no earlier groups to constrain.",
         defaultForHelp: "At most one option in this group can be the default for each instrument type. A default is applied only after that type is chosen, and only if it is still compatible.",
         compatEmpty: "No options are stored in this group yet.",
         selectAll: "All",
+        seriesSuggestionList: "Catalog series",
+        noSeriesMatch: "No matching series. You can keep this name.",
+        scaleLengthLegend: "Scale length",
+        scaleGroupHelp: "Add or edit a Scale length option and set its type to Custom Scale. Customers type the length in the public wizard. Number of frets is entered by the customer, separately from scale.",
+        scaleLengthHelp: "Mark one option as Custom Scale so customers can type a length such as 25.5\" or 26.5\" – 28\". Predefined scales keep their stored values.",
+        customScaleCustomerHelp: "Customers enter the scale length themselves in the wizard. You only need this option to be available.",
+        scaleTypes: {
+          single: "Standard scale",
+          multiscale: "Multiscale",
+          custom: "Custom Scale",
+        },
+        customScaleModes: {
+          standard: "Standard (one length)",
+          multiscale: "Multiscale range",
+        },
         columns: { step: "Step", group: "Group", default: "Default" },
         fields: {
           enName: "Name (English)",
@@ -660,7 +678,13 @@ export const translations = {
           compatibility: "Visible with earlier choices",
           defaultForTypes: "Default for instrument types",
           sheen: "Sheen (inherited with this finish type)",
-          fretCount: "Inherited fret count",
+          fretCount: "Number of Frets",
+          scaleType: "Scale type",
+          scaleLength: "Scale length",
+          scaleBass: "Bass-side scale",
+          scaleTreble: "Treble-side scale",
+          customScaleValue: "Custom scale length",
+          customScaleMode: "Custom scale format",
           wizardStep: "Wizard step",
           instrumentTypes: "Visible for instrument types",
           series: "Visible for series",
@@ -714,9 +738,13 @@ export const translations = {
           FORWARD_COMPAT: "Compatibility can only reference groups that appear before this option.",
           INACTIVE_COMPAT: "Compatibility can only reference active options.",
           INCOMPATIBLE_DEFAULT: "A default must be active and compatible with those instrument types.",
+          IMMUTABLE: "This identifier cannot be changed after the option is created.",
           NETWORK: "The request could not be sent.",
           BUSY: "Wait for the current action to finish.",
           failure: "The request failed. Try again.",
+          fretCount: "Enter a positive whole number of frets.",
+          scaleValue: "Enter a custom scale length such as 25.5\" or 26.5\" – 28\".",
+          scaleEnds: "Enter both bass-side and treble-side scale lengths.",
         },
       },
       users: {
@@ -1340,7 +1368,7 @@ export const translations = {
       step1: {
         heading: "Choose Your Instrument",
         description:
-          "Start with the instrument type, then refine series, shape, scale, strings, and radius.",
+          "Start with the instrument type, then refine series, shape, scale, strings, radius, and number of frets.",
         instrumentLabel: "Instrument type",
         instrumentContact:
           "No active instrument types are available. Retry after the workshop updates Custom Build Setup.",
@@ -1349,12 +1377,19 @@ export const translations = {
         scaleLabel: "Scale length",
         stringsLabel: "Number of strings",
         radiusLabel: "Fretboard radius",
+        fretCountLabel: "Number of frets",
         seriesContact:
           "Contact the workshop to confirm available series for this instrument.",
         shapeContact:
           "Contact the workshop to confirm body shapes for this series.",
         scaleContact:
           "Contact the workshop to confirm scale lengths for this shape.",
+        customScaleLabel: "Custom Scale",
+        customScaleHint: "{value}",
+        customScaleInputLabel: "Your scale length",
+        customScalePlaceholder: "25.5\" or 26.5\" – 28\"",
+        customScaleInputHelp: "Enter a standard length such as 25.5\", 26.5\", 27\", 28\", or a multiscale range such as 25.5\" – 27.5\".",
+        customScaleError: "Enter the scale length to continue.",
         stringsContact:
           "Contact the workshop to confirm string counts for this configuration.",
         radiusContact:
@@ -1532,6 +1567,9 @@ export const translations = {
         fretCountInherited:
           "{count} frets — inherited from the selected instrument type and not changed here.",
         fretCountValue: "{count} frets",
+        fretCountInputLabel: "Fret count",
+        fretCountInputHelp: "Default is 24. You can enter 22, 27, 30, or any positive whole number.",
+        fretCountError: "Enter a positive whole number of frets.",
         fretCountUnknown:
           "No confirmed fret count is listed for this instrument type. Confirm with the workshop.",
       },
@@ -2445,9 +2483,11 @@ export const translations = {
       register: "Đăng ký",
       account: "Tài khoản",
       accountMenu: "Menu tài khoản",
+      accountMenuSignedIn: "Menu tài khoản, đã đăng nhập",
       myAccount: "Tài khoản của tôi",
       adminAccess: "Quản trị",
       cart: "Giỏ hàng",
+      cartWithCount: "Giỏ hàng, {count} sản phẩm",
     },
     auth: {
       eyebrow: "Tài khoản",
@@ -3067,10 +3107,26 @@ export const translations = {
         delete: "Xóa",
         deleting: "Đang xóa…",
         compatibilityHelp: "Không chọn nhóm nào nghĩa là hiện tùy chọn này với mọi lựa chọn trước đó trong nhóm đó. Các mục được chọn sẽ giới hạn hiển thị theo mã đó.",
+        codeLocked: "Mã này là định danh cố định. Không thể đổi sau khi tùy chọn đã được tạo.",
         compatNone: "Không có nhóm đứng trước.",
         defaultForHelp: "Mỗi loại nhạc cụ chỉ có một mặc định trong nhóm này. Mặc định chỉ được áp sau khi chọn loại đó, và chỉ khi vẫn tương thích.",
         compatEmpty: "Nhóm này chưa có tùy chọn.",
         selectAll: "Tất cả",
+        seriesSuggestionList: "Series trong catalog",
+        noSeriesMatch: "Không có series khớp. Bạn vẫn có thể giữ tên này.",
+        scaleLengthLegend: "Chiều dài scale",
+        scaleGroupHelp: "Thêm hoặc sửa một tùy chọn Scale length và đặt loại Custom Scale. Khách sẽ tự nhập chiều dài trên wizard. Số fret khách nhập riêng, không gắn với scale.",
+        scaleLengthHelp: "Đặt một tùy chọn là Custom Scale để khách tự nhập chiều dài, ví dụ 25.5\" hoặc 26.5\" – 28\". Scale có sẵn giữ nguyên giá trị đã lưu.",
+        customScaleCustomerHelp: "Khách tự nhập chiều dài scale trên wizard. Admin chỉ cần bật tùy chọn này.",
+        scaleTypes: {
+          single: "Scale chuẩn",
+          multiscale: "Multiscale",
+          custom: "Custom Scale",
+        },
+        customScaleModes: {
+          standard: "Chuẩn (một chiều dài)",
+          multiscale: "Dải multiscale",
+        },
         columns: { step: "Bước", group: "Nhóm", default: "Mặc định" },
         fields: {
           enName: "Tên (English)",
@@ -3079,7 +3135,13 @@ export const translations = {
           compatibility: "Hiện với lựa chọn trước đó",
           defaultForTypes: "Mặc định cho loại nhạc cụ",
           sheen: "Độ bóng (đi cùng loại finish)",
-          fretCount: "Số fret kế thừa",
+          fretCount: "Số fret",
+          scaleType: "Loại scale",
+          scaleLength: "Chiều dài scale",
+          scaleBass: "Scale phía bass",
+          scaleTreble: "Scale phía treble",
+          customScaleValue: "Chiều dài Custom Scale",
+          customScaleMode: "Định dạng Custom Scale",
           wizardStep: "Bước wizard",
           instrumentTypes: "Hiện với loại nhạc cụ",
           series: "Hiện với series",
@@ -3133,9 +3195,13 @@ export const translations = {
           FORWARD_COMPAT: "Tương thích chỉ được tham chiếu các nhóm đứng trước tùy chọn này.",
           INACTIVE_COMPAT: "Tương thích chỉ được tham chiếu tùy chọn đang dùng.",
           INCOMPATIBLE_DEFAULT: "Mặc định phải đang dùng và tương thích với loại nhạc cụ đó.",
+          IMMUTABLE: "Không thể đổi mã định danh sau khi tùy chọn đã được tạo.",
           NETWORK: "Không gửi được yêu cầu.",
           BUSY: "Hãy đợi thao tác hiện tại xong.",
           failure: "Yêu cầu thất bại. Hãy thử lại.",
+          fretCount: "Nhập số fret nguyên dương.",
+          scaleValue: "Nhập chiều dài custom scale, ví dụ 25.5\" hoặc 26.5\" – 28\".",
+          scaleEnds: "Nhập cả chiều dài phía bass và phía treble.",
         },
       },
       users: {
@@ -3759,7 +3825,7 @@ export const translations = {
       step1: {
         heading: "Chọn nhạc cụ",
         description:
-          "Bắt đầu với loại nhạc cụ, rồi chọn series, dáng thân, scale, số dây và radius.",
+          "Bắt đầu với loại nhạc cụ, rồi chọn series, dáng thân, scale, số dây, radius và số phím.",
         instrumentLabel: "Loại nhạc cụ",
         instrumentContact:
           "Không có loại nhạc cụ đang bật. Thử lại sau khi xưởng cập nhật Custom Build Setup.",
@@ -3768,12 +3834,19 @@ export const translations = {
         scaleLabel: "Scale length",
         stringsLabel: "Số dây",
         radiusLabel: "Radius fretboard",
+        fretCountLabel: "Số phím",
         seriesContact:
           "Hãy liên hệ xưởng để xác nhận series có thể làm cho loại nhạc cụ này.",
         shapeContact:
           "Hãy liên hệ xưởng để xác nhận dáng thân đàn cho series này.",
         scaleContact:
           "Hãy liên hệ xưởng để xác nhận scale length cho dáng đàn này.",
+        customScaleLabel: "Custom Scale",
+        customScaleHint: "{value}",
+        customScaleInputLabel: "Chiều dài scale của bạn",
+        customScalePlaceholder: "25.5\" hoặc 26.5\" – 28\"",
+        customScaleInputHelp: "Nhập scale chuẩn như 25.5\", 26.5\", 27\", 28\", hoặc dải multiscale như 25.5\" – 27.5\".",
+        customScaleError: "Nhập chiều dài scale để tiếp tục.",
         stringsContact:
           "Hãy liên hệ xưởng để xác nhận số dây cho cấu hình này.",
         radiusContact:
@@ -3952,6 +4025,9 @@ export const translations = {
         fretCountInherited:
           "{count} fret — lấy từ loại nhạc cụ đã chọn và không đổi ở bước này.",
         fretCountValue: "{count} fret",
+        fretCountInputLabel: "Số fret",
+        fretCountInputHelp: "Mặc định 24. Có thể nhập 22, 27, 30, hoặc bất kỳ số nguyên dương nào.",
+        fretCountError: "Nhập số fret nguyên dương.",
         fretCountUnknown:
           "Chưa có số fret đã xác nhận cho loại nhạc cụ này. Hãy xác nhận với xưởng.",
       },

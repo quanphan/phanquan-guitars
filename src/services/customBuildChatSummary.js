@@ -1,17 +1,22 @@
 import { wizardOptionLabel } from "../data/wizardCatalog.js";
 import { visibleReviewRows } from "../data/wizardDisplay.js";
 import { sanitizeReferenceImages } from "../data/referenceImages.js";
+import { isCustomScale, isMultiscale, scaleDisplayValue } from "../data/wizardScaleAttributes.js";
 
 function scaleDisplay(builder, t) {
   if (!builder?.scale) return null;
-  if (builder.scale.type === "multiscale") {
+  const display = scaleDisplayValue(builder.scale);
+  if (isCustomScale(builder.scale)) {
+    return builder.selections?.customScaleValue || t("customBuild.step1.customScaleLabel");
+  }
+  if (isMultiscale(builder.scale)) {
     return (
       t("customBuild.step1.multiscaleHint")
         .replace("{bass}", builder.scale.bass)
-        .replace("{treble}", builder.scale.treble) + ` (${builder.scale.display})`
+        .replace("{treble}", builder.scale.treble) + (display ? ` (${display})` : "")
     );
   }
-  return builder.scale.display || null;
+  return display || null;
 }
 
 export function customBuildReviewGroups({ t, builder, optionName }) {
@@ -62,8 +67,11 @@ export function customBuildReviewGroups({ t, builder, optionName }) {
           key: "fretCount",
           label: t("customBuild.summary.fretCount"),
           value:
-            builder.inheritedFretCount != null
-              ? t("customBuild.step3.fretCountValue").replace("{count}", String(builder.inheritedFretCount))
+            (builder.fretCount ?? builder.inheritedFretCount) != null
+              ? t("customBuild.step3.fretCountValue").replace(
+                  "{count}",
+                  String(builder.fretCount ?? builder.inheritedFretCount),
+                )
               : null,
         },
       ],

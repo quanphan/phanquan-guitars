@@ -10,6 +10,7 @@ import StepReviewSubmit from "../components/custom-build/steps/StepReviewSubmit.
 import StepNav from "../components/custom-build/StepNav.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import { wizardOptionLabel } from "../data/wizardCatalog.js";
+import { isCustomScale, scaleDisplayValue } from "../data/wizardScaleAttributes.js";
 import { visibleSummaryRows } from "../data/wizardDisplay.js";
 import { useCustomBuild } from "../hooks/useCustomBuild.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
@@ -48,7 +49,11 @@ export default function CustomBuild() {
     {
       key: "scale",
       label: t("customBuild.summary.scale"),
-      value: builder.scale?.display ?? null,
+      value: builder.scale
+        ? (isCustomScale(builder.scale)
+          ? (builder.selections.customScaleValue || t("customBuild.step1.customScaleLabel"))
+          : scaleDisplayValue(builder.scale, builder.selections.customScaleValue) || builder.scale.display)
+        : null,
     },
     {
       key: "strings",
@@ -262,8 +267,10 @@ export default function CustomBuild() {
                 selectSeries={builder.selectSeries}
                 selectShape={builder.selectShape}
                 selectScale={builder.selectScale}
+                setCustomScaleValue={builder.setCustomScaleValue}
                 selectStringCount={builder.selectStringCount}
                 selectRadius={builder.selectRadius}
+                selectFretCount={builder.selectFretCount}
               />
             ) : builder.currentStep === 2 ? (
               <StepBodyTop
@@ -288,6 +295,7 @@ export default function CustomBuild() {
                 selectFingerboardWood={builder.selectFingerboardWood}
                 selectNeckProfile={builder.selectNeckProfile}
                 selectFretSpec={builder.selectFretSpec}
+                selectFretCount={builder.selectFretCount}
               />
             ) : builder.currentStep === 4 ? (
               <StepElectronicsHardware
