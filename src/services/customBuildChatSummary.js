@@ -1,4 +1,4 @@
-import { wizardOptionLabel } from "../data/wizardCatalog.js";
+import { optionLabel, wizardOptionLabel } from "../data/wizardCatalog.js";
 import { visibleReviewRows } from "../data/wizardDisplay.js";
 import { sanitizeReferenceImages } from "../data/referenceImages.js";
 import { isCustomScale, isMultiscale, scaleDisplayValue } from "../data/wizardScaleAttributes.js";
@@ -38,7 +38,11 @@ export function customBuildReviewGroups({ t, builder, optionName, language }) {
               ? t("customBuild.strings.count").replace("{count}", String(selections.stringCount))
               : null,
         },
-        { key: "radius", label: t("customBuild.summary.radius"), value: builder.radius?.display ?? null },
+        {
+          key: "radius",
+          label: t("customBuild.summary.radius"),
+          value: builder.radius ? (optionLabel(builder.radius, language, t) || builder.radius.display || null) : null,
+        },
       ],
     },
     {

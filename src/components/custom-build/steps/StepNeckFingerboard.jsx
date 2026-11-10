@@ -207,12 +207,12 @@ export default function StepNeckFingerboard({
       </section>
       ) : null}
 
-      {availableFingerboardWoods.length > 0 ? (
-        <section className="mt-10">
-          <h3 className="text-[11px] uppercase tracking-[0.22em] text-gold">
-            {t("customBuild.step3.fingerboardLabel")}
-          </h3>
-          <div className="mt-4">
+      <section className="mt-10">
+        <h3 className="text-[11px] uppercase tracking-[0.22em] text-gold">
+          {t("customBuild.step3.fingerboardLabel")}
+        </h3>
+        <div className="mt-4">
+          {availableFingerboardWoods.length > 0 ? (
               <div
                 id="fingerboard-wood"
                 role="radiogroup"
@@ -233,9 +233,11 @@ export default function StepNeckFingerboard({
                   />
                 ))}
               </div>
-          </div>
-        </section>
-      ) : null}
+          ) : (
+            <p id="fingerboard-wood" className="text-sm text-muted">{t("customBuild.step3.contact")}</p>
+          )}
+        </div>
+      </section>
 
       {availableNeckProfiles.length > 0 ? (
       <section className="mt-10">

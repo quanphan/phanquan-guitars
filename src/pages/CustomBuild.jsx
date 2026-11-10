@@ -9,7 +9,7 @@ import StepNeckFingerboard from "../components/custom-build/steps/StepNeckFinger
 import StepReviewSubmit from "../components/custom-build/steps/StepReviewSubmit.jsx";
 import StepNav from "../components/custom-build/StepNav.jsx";
 import PageHeader from "../components/PageHeader.jsx";
-import { wizardOptionLabel } from "../data/wizardCatalog.js";
+import { optionLabel, wizardOptionLabel } from "../data/wizardCatalog.js";
 import { usesSecondaryBodyWood, usesSecondaryNeckWood } from "../data/wizardSeriesConstruction.js";
 import { isCustomScale, scaleDisplayValue } from "../data/wizardScaleAttributes.js";
 import { visibleSummaryRows } from "../data/wizardDisplay.js";
@@ -70,7 +70,9 @@ export default function CustomBuild() {
     {
       key: "radius",
       label: t("customBuild.summary.radius"),
-      value: builder.radius?.display ?? null,
+      value: builder.radius
+        ? optionLabel(builder.radius, language, t) || builder.radius.display || null
+        : null,
     },
     {
       key: "bodyPieces",

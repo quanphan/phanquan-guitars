@@ -11,6 +11,14 @@ export const STEP_THREE_FIELDS = [
   { key: "fretCount", targetId: "fret-count", labelKey: "customBuild.step3.fretCountLabel" },
 ];
 
+export function fingerboardMatchOptions(options) {
+  return (options || []).map((option) => ({
+    ...option,
+    bodyWoodIds: [],
+    topWoodIds: [],
+  }));
+}
+
 export function collectStepThreeMissing(selections, available = {}) {
   const missing = [];
   function add(key) {

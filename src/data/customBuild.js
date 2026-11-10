@@ -79,7 +79,7 @@ import {
   usesSecondaryBodyWood,
   usesSecondaryNeckWood,
 } from "./wizardSeriesConstruction.js";
-import { collectStepThreeMissing } from "./wizardStepThree.js";
+import { collectStepThreeMissing, fingerboardMatchOptions } from "./wizardStepThree.js";
 import {
   filterOptions as filterListedOptions,
   findSelectedOption,
@@ -819,8 +819,7 @@ export function getAvailableNeckConstructions(selections) {
 }
 
 export function getAvailableFingerboardWoods(selections) {
-  if (!selections.neckWoodId) return [];
-  return filterOptions(list("fingerboardWoods"), selections);
+  return filterOptions(fingerboardMatchOptions(list("fingerboardWoods")), selections);
 }
 
 export function getAvailableNeckProfiles(selections) {

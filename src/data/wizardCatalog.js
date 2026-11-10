@@ -148,13 +148,37 @@ export function interpretPublicCatalog(result) {
   return { ok: true, lists, catalog: result.catalog };
 }
 
+export function wizardChoiceKey(option) {
+  return [option?.optionId, option?.code, option?.id].filter((part) => part != null && String(part) !== "").join(":");
+}
+
+export function uniqueCatalogOptions(options) {
+  const byId = new Map();
+  const unique = [];
+  for (const option of options || []) {
+    if (!option) continue;
+    const key = String(option.id || option.optionId || "");
+    if (!key) {
+      unique.push(option);
+      continue;
+    }
+    if (byId.has(key)) {
+      unique[byId.get(key)] = option;
+      continue;
+    }
+    byId.set(key, unique.length);
+    unique.push(option);
+  }
+  return unique;
+}
+
 export function listsFromPublicCatalog(catalog) {
   if (!catalog || !Array.isArray(catalog.categories)) return null;
   const lists = {};
   for (const category of catalog.categories) {
     const key = CATEGORY_LIST_KEYS[category.id];
     if (!key) continue;
-    lists[key] = (category.options || [])
+    lists[key] = uniqueCatalogOptions(category.options || [])
       .filter((option) => option && option.active !== false)
       .map(toWizardOption)
       .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));

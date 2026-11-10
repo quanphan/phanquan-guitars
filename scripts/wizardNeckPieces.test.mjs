@@ -9,7 +9,8 @@ import {
 } from "../src/data/wizardSeriesConstruction.js";
 import { buildInquiryPayload, evaluateWizardNotesSelections } from "../src/services/customBuildPayload.js";
 import { buildInquiryDisplay, parseInquiryNotes } from "../src/services/inquiryDisplay.js";
-import { collectStepThreeMissing } from "../src/data/wizardStepThree.js";
+import { collectStepThreeMissing, fingerboardMatchOptions } from "../src/data/wizardStepThree.js";
+import { filterOptions } from "../src/data/wizardSelection.js";
 import { tFor } from "../src/i18n/translations.js";
 
 const lists = {
@@ -293,4 +294,54 @@ test("step three missing fields follow neck pieces, woods, and fret count rules"
   );
   assert.equal(tFor("en", "customBuild.step3.incomplete").includes("highlighted"), true);
   assert.equal(tFor("vi", "customBuild.step3.incomplete").includes("đánh dấu"), true);
+});
+
+test("fingerboard options stay visible without main neck wood and ignore stale body/top lists", () => {
+  const lists = {
+    instrumentTypes: [{ id: "electric-guitar", optionId: "instrument-type.electric-guitar", active: true }],
+    series: [{ id: "pq-h", optionId: "series.pq-h", active: true }],
+    shapes: [{ id: "double-cut", optionId: "body-shape.double-cut", active: true }],
+    bodyWoods: [{ id: "teak", optionId: "body-wood.teak", active: true }],
+    topWoods: [{ id: "exotic", optionId: "top-wood.exotic", active: true }],
+    neckWoods: [{ id: "hard-maple", optionId: "neck-wood.hard-maple", active: true }],
+    neckConstructions: [{ id: "set-neck", optionId: "neck-construction.set-neck", active: true }],
+    fingerboardWoods: [{
+      id: "ebony",
+      optionId: "fingerboard.ebony",
+      active: true,
+      instrumentTypeIds: ["electric-guitar"],
+      seriesIds: ["pq-h"],
+      shapeIds: ["double-cut"],
+      bodyWoodIds: ["mahogany"],
+      topWoodIds: ["maple"],
+      neckWoodIds: ["hard-maple"],
+      neckConstructionIds: ["set-neck"],
+    }],
+  };
+  const selected = {
+    instrumentTypeId: "electric-guitar",
+    seriesId: "pq-h",
+    shapeId: "double-cut",
+    bodyWoodId: "teak",
+    topWoodId: "exotic",
+    neckWoodId: null,
+    neckConstructionId: "set-neck",
+  };
+  assert.deepEqual(
+    filterOptions(lists.fingerboardWoods, selected, lists, "fingerboard").map((item) => item.id),
+    [],
+  );
+  assert.deepEqual(
+    filterOptions(fingerboardMatchOptions(lists.fingerboardWoods), selected, lists, "fingerboard").map((item) => item.id),
+    ["ebony"],
+  );
+  assert.deepEqual(
+    filterOptions(
+      fingerboardMatchOptions(lists.fingerboardWoods),
+      { ...selected, neckWoodId: "hard-maple" },
+      lists,
+      "fingerboard",
+    ).map((item) => item.id),
+    ["ebony"],
+  );
 });

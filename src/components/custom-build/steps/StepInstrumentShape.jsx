@@ -1,4 +1,4 @@
-import { optionDescription, optionLabel } from "../../../data/wizardCatalog.js";
+import { optionDescription, optionLabel, wizardChoiceKey } from "../../../data/wizardCatalog.js";
 import {
   isCustomScale,
   isMultiscale,
@@ -185,7 +185,7 @@ export default function StepInstrumentShape({
                 const multi = isMultiscale(scale);
                 return (
                 <ChoiceButton
-                  key={scale.id}
+                  key={wizardChoiceKey(scale)}
                   selected={selections.scaleId === scale.id}
                   onSelect={() => selectScale(scale.id)}
                   label={label}
@@ -244,7 +244,7 @@ export default function StepInstrumentShape({
                       : fromOption || String(option.value);
                 return (
                 <ChoiceButton
-                  key={option.id}
+                  key={wizardChoiceKey(option)}
                   selected={selections.stringCount === option.value}
                   onSelect={() => selectStringCount(option.value)}
                   label={label}
@@ -266,10 +266,10 @@ export default function StepInstrumentShape({
               className="flex flex-wrap gap-3"
             >
               {availableRadii.map((radius) => {
-                const label = radius.display || optionLabel(radius, language, t);
+                const label = optionLabel(radius, language, t) || radius.display;
                 return (
                 <ChoiceButton
-                  key={radius.id}
+                  key={wizardChoiceKey(radius)}
                   selected={selections.radiusId === radius.id}
                   onSelect={() => selectRadius(radius.id)}
                   label={label}

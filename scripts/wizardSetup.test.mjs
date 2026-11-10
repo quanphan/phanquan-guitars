@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
-import { interpretPublicCatalog, listsFromPublicCatalog, optionLabel, optionMatchesAlias, wizardOptionLabel } from "../src/data/wizardCatalog.js";
+import { interpretPublicCatalog, listsFromPublicCatalog, optionLabel, optionMatchesAlias, uniqueCatalogOptions, wizardChoiceKey, wizardOptionLabel } from "../src/data/wizardCatalog.js";
 import { hasConfiguredOptions, visibleSummaryRows } from "../src/data/wizardDisplay.js";
 import {
   addTargetCategoryId,
@@ -46,6 +46,50 @@ test("wizard setup copy exists in English and Vietnamese", () => {
   assert.equal(tFor("en", "customBuild.summary.customerSuppliedParts"), "Customer-supplied parts");
   assert.equal(tFor("en", "admin.wizardSetup.noImage"), "No image");
   assert.equal(tFor("vi", "admin.wizardSetup.noImage"), "Không có ảnh");
+});
+
+test("public catalog keeps one radius per database option id and does not clone by series", () => {
+  const lists = listsFromPublicCatalog({
+    categories: [
+      {
+        id: "radius",
+        options: [
+          { id: "radius.16", code: "16", name: "9.5\"", active: true, attributes: { display: "16″" }, compatibility: { seriesIds: ["pq-boutique-series", "headless"] } },
+          { id: "radius.16-2", code: "10", name: "10", active: true, attributes: { display: "16″" }, compatibility: { seriesIds: ["pq-boutique-series"] } },
+          { id: "radius.16-2", code: "16-2", name: "16″ copy", active: true, attributes: { display: "16″" }, compatibility: { seriesIds: ["headless"] } },
+          { id: "radius.12", code: "12", name: "12", active: true, compatibility: { seriesIds: ["pq-boutique-series"] } },
+        ],
+      },
+    ],
+  });
+  assert.deepEqual(
+    lists.radii.map((item) => ({ optionId: item.optionId, code: item.code, id: item.id })),
+    [
+      { optionId: "radius.16", code: "16", id: "16" },
+      { optionId: "radius.16-2", code: "16-2", id: "16-2" },
+      { optionId: "radius.12", code: "12", id: "12" },
+    ],
+  );
+  const labels = lists.radii.map((item) => optionLabel(item, "en", tFor.bind(null, "en")));
+  assert.deepEqual(labels, ["9.5\"", "16″ copy", "12"]);
+  assert.equal(new Set(lists.radii.map(wizardChoiceKey)).size, lists.radii.length);
+  const selected = { seriesId: "pq-boutique-series" };
+  const seriesLists = {
+    series: [{ id: "pq-boutique-series", optionId: "series.headless", code: "pq-boutique-series", active: true }],
+    radii: lists.radii,
+  };
+  assert.deepEqual(
+    filterOptions(lists.radii, selected, seriesLists, "radius").map((item) => item.id),
+    ["16", "16-2", "12"],
+  );
+});
+
+test("uniqueCatalogOptions does not merge different database ids that share a name", () => {
+  const options = uniqueCatalogOptions([
+    { id: "radius.16", code: "16", name: "16″" },
+    { id: "radius.20", code: "20", name: "16″" },
+  ]);
+  assert.deepEqual(options.map((item) => item.id), ["radius.16", "radius.20"]);
 });
 
 test("wizard setup rows stay unique when two options share an id", () => {
