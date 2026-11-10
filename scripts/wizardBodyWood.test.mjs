@@ -10,6 +10,7 @@ import {
 import { buildInquiryPayload, evaluateWizardNotesSelections } from "../src/services/customBuildPayload.js";
 import { buildInquiryDisplay, parseInquiryNotes } from "../src/services/inquiryDisplay.js";
 import { tFor } from "../src/i18n/translations.js";
+import { collectStepTwoMissing } from "../src/data/wizardStepTwo.js";
 
 const lists = {
   instrumentTypes: [{ id: "electric-guitar", optionId: "instrument-type.electric-guitar", active: true }],
@@ -127,8 +128,43 @@ test("prune keeps secondary wood when switching to one piece and drops invalid c
   assert.equal(onePiece.bodyWoodId, "mahogany");
 
   const unknown = pruneSelections({ ...kept, bodyConstructionId: "not-on-series" }, lists);
-  assert.equal(unknown.bodyConstructionId, null);
+  assert.equal(unknown.bodyConstructionId, "single-piece");
   assert.equal(unknown.secondaryBodyWoodId, "alder");
+});
+
+test("visible dropdown defaults fill empty body construction and wood without a second click", () => {
+  const filled = pruneSelections({
+    instrumentTypeId: "electric-guitar",
+    seriesId: "solid-body",
+    shapeId: "offset",
+    scaleId: "25.5",
+    bodyConstructionId: null,
+    bodyWoodId: null,
+  }, lists);
+  assert.equal(filled.bodyConstructionId, "single-piece");
+  assert.equal(filled.bodyWoodId, "mahogany");
+  const twoPieceFirst = {
+    ...lists,
+    series: [{
+      ...lists.series[0],
+      bodyConstruction: [
+        { id: "2-pieces", name: "2 Pieces", active: true, sortOrder: 0, pieceCount: 2 },
+        { id: "single-piece", name: "Single Piece", active: true, sortOrder: 1, pieceCount: 1 },
+      ],
+    }],
+  };
+  const laminated = pruneSelections({
+    instrumentTypeId: "electric-guitar",
+    seriesId: "solid-body",
+    shapeId: "offset",
+    scaleId: "25.5",
+    bodyConstructionId: null,
+    bodyWoodId: null,
+    secondaryBodyWoodId: null,
+  }, twoPieceFirst);
+  assert.equal(laminated.bodyConstructionId, "2-pieces");
+  assert.equal(laminated.bodyWoodId, "mahogany");
+  assert.equal(laminated.secondaryBodyWoodId, "alder");
 });
 
 function bodyWoodStepReady(selections, series) {
@@ -139,6 +175,39 @@ function bodyWoodStepReady(selections, series) {
   if (usesSecondaryBodyWood(construction) && !selections.secondaryBodyWoodId) return false;
   return true;
 }
+
+test("step two missing fields include body pieces when the dropdown looks selected but state is empty", () => {
+  const available = {
+    constructions: [{ id: "single-piece" }, { id: "2-pieces" }],
+    bodyWoods: [{ id: "mahogany" }],
+    usesSecondary: false,
+    topApplicable: true,
+    tops: [{ id: "flamed-maple" }],
+  };
+  assert.deepEqual(
+    collectStepTwoMissing(
+      { bodyConstructionId: null, bodyWoodId: "mahogany", topWoodId: "flamed-maple" },
+      available,
+    ).map((item) => item.key),
+    ["bodyConstructionId"],
+  );
+  assert.deepEqual(
+    collectStepTwoMissing(
+      { bodyConstructionId: "single-piece", bodyWoodId: "mahogany", topWoodId: "flamed-maple" },
+      available,
+    ).map((item) => item.key),
+    [],
+  );
+  assert.equal(
+    collectStepTwoMissing(
+      { bodyConstructionId: "2-pieces", bodyWoodId: "mahogany", topWoodId: "flamed-maple" },
+      { ...available, usesSecondary: true },
+    ).some((item) => item.key === "secondaryBodyWoodId"),
+    true,
+  );
+  assert.equal(tFor("en", "customBuild.step2.incomplete").includes("highlighted"), true);
+  assert.equal(tFor("vi", "customBuild.step2.incomplete").includes("đánh dấu"), true);
+});
 
 test("step two requires construction and secondary wood only when they apply", () => {
   const series = lists.series[0];

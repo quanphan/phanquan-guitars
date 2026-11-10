@@ -63,6 +63,7 @@ import {
   getAvailableBodyConstructions,
   getBodyConstructionById,
   isStepTwoComplete,
+  stepTwoMissingFields,
   isTopApplicable,
   isTunersApplicable,
   pruneSelections,
@@ -127,6 +128,7 @@ export function useCustomBuild() {
   const submitLockRef = useRef(false);
   const catalogRef = useRef(null);
   const [submitAttempt, setSubmitAttempt] = useState(0);
+  const [stepTwoAttempted, setStepTwoAttempted] = useState(false);
   const [stepThreeAttempted, setStepThreeAttempted] = useState(false);
   const [catalogTick, setCatalogTick] = useState(0);
   const [catalogSource, setCatalogSource] = useState("loading");
@@ -378,6 +380,7 @@ export function useCustomBuild() {
 
   const stepOneComplete = isStepOneComplete(selections);
   const stepTwoComplete = isStepTwoComplete(selections);
+  const stepTwoMissing = stepTwoMissingFields(selections);
   const stepThreeComplete = isStepThreeComplete(selections);
   const stepThreeMissing = stepThreeMissingFields(selections);
   const stepFourComplete = isStepFourComplete(selections);
@@ -396,9 +399,15 @@ export function useCustomBuild() {
               : currentStep < totalSteps;
 
   const goNext = () => {
-    if (currentStep === 3 && !stepThreeComplete) {
-      setStepThreeAttempted(true);
-      const targetId = stepThreeMissing[0]?.targetId;
+    const attemptedMissing = currentStep === 2
+      ? stepTwoMissing
+      : currentStep === 3
+        ? stepThreeMissing
+        : [];
+    if ((currentStep === 2 && !stepTwoComplete) || (currentStep === 3 && !stepThreeComplete)) {
+      if (currentStep === 2) setStepTwoAttempted(true);
+      if (currentStep === 3) setStepThreeAttempted(true);
+      const targetId = attemptedMissing[0]?.targetId;
       if (targetId && typeof document !== "undefined") {
         const node = document.getElementById(targetId);
         node?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -407,6 +416,7 @@ export function useCustomBuild() {
       return;
     }
     if (!canContinue) return;
+    if (currentStep === 2) setStepTwoAttempted(false);
     if (currentStep === 3) setStepThreeAttempted(false);
     setCurrentStep((step) => Math.min(step + 1, totalSteps));
   };
@@ -463,6 +473,8 @@ export function useCustomBuild() {
     setConfigIssueStep(null);
     setSubmitStatus(empty.submitStatus);
     setInquiryReference(empty.inquiryReference);
+    setStepTwoAttempted(false);
+    setStepThreeAttempted(false);
     setCurrentStep(empty.currentStep);
   };
 
@@ -746,6 +758,8 @@ export function useCustomBuild() {
     inquiryConfigured: isCustomBuildInquiryConfigured(),
     submitAttempt,
     canContinue,
+    stepTwoMissing,
+    stepTwoAttempted,
     stepThreeMissing,
     stepThreeAttempted,
     selectInstrumentType,

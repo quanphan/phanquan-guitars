@@ -1540,6 +1540,7 @@ export const translations = {
           "Contact the workshop to confirm top woods for this body wood.",
         topNotApplicable: "Not applicable",
         noImage: "No sample",
+        incomplete: "Select the highlighted fields before continuing.",
       },
       woods: {
         none: {
@@ -4027,6 +4028,7 @@ export const translations = {
           "Hãy liên hệ xưởng để xác nhận gỗ mặt cho gỗ thân này.",
         topNotApplicable: "Không áp dụng",
         noImage: "Không có mẫu",
+        incomplete: "Hãy chọn các mục được đánh dấu trước khi tiếp tục.",
       },
       woods: {
         none: {

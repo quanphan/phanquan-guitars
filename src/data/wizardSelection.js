@@ -3,6 +3,10 @@ import { isCustomScale } from "./wizardScaleAttributes.js";
 import {
   findSeriesConstructionOption,
   findSeriesNeckConstructionOption,
+  seriesBodyConstructionOptions,
+  seriesNeckConstructionOptions,
+  usesSecondaryBodyWood,
+  usesSecondaryNeckWood,
 } from "./wizardSeriesConstruction.js";
 import { allowedCompatibilityFields } from "./wizardSetupLayout.js";
 
@@ -194,6 +198,53 @@ export function listedTuners(lists, selections) {
 export function optionIdEquals(option, selected) {
   if (!option || selected == null || selected === "") return false;
   return selectionAliases(option, option.id).has(String(selected));
+}
+
+function firstOptionId(options) {
+  const item = (options || []).find((option) => option && option.id != null && String(option.id) !== "");
+  return item ? item.id : null;
+}
+
+function otherOptionId(options, selectedId) {
+  const other = (options || []).find((option) => option && !optionIdEquals(option, selectedId));
+  return other?.id || firstOptionId(options);
+}
+
+export function applyVisibleSelectDefaults(selections, lists = {}) {
+  const next = { ...(selections || {}) };
+  if (!next.seriesId || !next.shapeId) return next;
+  const series = findSelectedOption(lists.series, next.seriesId);
+  const constructions = seriesBodyConstructionOptions(series);
+  if (!next.bodyConstructionId) {
+    const id = firstOptionId(constructions);
+    if (id) next.bodyConstructionId = id;
+  }
+  const bodyWoods = filterOptions(lists.bodyWoods || [], next, lists, "body-wood");
+  if (!next.bodyWoodId) {
+    const id = firstOptionId(bodyWoods);
+    if (id) next.bodyWoodId = id;
+  }
+  const bodyConstruction = findSeriesConstructionOption(series, next.bodyConstructionId);
+  if (usesSecondaryBodyWood(bodyConstruction) && !next.secondaryBodyWoodId) {
+    const id = otherOptionId(bodyWoods, next.bodyWoodId);
+    if (id) next.secondaryBodyWoodId = id;
+  }
+  const neckPieces = seriesNeckConstructionOptions(series);
+  if (!next.neckPiecesId) {
+    const id = firstOptionId(neckPieces);
+    if (id) next.neckPiecesId = id;
+  }
+  const neckWoods = filterOptions(lists.neckWoods || [], next, lists, "neck-wood");
+  if (!next.neckWoodId) {
+    const id = firstOptionId(neckWoods);
+    if (id) next.neckWoodId = id;
+  }
+  const neckPiece = findSeriesNeckConstructionOption(series, next.neckPiecesId);
+  if (usesSecondaryNeckWood(neckPiece) && !next.secondaryNeckWoodId) {
+    const id = otherOptionId(neckWoods, next.neckWoodId);
+    if (id) next.secondaryNeckWoodId = id;
+  }
+  return next;
 }
 
 function stringCountEquals(option, selected) {
@@ -416,7 +467,7 @@ export function pruneSelections(selections, lists) {
 
   if (isCustomerSuppliedParts(next)) clearStepFourOptions(next);
 
-  return next;
+  return applyVisibleSelectDefaults(next, lists);
 }
 
 function clearStepThreeSelections(next) {

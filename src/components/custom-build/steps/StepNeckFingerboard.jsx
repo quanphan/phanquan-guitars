@@ -155,7 +155,6 @@ export default function StepNeckFingerboard({
             options={pieceChoices}
             disabled={pieceChoices.length === 0}
             hint={piecesHint}
-            allowEmpty={pieceChoices.length > 0}
             invalid={missingKeys.has("neckPiecesId")}
           />
           {availableNeckWoods.length > 0 ? (
@@ -165,7 +164,6 @@ export default function StepNeckFingerboard({
               value={selections.neckWoodId}
               onChange={selectNeckWood}
               options={woodChoices}
-              allowEmpty
               invalid={missingKeys.has("neckWoodId")}
             />
           ) : (
@@ -178,7 +176,6 @@ export default function StepNeckFingerboard({
               value={selections.secondaryNeckWoodId}
               onChange={selectSecondaryNeckWood}
               options={woodChoices}
-              allowEmpty
               invalid={missingKeys.has("secondaryNeckWoodId")}
             />
           ) : null}

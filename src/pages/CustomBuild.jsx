@@ -315,6 +315,7 @@ export default function CustomBuild() {
                 selectBodyWood={builder.selectBodyWood}
                 selectSecondaryBodyWood={builder.selectSecondaryBodyWood}
                 selectTopWood={builder.selectTopWood}
+                missingFields={builder.stepTwoAttempted ? builder.stepTwoMissing : []}
               />
             ) : builder.currentStep === 3 ? (
               <StepNeckFingerboard
@@ -398,7 +399,7 @@ export default function CustomBuild() {
               backTo={isFirstStep ? "/guitars" : undefined}
               onBack={isFirstStep ? undefined : builder.goBack}
               onContinue={builder.goNext}
-              continueDisabled={builder.currentStep === 3 ? false : !builder.canContinue}
+              continueDisabled={builder.currentStep === 2 || builder.currentStep === 3 ? false : !builder.canContinue}
               continueHidden={isLastStep}
               backDisabled={
                 builder.submitStatus === "submitting" ||

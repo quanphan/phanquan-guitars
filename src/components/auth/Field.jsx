@@ -1,3 +1,5 @@
+import { useLayoutEffect, useRef } from "react";
+
 export const fieldClass =
   "mt-2 w-full border border-white/10 bg-ink px-4 py-3 text-sm text-ivory placeholder:text-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold";
 export const errorFieldClass =
@@ -23,11 +25,22 @@ export function Select({
     onChange(event.target.value || null);
   }
 
+  const selected = value == null || value === "" ? "" : String(value);
+  const matched = options.some((option) => String(option.value) === selected);
+  const fallback = !allowEmpty && !disabled && options.length > 0 && !matched ? options[0].value : null;
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
+  useLayoutEffect(() => {
+    if (fallback == null || typeof onChangeRef.current !== "function") return;
+    onChangeRef.current(fallback);
+  }, [fallback]);
+
   const select = (
     <select
       id={id}
       aria-label={ariaLabel || label}
-      value={value || ""}
+      value={fallback != null ? fallback : selected}
       onChange={handleChange}
       disabled={disabled}
       className={`${invalid ? errorFieldClass : label ? fieldClass : fieldClass.replace("mt-2 ", "")}${disabled ? " cursor-not-allowed bg-ink/60 text-muted" : ""}`}

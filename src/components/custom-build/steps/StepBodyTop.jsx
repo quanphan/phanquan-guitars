@@ -1,7 +1,8 @@
 import { mediaUrl } from "../../../config/api.js";
 import FitImage from "../../FitImage.jsx";
 import { Select } from "../../auth/Field.jsx";
-import { choiceImageSrc, optionDescription, optionLabel } from "../../../data/wizardCatalog.js";
+import { choiceImageSrc, optionDescription, optionLabel, wizardChoiceKey } from "../../../data/wizardCatalog.js";
+import { optionIdEquals } from "../../../data/wizardSelection.js";
 import { usesSecondaryBodyWood } from "../../../data/wizardSeriesConstruction.js";
 import { useLanguage } from "../../../i18n/LanguageContext.jsx";
 import ChoiceButton from "../ChoiceButton.jsx";
@@ -60,8 +61,10 @@ export default function StepBodyTop({
   selectBodyWood,
   selectSecondaryBodyWood,
   selectTopWood,
+  missingFields = [],
 }) {
   const { t, language } = useLanguage();
+  const missingKeys = new Set((missingFields || []).map((item) => item.key));
   const selectedConstruction = availableBodyConstructions.find((item) => item.id === selections.bodyConstructionId);
   const showSecondary = usesSecondaryBodyWood(selectedConstruction);
   const woodChoices = availableBodyWoods.map((wood) => ({
@@ -91,6 +94,14 @@ export default function StepBodyTop({
       <p className="mt-4 max-w-2xl text-xs leading-relaxed text-muted">
         {t("customBuild.provisional")}
       </p>
+      {missingFields.length ? (
+        <p id="step2-incomplete" className="mt-6 border border-gold/40 bg-gold/10 px-4 py-3 text-sm text-ivory" role="alert">
+          {t("customBuild.step2.incomplete")}
+          <span className="mt-2 block text-xs uppercase tracking-[0.14em] text-gold">
+            {missingFields.map((item) => t(item.labelKey)).join(" · ")}
+          </span>
+        </p>
+      ) : null}
 
       {showBodySection ? (
       <section className="mt-10">
@@ -106,6 +117,7 @@ export default function StepBodyTop({
             options={constructionChoices}
             disabled={constructionChoices.length === 0}
             hint={constructionHint}
+            invalid={missingKeys.has("bodyConstructionId")}
           />
           {availableBodyWoods.length > 0 ? (
             <Select
@@ -114,6 +126,7 @@ export default function StepBodyTop({
               value={selections.bodyWoodId}
               onChange={selectBodyWood}
               options={woodChoices}
+              invalid={missingKeys.has("bodyWoodId")}
             />
           ) : (
             <p className="text-sm text-muted">{t("customBuild.step2.bodyContact")}</p>
@@ -125,6 +138,7 @@ export default function StepBodyTop({
               value={selections.secondaryBodyWoodId}
               onChange={selectSecondaryBodyWood}
               options={woodChoices}
+              invalid={missingKeys.has("secondaryBodyWoodId")}
             />
           ) : null}
         </div>
@@ -140,15 +154,17 @@ export default function StepBodyTop({
           </h3>
           <div className="mt-4">
               <div
+                id="top-wood"
                 role="radiogroup"
                 aria-label={t("customBuild.step2.topLabel")}
-                className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
+                aria-invalid={missingKeys.has("topWoodId") || undefined}
+                className={`grid gap-3 sm:grid-cols-2 xl:grid-cols-3${missingKeys.has("topWoodId") ? " rounded-sm ring-1 ring-gold/70 p-1" : ""}`}
               >
                 {availableTopWoods.map((wood) => (
                   <WoodCard
-                    key={wood.id}
+                    key={wizardChoiceKey(wood)}
                     wood={wood}
-                    selected={selections.topWoodId === wood.id}
+                    selected={optionIdEquals(wood, selections.topWoodId)}
                     onSelect={() => selectTopWood(wood.id)}
                     t={t}
                     language={language}

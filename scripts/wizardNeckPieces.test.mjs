@@ -157,8 +157,22 @@ test("prune keeps secondary neck wood when switching to one piece and does not m
   assert.equal(onePiece.neckWoodId, "roasted-maple");
 
   const unknown = pruneSelections({ ...kept, neckPiecesId: "not-on-series" }, lists);
-  assert.equal(unknown.neckPiecesId, null);
+  assert.equal(unknown.neckPiecesId, "single-piece");
   assert.equal(unknown.secondaryNeckWoodId, "mahogany");
+});
+
+test("visible dropdown defaults fill empty neck pieces and wood without a second click", () => {
+  const filled = pruneSelections({
+    instrumentTypeId: "electric-guitar",
+    seriesId: "solid-body",
+    shapeId: "offset",
+    scaleId: "25.5",
+    bodyWoodId: "mahogany",
+    neckPiecesId: null,
+    neckWoodId: null,
+  }, lists);
+  assert.equal(filled.neckPiecesId, "single-piece");
+  assert.equal(filled.neckWoodId, "roasted-maple");
 });
 
 test("inquiry notes store neck pieces without colliding with bolt-on neck construction", () => {

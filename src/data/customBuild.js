@@ -79,6 +79,7 @@ import {
   usesSecondaryBodyWood,
   usesSecondaryNeckWood,
 } from "./wizardSeriesConstruction.js";
+import { collectStepTwoMissing } from "./wizardStepTwo.js";
 import { collectStepThreeMissing, fingerboardMatchOptions } from "./wizardStepThree.js";
 import {
   filterOptions as filterListedOptions,
@@ -974,18 +975,25 @@ export function isStepOneComplete(selections) {
   return Boolean(selections.radiusId);
 }
 
+export function stepTwoAvailability(selections) {
+  return {
+    constructions: getAvailableBodyConstructions(selections),
+    bodyWoods: getAvailableBodyWoods(selections),
+    usesSecondary: usesSecondaryBodyWoodSelection(selections),
+    topApplicable: isTopApplicable(selections),
+    tops: getAvailableTopWoods(selections),
+  };
+}
+
+export function stepTwoMissingFields(selections) {
+  if (!isStepOneComplete(selections)) return [];
+  return collectStepTwoMissing(selections, stepTwoAvailability(selections));
+}
+
 export function isStepTwoComplete(selections) {
   if (!isStepOneComplete(selections)) return false;
-  const constructions = getAvailableBodyConstructions(selections);
-  if (constructions.length > 0 && !selections.bodyConstructionId) return false;
-  const bodies = getAvailableBodyWoods(selections);
-  if (bodies.length === 0) return false;
-  if (!selections.bodyWoodId) return false;
-  if (usesSecondaryBodyWoodSelection(selections) && !selections.secondaryBodyWoodId) return false;
-  if (!isTopApplicable(selections)) return true;
-  const tops = getAvailableTopWoods(selections);
-  if (tops.length === 0) return true;
-  return Boolean(selections.topWoodId);
+  if (getAvailableBodyWoods(selections).length === 0) return false;
+  return stepTwoMissingFields(selections).length === 0;
 }
 
 function requiredIfOptions(options, selectedId) {
