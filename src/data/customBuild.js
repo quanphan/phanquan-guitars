@@ -68,7 +68,6 @@ import {
   DEFAULT_FRET_COUNT,
   isCustomScale,
   isValidCustomScaleValue,
-  isValidFretCountSelection,
   parsePositiveFretCount,
   shouldKeepCustomScaleValue,
 } from "./wizardScaleAttributes.js";
@@ -80,6 +79,7 @@ import {
   usesSecondaryBodyWood,
   usesSecondaryNeckWood,
 } from "./wizardSeriesConstruction.js";
+import { collectStepThreeMissing } from "./wizardStepThree.js";
 import {
   filterOptions as filterListedOptions,
   findSelectedOption,
@@ -994,28 +994,26 @@ function requiredIfOptions(options, selectedId) {
   return Boolean(selectedId);
 }
 
+export function stepThreeAvailability(selections) {
+  return {
+    neckPieces: getAvailableNeckPieces(selections),
+    neckWoods: getAvailableNeckWoods(selections),
+    usesSecondary: usesSecondaryNeckWoodSelection(selections),
+    constructions: getAvailableNeckConstructions(selections),
+    fingerboards: getAvailableFingerboardWoods(selections),
+    profiles: getAvailableNeckProfiles(selections),
+    fretSpecs: getAvailableFretSpecs(selections),
+  };
+}
+
+export function stepThreeMissingFields(selections) {
+  if (!isStepTwoComplete(selections)) return [];
+  return collectStepThreeMissing(selections, stepThreeAvailability(selections));
+}
+
 export function isStepThreeComplete(selections) {
   if (!isStepTwoComplete(selections)) return false;
-  const pieces = getAvailableNeckPieces(selections);
-  if (pieces.length > 0 && !selections.neckPiecesId) return false;
-  if (usesSecondaryNeckWoodSelection(selections) && !selections.secondaryNeckWoodId) return false;
-  return (
-    requiredIfOptions(getAvailableNeckWoods(selections), selections.neckWoodId) &&
-    requiredIfOptions(
-      getAvailableNeckConstructions(selections),
-      selections.neckConstructionId,
-    ) &&
-    requiredIfOptions(
-      getAvailableFingerboardWoods(selections),
-      selections.fingerboardWoodId,
-    ) &&
-    requiredIfOptions(
-      getAvailableNeckProfiles(selections),
-      selections.neckProfileId,
-    ) &&
-    requiredIfOptions(getAvailableFretSpecs(selections), selections.fretSpecId) &&
-    isValidFretCountSelection(selections.fretCount)
-  );
+  return stepThreeMissingFields(selections).length === 0;
 }
 
 export function isStepFourComplete(selections) {

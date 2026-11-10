@@ -1600,6 +1600,7 @@ export const translations = {
         fretCountError: "Enter a positive whole number of frets.",
         fretCountUnknown:
           "No confirmed fret count is listed for this instrument type. Confirm with the workshop.",
+        incomplete: "Select the highlighted fields before continuing.",
       },
       neckWoods: {
         "roasted-maple": {
@@ -4086,6 +4087,7 @@ export const translations = {
         fretCountError: "Nhập số fret nguyên dương.",
         fretCountUnknown:
           "Chưa có số fret đã xác nhận cho loại nhạc cụ này. Hãy xác nhận với xưởng.",
+        incomplete: "Hãy chọn các mục được đánh dấu trước khi tiếp tục.",
       },
       neckWoods: {
         "roasted-maple": {

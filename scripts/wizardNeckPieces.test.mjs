@@ -9,6 +9,7 @@ import {
 } from "../src/data/wizardSeriesConstruction.js";
 import { buildInquiryPayload, evaluateWizardNotesSelections } from "../src/services/customBuildPayload.js";
 import { buildInquiryDisplay, parseInquiryNotes } from "../src/services/inquiryDisplay.js";
+import { collectStepThreeMissing } from "../src/data/wizardStepThree.js";
 import { tFor } from "../src/i18n/translations.js";
 
 const lists = {
@@ -235,4 +236,61 @@ test("inquiry display adds neck piece rows without changing legacy neck wood mea
   assert.equal(modernNeck.rows.find((row) => row.labelKey === "customBuild.summary.neckPieces")?.value, "3 Piece");
   assert.equal(modernNeck.rows.find((row) => row.labelKey === "customBuild.summary.mainNeckWood")?.value, "Roasted maple");
   assert.equal(modernNeck.rows.find((row) => row.labelKey === "customBuild.summary.secondaryNeckWood")?.value, "Mahogany");
+});
+
+test("step three missing fields follow neck pieces, woods, and fret count rules", () => {
+  const available = {
+    neckPieces: [{ id: "1-piece" }, { id: "3-piece" }],
+    neckWoods: [{ id: "roasted-maple" }],
+    constructions: [{ id: "set-neck" }],
+    fingerboards: [{ id: "ebony" }],
+    profiles: [{ id: "thin-c" }],
+    fretSpecs: [{ id: "stainless-jumbo" }],
+  };
+  const filled = {
+    neckPiecesId: "1-piece",
+    neckWoodId: "roasted-maple",
+    neckConstructionId: "set-neck",
+    fingerboardWoodId: "ebony",
+    neckProfileId: "thin-c",
+    fretSpecId: "stainless-jumbo",
+    fretCount: 24,
+  };
+  assert.deepEqual(collectStepThreeMissing(filled, available).map((item) => item.key), []);
+  assert.equal(
+    collectStepThreeMissing({ ...filled, neckWoodId: null }, available).some((item) => item.key === "neckWoodId"),
+    true,
+  );
+  assert.equal(
+    collectStepThreeMissing({ ...filled, neckPiecesId: "3-piece" }, { ...available, usesSecondary: true })
+      .some((item) => item.key === "secondaryNeckWoodId"),
+    true,
+  );
+  assert.deepEqual(
+    collectStepThreeMissing(
+      { ...filled, neckPiecesId: "3-piece", secondaryNeckWoodId: "mahogany" },
+      { ...available, usesSecondary: true },
+    ).map((item) => item.key),
+    [],
+  );
+  assert.equal(
+    collectStepThreeMissing({ ...filled, neckPiecesId: "1-piece", secondaryNeckWoodId: null }, available)
+      .some((item) => item.key === "secondaryNeckWoodId"),
+    false,
+  );
+  assert.equal(
+    collectStepThreeMissing({ ...filled, fretCount: "0" }, available).some((item) => item.key === "fretCount"),
+    true,
+  );
+  assert.equal(
+    collectStepThreeMissing({ ...filled, fretCount: 27 }, available).some((item) => item.key === "fretCount"),
+    false,
+  );
+  assert.equal(
+    collectStepThreeMissing(filled, { ...available, constructions: [], profiles: [], fretSpecs: [] })
+      .some((item) => item.key === "neckConstructionId" || item.key === "neckProfileId"),
+    false,
+  );
+  assert.equal(tFor("en", "customBuild.step3.incomplete").includes("highlighted"), true);
+  assert.equal(tFor("vi", "customBuild.step3.incomplete").includes("đánh dấu"), true);
 });

@@ -191,7 +191,7 @@ export function listedTuners(lists, selections) {
   return filterOptions(catalog.tuners || [], selections, catalog, "tuners");
 }
 
-function optionIdEquals(option, selected) {
+export function optionIdEquals(option, selected) {
   if (!option || selected == null || selected === "") return false;
   return selectionAliases(option, option.id).has(String(selected));
 }

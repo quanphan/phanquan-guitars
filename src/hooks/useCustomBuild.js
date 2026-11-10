@@ -59,6 +59,7 @@ import {
   isStepFourComplete,
   isStepOneComplete,
   isStepThreeComplete,
+  stepThreeMissingFields,
   getAvailableBodyConstructions,
   getBodyConstructionById,
   isStepTwoComplete,
@@ -126,6 +127,7 @@ export function useCustomBuild() {
   const submitLockRef = useRef(false);
   const catalogRef = useRef(null);
   const [submitAttempt, setSubmitAttempt] = useState(0);
+  const [stepThreeAttempted, setStepThreeAttempted] = useState(false);
   const [catalogTick, setCatalogTick] = useState(0);
   const [catalogSource, setCatalogSource] = useState("loading");
   const [catalogRetry, setCatalogRetry] = useState(0);
@@ -377,6 +379,7 @@ export function useCustomBuild() {
   const stepOneComplete = isStepOneComplete(selections);
   const stepTwoComplete = isStepTwoComplete(selections);
   const stepThreeComplete = isStepThreeComplete(selections);
+  const stepThreeMissing = stepThreeMissingFields(selections);
   const stepFourComplete = isStepFourComplete(selections);
   const stepFiveComplete = isStepFiveComplete(selections);
   const canContinue =
@@ -393,7 +396,18 @@ export function useCustomBuild() {
               : currentStep < totalSteps;
 
   const goNext = () => {
+    if (currentStep === 3 && !stepThreeComplete) {
+      setStepThreeAttempted(true);
+      const targetId = stepThreeMissing[0]?.targetId;
+      if (targetId && typeof document !== "undefined") {
+        const node = document.getElementById(targetId);
+        node?.scrollIntoView({ behavior: "smooth", block: "center" });
+        if (typeof node?.focus === "function") node.focus({ preventScroll: true });
+      }
+      return;
+    }
     if (!canContinue) return;
+    if (currentStep === 3) setStepThreeAttempted(false);
     setCurrentStep((step) => Math.min(step + 1, totalSteps));
   };
 
@@ -732,6 +746,8 @@ export function useCustomBuild() {
     inquiryConfigured: isCustomBuildInquiryConfigured(),
     submitAttempt,
     canContinue,
+    stepThreeMissing,
+    stepThreeAttempted,
     selectInstrumentType,
     selectSeries,
     selectShape,

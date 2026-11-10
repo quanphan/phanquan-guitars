@@ -12,6 +12,8 @@ export function Select({
   options = [],
   disabled,
   hint,
+  allowEmpty = false,
+  invalid = false,
 }) {
   function handleChange(event) {
     if (disabled) return;
@@ -28,8 +30,10 @@ export function Select({
       value={value || ""}
       onChange={handleChange}
       disabled={disabled}
-      className={`${label ? fieldClass : fieldClass.replace("mt-2 ", "")}${disabled ? " cursor-not-allowed bg-ink/60 text-muted" : ""}`}
+      className={`${invalid ? errorFieldClass : label ? fieldClass : fieldClass.replace("mt-2 ", "")}${disabled ? " cursor-not-allowed bg-ink/60 text-muted" : ""}`}
+      aria-invalid={invalid || undefined}
     >
+      {allowEmpty ? <option value="" /> : null}
       {options.map((option) => (
         <option key={option.value} value={option.value}>
           {option.label}

@@ -3,6 +3,7 @@ import FitImage from "../../FitImage.jsx";
 import { Select, fieldClass } from "../../auth/Field.jsx";
 import { choiceImageSrc, optionDescription, optionLabel } from "../../../data/wizardCatalog.js";
 import { DEFAULT_FRET_COUNT, parsePositiveFretCount } from "../../../data/wizardScaleAttributes.js";
+import { optionIdEquals } from "../../../data/wizardSelection.js";
 import { usesSecondaryNeckWood } from "../../../data/wizardSeriesConstruction.js";
 import { useLanguage } from "../../../i18n/LanguageContext.jsx";
 import ChoiceButton from "../ChoiceButton.jsx";
@@ -51,19 +52,20 @@ function WoodCard({ option, selected, onSelect, nameKey, t, language, imageFit =
   );
 }
 
-function ChipGroup({ label, options, selectedId, onSelect, nameKey, t, language }) {
+function ChipGroup({ id, label, options, selectedId, onSelect, nameKey, t, language, invalid }) {
   if (!options.length) return null;
 
   return (
-    <div role="radiogroup" aria-label={label} className="flex flex-wrap gap-3">
+    <div id={id} role="radiogroup" aria-label={label} aria-invalid={invalid || undefined} className={`flex flex-wrap gap-3${invalid ? " rounded-sm ring-1 ring-gold/70 p-1" : ""}`}>
       {options.map((option) => {
         const name = optionLabel(option, language, t, `${nameKey}.${option.id}.name`);
         const detail = optionDescription(option, language, t, `${nameKey}.${option.id}.detail`);
         const hasDetail = Boolean(detail);
+        const selected = optionIdEquals(option, selectedId);
         return (
           <ChoiceButton
-            key={option.id}
-            selected={selectedId === option.id}
+            key={option.optionId || option.id}
+            selected={selected}
             onSelect={() => onSelect(option.id)}
             label={name}
             className="min-w-[5.5rem] px-4 py-3 text-[11px] uppercase tracking-[0.16em]"
@@ -97,8 +99,10 @@ export default function StepNeckFingerboard({
   selectNeckProfile,
   selectFretSpec,
   selectFretCount,
+  missingFields = [],
 }) {
   const { t, language } = useLanguage();
+  const missingKeys = new Set((missingFields || []).map((item) => item.key));
   const selectedPieces = availableNeckPieces.find((item) => item.id === selections.neckPiecesId);
   const showSecondary = usesSecondaryNeckWood(selectedPieces);
   const woodChoices = availableNeckWoods.map((wood) => ({
@@ -128,6 +132,14 @@ export default function StepNeckFingerboard({
       <p className="mt-4 max-w-2xl text-xs leading-relaxed text-muted">
         {t("customBuild.provisional")}
       </p>
+      {missingFields.length ? (
+        <p id="step3-incomplete" className="mt-6 border border-gold/40 bg-gold/10 px-4 py-3 text-sm text-ivory" role="alert">
+          {t("customBuild.step3.incomplete")}
+          <span className="mt-2 block text-xs uppercase tracking-[0.14em] text-gold">
+            {missingFields.map((item) => t(item.labelKey)).join(" · ")}
+          </span>
+        </p>
+      ) : null}
 
       {showNeckWoodSection ? (
       <section className="mt-10">
@@ -143,6 +155,8 @@ export default function StepNeckFingerboard({
             options={pieceChoices}
             disabled={pieceChoices.length === 0}
             hint={piecesHint}
+            allowEmpty={pieceChoices.length > 0}
+            invalid={missingKeys.has("neckPiecesId")}
           />
           {availableNeckWoods.length > 0 ? (
             <Select
@@ -151,6 +165,8 @@ export default function StepNeckFingerboard({
               value={selections.neckWoodId}
               onChange={selectNeckWood}
               options={woodChoices}
+              allowEmpty
+              invalid={missingKeys.has("neckWoodId")}
             />
           ) : (
             <p className="text-sm text-muted">{t("customBuild.step3.contact")}</p>
@@ -162,6 +178,8 @@ export default function StepNeckFingerboard({
               value={selections.secondaryNeckWoodId}
               onChange={selectSecondaryNeckWood}
               options={woodChoices}
+              allowEmpty
+              invalid={missingKeys.has("secondaryNeckWoodId")}
             />
           ) : null}
         </div>
@@ -175,6 +193,7 @@ export default function StepNeckFingerboard({
         </h3>
         <div className="mt-4">
           <ChipGroup
+            id="neck-construction"
             label={t("customBuild.step3.constructionLabel")}
             options={availableNeckConstructions}
             selectedId={selections.neckConstructionId}
@@ -182,6 +201,7 @@ export default function StepNeckFingerboard({
             nameKey="customBuild.constructions"
             t={t}
             language={language}
+            invalid={missingKeys.has("neckConstructionId")}
           />
         </div>
       </section>
@@ -194,15 +214,17 @@ export default function StepNeckFingerboard({
           </h3>
           <div className="mt-4">
               <div
+                id="fingerboard-wood"
                 role="radiogroup"
                 aria-label={t("customBuild.step3.fingerboardLabel")}
-                className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
+                aria-invalid={missingKeys.has("fingerboardWoodId") || undefined}
+                className={`grid gap-3 sm:grid-cols-2 xl:grid-cols-3${missingKeys.has("fingerboardWoodId") ? " rounded-sm ring-1 ring-gold/70 p-1" : ""}`}
               >
                 {availableFingerboardWoods.map((wood) => (
                   <WoodCard
-                    key={wood.id}
+                    key={wood.optionId || wood.id}
                     option={wood}
-                    selected={selections.fingerboardWoodId === wood.id}
+                    selected={optionIdEquals(wood, selections.fingerboardWoodId)}
                     onSelect={() => selectFingerboardWood(wood.id)}
                     nameKey="customBuild.fingerboards"
                     t={t}
@@ -222,6 +244,7 @@ export default function StepNeckFingerboard({
         </h3>
         <div className="mt-4">
           <ChipGroup
+            id="neck-profile"
             label={t("customBuild.step3.profileLabel")}
             options={availableNeckProfiles}
             selectedId={selections.neckProfileId}
@@ -229,6 +252,7 @@ export default function StepNeckFingerboard({
             nameKey="customBuild.profiles"
             t={t}
             language={language}
+            invalid={missingKeys.has("neckProfileId")}
           />
         </div>
       </section>
@@ -241,6 +265,7 @@ export default function StepNeckFingerboard({
         </h3>
         <div className="mt-4">
           <ChipGroup
+            id="fret-spec"
             label={t("customBuild.step3.fretLabel")}
             options={availableFretSpecs}
             selectedId={selections.fretSpecId}
@@ -248,6 +273,7 @@ export default function StepNeckFingerboard({
             nameKey="customBuild.frets"
             t={t}
             language={language}
+            invalid={missingKeys.has("fretSpecId")}
           />
         </div>
       </section>
@@ -260,12 +286,13 @@ export default function StepNeckFingerboard({
         <div className="mt-4">
           <label className="block">
             <input
+              id="fret-count"
               type="number"
               min="1"
               step="1"
               value={selections.fretCount ?? DEFAULT_FRET_COUNT}
               onChange={(event) => selectFretCount?.(event.target.value === "" ? "" : event.target.value)}
-              className={fieldClass}
+              className={missingKeys.has("fretCount") ? fieldClass.replace("border-white/10", "border-gold") : fieldClass}
               aria-label={t("customBuild.step3.fretCountLabel")}
               aria-invalid={parsePositiveFretCount(selections.fretCount) == null}
             />

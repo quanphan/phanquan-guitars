@@ -332,6 +332,7 @@ export default function CustomBuild() {
                 selectNeckProfile={builder.selectNeckProfile}
                 selectFretSpec={builder.selectFretSpec}
                 selectFretCount={builder.selectFretCount}
+                missingFields={builder.stepThreeAttempted ? builder.stepThreeMissing : []}
               />
             ) : builder.currentStep === 4 ? (
               <StepElectronicsHardware
@@ -395,7 +396,7 @@ export default function CustomBuild() {
               backTo={isFirstStep ? "/guitars" : undefined}
               onBack={isFirstStep ? undefined : builder.goBack}
               onContinue={builder.goNext}
-              continueDisabled={!builder.canContinue}
+              continueDisabled={builder.currentStep === 3 ? false : !builder.canContinue}
               continueHidden={isLastStep}
               backDisabled={
                 builder.submitStatus === "submitting" ||
