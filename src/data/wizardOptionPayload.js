@@ -1,5 +1,11 @@
 import { COMPATIBILITY_FIELDS, optionMatchesAlias } from "./wizardCatalog.js";
 import { allowedCompatibilityFields, keepAllowedCompatibility } from "./wizardSetupLayout.js";
+import {
+  BODY_CONSTRUCTION_ATTR,
+  NECK_CONSTRUCTION_ATTR,
+  constructionListFromAttributes,
+  mergeSeriesConstructionAttributes,
+} from "./wizardSeriesConstruction.js";
 import { seriesSuggestionFormValues } from "./wizardSeriesSuggestions.js";
 
 function emptyCompatibility() {
@@ -38,6 +44,8 @@ export function formFromWizardOption(option, categoryId, categories) {
     attributes: option.attributes && typeof option.attributes === "object" && !Array.isArray(option.attributes)
       ? { ...option.attributes }
       : {},
+    bodyConstruction: constructionListFromAttributes(option.attributes, BODY_CONSTRUCTION_ATTR),
+    neckConstruction: constructionListFromAttributes(option.attributes, NECK_CONSTRUCTION_ATTR),
     compatibility: storedCompatibility(option.compatibility, categoryId, categories),
   };
 }
@@ -60,8 +68,20 @@ function sharedBody(form, { canScopeDefault, instrumentTypes, categories }) {
       en: { name: form.enName || form.viName, description: form.description },
     },
     compatibility: compatibilityPayload(form.compatibility, form.categoryId, categories),
-    attributes: form.attributes && typeof form.attributes === "object" ? form.attributes : {},
+    attributes: attributesForForm(form),
   };
+}
+
+function attributesForForm(form) {
+  const attributes = form.attributes && typeof form.attributes === "object" && !Array.isArray(form.attributes)
+    ? { ...form.attributes }
+    : {};
+  if (form.categoryId === "series") {
+    return mergeSeriesConstructionAttributes(attributes, form.bodyConstruction, form.neckConstruction);
+  }
+  delete attributes[BODY_CONSTRUCTION_ATTR];
+  delete attributes[NECK_CONSTRUCTION_ATTR];
+  return attributes;
 }
 
 export function buildWizardOptionCreatePayload(form, options = {}) {

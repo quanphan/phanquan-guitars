@@ -10,6 +10,7 @@ import StepReviewSubmit from "../components/custom-build/steps/StepReviewSubmit.
 import StepNav from "../components/custom-build/StepNav.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import { wizardOptionLabel } from "../data/wizardCatalog.js";
+import { usesSecondaryBodyWood, usesSecondaryNeckWood } from "../data/wizardSeriesConstruction.js";
 import { isCustomScale, scaleDisplayValue } from "../data/wizardScaleAttributes.js";
 import { visibleSummaryRows } from "../data/wizardDisplay.js";
 import { useCustomBuild } from "../hooks/useCustomBuild.js";
@@ -72,9 +73,24 @@ export default function CustomBuild() {
       value: builder.radius?.display ?? null,
     },
     {
+      key: "bodyPieces",
+      label: t("customBuild.summary.bodyPieces"),
+      value: builder.bodyConstruction?.translations?.[language]?.name
+        || builder.bodyConstruction?.translations?.en?.name
+        || builder.bodyConstruction?.name
+        || null,
+    },
+    {
       key: "bodyWood",
-      label: t("customBuild.summary.bodyWood"),
+      label: t("customBuild.summary.mainBodyWood"),
       value: wizardOptionLabel(builder.bodyWood, language, t, "woods") || null,
+    },
+    {
+      key: "secondaryBodyWood",
+      label: t("customBuild.summary.secondaryBodyWood"),
+      value: usesSecondaryBodyWood(builder.bodyConstruction)
+        ? wizardOptionLabel(builder.secondaryBodyWood, language, t, "woods") || null
+        : null,
     },
     {
       key: "topWood",
@@ -82,9 +98,24 @@ export default function CustomBuild() {
       value: wizardOptionLabel(builder.topWood, language, t, "woods") || null,
     },
     {
+      key: "neckPieces",
+      label: t("customBuild.summary.neckPieces"),
+      value: builder.neckPieces?.translations?.[language]?.name
+        || builder.neckPieces?.translations?.en?.name
+        || builder.neckPieces?.name
+        || null,
+    },
+    {
       key: "neckWood",
-      label: t("customBuild.summary.neckWood"),
+      label: t("customBuild.summary.mainNeckWood"),
       value: wizardOptionLabel(builder.neckWood, language, t, "neckWoods") || null,
+    },
+    {
+      key: "secondaryNeckWood",
+      label: t("customBuild.summary.secondaryNeckWood"),
+      value: usesSecondaryNeckWood(builder.neckPieces)
+        ? wizardOptionLabel(builder.secondaryNeckWood, language, t, "neckWoods") || null
+        : null,
     },
     {
       key: "neckConstruction",
@@ -270,27 +301,32 @@ export default function CustomBuild() {
                 setCustomScaleValue={builder.setCustomScaleValue}
                 selectStringCount={builder.selectStringCount}
                 selectRadius={builder.selectRadius}
-                selectFretCount={builder.selectFretCount}
               />
             ) : builder.currentStep === 2 ? (
               <StepBodyTop
                 selections={builder.selections}
                 availableBodyWoods={builder.availableBodyWoods}
+                availableBodyConstructions={builder.availableBodyConstructions}
                 availableTopWoods={builder.availableTopWoods}
                 topApplicable={builder.topApplicable}
+                selectBodyConstruction={builder.selectBodyConstruction}
                 selectBodyWood={builder.selectBodyWood}
+                selectSecondaryBodyWood={builder.selectSecondaryBodyWood}
                 selectTopWood={builder.selectTopWood}
               />
             ) : builder.currentStep === 3 ? (
               <StepNeckFingerboard
                 selections={builder.selections}
                 availableNeckWoods={builder.availableNeckWoods}
+                availableNeckPieces={builder.availableNeckPieces}
                 availableNeckConstructions={builder.availableNeckConstructions}
                 availableFingerboardWoods={builder.availableFingerboardWoods}
                 availableNeckProfiles={builder.availableNeckProfiles}
                 availableFretSpecs={builder.availableFretSpecs}
                 inheritedFretCount={builder.inheritedFretCount}
+                selectNeckPieces={builder.selectNeckPieces}
                 selectNeckWood={builder.selectNeckWood}
+                selectSecondaryNeckWood={builder.selectSecondaryNeckWood}
                 selectNeckConstruction={builder.selectNeckConstruction}
                 selectFingerboardWood={builder.selectFingerboardWood}
                 selectNeckProfile={builder.selectNeckProfile}

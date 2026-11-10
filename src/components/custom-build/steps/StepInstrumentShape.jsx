@@ -1,10 +1,8 @@
 import { optionDescription, optionLabel } from "../../../data/wizardCatalog.js";
 import {
-  DEFAULT_FRET_COUNT,
   isCustomScale,
   isMultiscale,
   isValidCustomScaleValue,
-  parsePositiveFretCount,
   scaleDisplayValue,
 } from "../../../data/wizardScaleAttributes.js";
 import { fieldClass } from "../../auth/Field.jsx";
@@ -44,7 +42,6 @@ export default function StepInstrumentShape({
   setCustomScaleValue,
   selectStringCount,
   selectRadius,
-  selectFretCount,
 }) {
   const { t, language } = useLanguage();
   const hasType = Boolean(selections.instrumentTypeId);
@@ -283,31 +280,6 @@ export default function StepInstrumentShape({
                 );
               })}
             </div>
-        </Section>
-      ) : null}
-
-      {hasType ? (
-        <Section title={t("customBuild.step1.fretCountLabel")}>
-          <label className="block">
-            <input
-              type="number"
-              min="1"
-              step="1"
-              value={selections.fretCount ?? DEFAULT_FRET_COUNT}
-              onChange={(event) => selectFretCount?.(event.target.value === "" ? "" : event.target.value)}
-              className={fieldClass}
-              aria-label={t("customBuild.step1.fretCountLabel")}
-              aria-invalid={parsePositiveFretCount(selections.fretCount) == null}
-            />
-            <span className="mt-2 block text-[10px] font-normal normal-case tracking-normal text-muted">
-              {t("customBuild.step3.fretCountInputHelp")}
-            </span>
-            {parsePositiveFretCount(selections.fretCount) == null ? (
-              <span className="mt-2 block text-xs font-normal normal-case tracking-normal text-gold" role="alert">
-                {t("customBuild.step3.fretCountError")}
-              </span>
-            ) : null}
-          </label>
         </Section>
       ) : null}
     </div>

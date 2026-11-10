@@ -19,7 +19,9 @@ import {
   getAvailableInlays,
   getAvailableNeckConstructions,
   getAvailableNeckProfiles,
+  getAvailableNeckPieces,
   getAvailableNeckWoods,
+  getNeckPiecesById,
   getAvailablePickupConfigs,
   getAvailablePickupTypes,
   getAvailableRadii,
@@ -57,6 +59,8 @@ import {
   isStepFourComplete,
   isStepOneComplete,
   isStepThreeComplete,
+  getAvailableBodyConstructions,
+  getBodyConstructionById,
   isStepTwoComplete,
   isTopApplicable,
   isTunersApplicable,
@@ -75,6 +79,7 @@ import {
 import {
   buildInquiryPayload,
   evaluateMappedSelections,
+  evaluateWizardNotesSelections,
   firstIssueStep,
 } from "../services/customBuildPayload.js";
 import { nextSubmitAction } from "../utils/customBuildSubmitFlow.js";
@@ -177,8 +182,10 @@ export function useCustomBuild() {
   const availableStringCounts = getAvailableStringCounts(selections);
   const availableRadii = getAvailableRadii(selections);
   const availableBodyWoods = getAvailableBodyWoods(selections);
+  const availableBodyConstructions = getAvailableBodyConstructions(selections);
   const availableTopWoods = getAvailableTopWoods(selections);
   const availableNeckWoods = getAvailableNeckWoods(selections);
+  const availableNeckPieces = getAvailableNeckPieces(selections);
   const availableNeckConstructions = getAvailableNeckConstructions(selections);
   const availableFingerboardWoods = getAvailableFingerboardWoods(selections);
   const availableNeckProfiles = getAvailableNeckProfiles(selections);
@@ -227,16 +234,32 @@ export function useCustomBuild() {
     update({ radiusId });
   };
 
+  const selectBodyConstruction = (bodyConstructionId) => {
+    update({ bodyConstructionId });
+  };
+
   const selectBodyWood = (bodyWoodId) => {
     update({ bodyWoodId });
+  };
+
+  const selectSecondaryBodyWood = (secondaryBodyWoodId) => {
+    update({ secondaryBodyWoodId });
   };
 
   const selectTopWood = (topWoodId) => {
     update({ topWoodId });
   };
 
+  const selectNeckPieces = (neckPiecesId) => {
+    update({ neckPiecesId });
+  };
+
   const selectNeckWood = (neckWoodId) => {
     update({ neckWoodId });
+  };
+
+  const selectSecondaryNeckWood = (secondaryNeckWoodId) => {
+    update({ secondaryNeckWoodId });
   };
 
   const selectNeckConstruction = (neckConstructionId) => {
@@ -559,7 +582,10 @@ export function useCustomBuild() {
       catalog,
       finishSheen: getFinishTypeById(selections.finishTypeId)?.sheen,
     }).configuration.selections;
-    const nextIssues = evaluateMappedSelections(mapped, catalog);
+    const nextIssues = [
+      ...evaluateMappedSelections(mapped, catalog),
+      ...evaluateWizardNotesSelections(selections, catalog),
+    ];
     const incompleteStep = getFirstIncompleteStep(selections);
     setSubmitIssues((previous) => {
       const prevKey = (previous || []).map((item) => `${item.field}:${item.code}`).join("|");
@@ -640,8 +666,12 @@ export function useCustomBuild() {
     scale: getScaleById(selections.scaleId),
     radius: getRadiusById(selections.radiusId),
     bodyWood: getBodyWoodById(selections.bodyWoodId),
+    bodyConstruction: getBodyConstructionById(selections),
+    secondaryBodyWood: getBodyWoodById(selections.secondaryBodyWoodId),
     topWood: getTopWoodById(selections.topWoodId),
     neckWood: getNeckWoodById(selections.neckWoodId),
+    neckPieces: getNeckPiecesById(selections),
+    secondaryNeckWood: getNeckWoodById(selections.secondaryNeckWoodId),
     neckConstruction: getNeckConstructionById(selections.neckConstructionId),
     fingerboardWood: getFingerboardWoodById(selections.fingerboardWoodId),
     neckProfile: getNeckProfileById(selections.neckProfileId),
@@ -664,8 +694,10 @@ export function useCustomBuild() {
     availableStringCounts,
     availableRadii,
     availableBodyWoods,
+    availableBodyConstructions,
     availableTopWoods,
     availableNeckWoods,
+    availableNeckPieces,
     availableNeckConstructions,
     availableFingerboardWoods,
     availableNeckProfiles,
@@ -707,9 +739,13 @@ export function useCustomBuild() {
     setCustomScaleValue,
     selectStringCount,
     selectRadius,
+    selectBodyConstruction,
     selectBodyWood,
+    selectSecondaryBodyWood,
     selectTopWood,
+    selectNeckPieces,
     selectNeckWood,
+    selectSecondaryNeckWood,
     selectNeckConstruction,
     selectFingerboardWood,
     selectNeckProfile,

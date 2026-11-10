@@ -3,6 +3,13 @@ import { optionMatchesAlias, WIZARD_SETUP_GROUPS } from "../data/wizardCatalog.j
 import { allowedCompatibilityFields, isShapeChildGroup, knownGroupStep } from "../data/wizardSetupLayout.js";
 import { DEFAULT_FRET_COUNT, parsePositiveFretCount } from "../data/wizardScaleAttributes.js";
 import { isCustomerSuppliedParts, STEP4_OPTION_KEYS } from "../data/wizardSelection.js";
+import {
+  findSeriesConstructionOption,
+  findSeriesNeckConstructionOption,
+  seriesNeckConstructionOptions,
+  usesSecondaryBodyWood,
+  usesSecondaryNeckWood,
+} from "../data/wizardSeriesConstruction.js";
 
 const NOTES_MAX = 2000;
 
@@ -141,7 +148,25 @@ function setIfPresent(selections, categoryId, optionId) {
   if (optionId) selections[categoryId] = optionId;
 }
 
-function wizardLines(selections) {
+function catalogSeriesOption(catalog, seriesId) {
+  return resolveCatalogOption(catalog, "series", seriesId, seriesId);
+}
+
+function selectedBodyConstruction(catalog, selections) {
+  return findSeriesConstructionOption(
+    catalogSeriesOption(catalog, selections?.seriesId),
+    selections?.bodyConstructionId,
+  );
+}
+
+function selectedNeckPieces(catalog, selections) {
+  return findSeriesNeckConstructionOption(
+    catalogSeriesOption(catalog, selections?.seriesId),
+    selections?.neckPiecesId,
+  );
+}
+
+function wizardLines(selections, catalog) {
   const keys = [
     "instrumentTypeId",
     "seriesId",
@@ -151,8 +176,12 @@ function wizardLines(selections) {
     "stringCount",
     "radiusId",
     "bodyWoodId",
+    "bodyConstructionId",
+    "secondaryBodyWoodId",
     "topWoodId",
     "neckWoodId",
+    "neckPiecesId",
+    "secondaryNeckWoodId",
     "neckConstructionId",
     "fingerboardWoodId",
     "neckProfileId",
@@ -176,6 +205,12 @@ function wizardLines(selections) {
   return keys
     .map((key) => {
       if (skipStepFour && STEP4_OPTION_KEYS.includes(key)) return null;
+      if (key === "secondaryBodyWoodId" && !usesSecondaryBodyWood(selectedBodyConstruction(catalog, selections))) {
+        return null;
+      }
+      if (key === "secondaryNeckWoodId" && !usesSecondaryNeckWood(selectedNeckPieces(catalog, selections))) {
+        return null;
+      }
       const value = selections[key];
       if (value == null || value === false) return null;
       const text = String(value).trim();
@@ -185,7 +220,7 @@ function wizardLines(selections) {
     .filter(Boolean);
 }
 
-function buildNotes({ selections, language, draftId }) {
+function buildNotes({ selections, language, draftId, catalog }) {
   const lines = [
     draftId ? `draftId=${draftId}` : null,
     language ? `language=${language}` : null,
@@ -193,7 +228,7 @@ function buildNotes({ selections, language, draftId }) {
       ? `country=${selections.contactCountry.trim()}`
       : null,
     "wizard:",
-    ...wizardLines(selections),
+    ...wizardLines(selections, catalog),
   ].filter(Boolean);
 
   const notes = lines.join("\n").trim();
@@ -391,7 +426,95 @@ export function evaluateMappedSelections(mapped, catalog) {
   return issues;
 }
 
+export function evaluateWizardNotesSelections(selections, catalog) {
+  const issues = [];
+  const series = catalogSeriesOption(catalog, selections?.seriesId);
+  const constructions = series
+    ? (Array.isArray(series.bodyConstruction)
+      ? series.bodyConstruction
+      : Array.isArray(series.attributes?.bodyConstruction)
+        ? series.attributes.bodyConstruction
+        : [])
+    : [];
+  const activeConstructions = constructions.filter((item) => item && item.active !== false && String(item.id || "").trim());
+  if (activeConstructions.length > 0) {
+    if (!selections?.bodyConstructionId) {
+      issues.push({ field: "selections.body-construction", code: "REQUIRED" });
+    } else if (!findSeriesConstructionOption(series, selections.bodyConstructionId)) {
+      issues.push({ field: "selections.body-construction", code: "UNKNOWN_OPTION" });
+    }
+  }
+  const construction = selectedBodyConstruction(catalog, selections);
+  if (usesSecondaryBodyWood(construction)) {
+    if (!selections?.secondaryBodyWoodId) {
+      issues.push({ field: "selections.secondary-body-wood", code: "REQUIRED" });
+    } else {
+      const result = validateSingleValue(
+        findCategory(catalog, "body-wood"),
+        selections.secondaryBodyWoodId,
+        "selections.secondary-body-wood",
+      );
+      if (!result.ok) issues.push(result.issue);
+    }
+  }
+
+  const neckPieces = seriesNeckConstructionOptions(series);
+  if (neckPieces.length > 0) {
+    if (!selections?.neckPiecesId) {
+      issues.push({ field: "selections.neck-pieces", code: "REQUIRED" });
+    } else if (!findSeriesNeckConstructionOption(series, selections.neckPiecesId)) {
+      issues.push({ field: "selections.neck-pieces", code: "UNKNOWN_OPTION" });
+    }
+  }
+  const selectedNeck = selectedNeckPieces(catalog, selections);
+  if (usesSecondaryNeckWood(selectedNeck)) {
+    if (!selections?.secondaryNeckWoodId) {
+      issues.push({ field: "selections.secondary-neck-wood", code: "REQUIRED" });
+    } else {
+      const result = validateSingleValue(
+        findCategory(catalog, "neck-wood"),
+        selections.secondaryNeckWoodId,
+        "selections.secondary-neck-wood",
+      );
+      if (!result.ok) issues.push(result.issue);
+    }
+  }
+  return issues;
+}
+
 export function selectionIssueMeta(field) {
+  if (field === "selections.body-construction") {
+    return {
+      categoryId: "body-construction",
+      selectionKey: "bodyConstructionId",
+      summaryKey: "customBuild.summary.bodyPieces",
+      step: 2,
+    };
+  }
+  if (field === "selections.secondary-body-wood") {
+    return {
+      categoryId: "secondary-body-wood",
+      selectionKey: "secondaryBodyWoodId",
+      summaryKey: "customBuild.summary.secondaryBodyWood",
+      step: 2,
+    };
+  }
+  if (field === "selections.neck-pieces") {
+    return {
+      categoryId: "neck-pieces",
+      selectionKey: "neckPiecesId",
+      summaryKey: "customBuild.summary.neckPieces",
+      step: 3,
+    };
+  }
+  if (field === "selections.secondary-neck-wood") {
+    return {
+      categoryId: "secondary-neck-wood",
+      selectionKey: "secondaryNeckWoodId",
+      summaryKey: "customBuild.summary.secondaryNeckWood",
+      step: 3,
+    };
+  }
   if (typeof field !== "string" || !field.startsWith("selections.")) return null;
   const categoryId = field.slice("selections.".length);
   const binding = BINDING_BY_CATEGORY.get(categoryId);
@@ -464,6 +587,7 @@ export function buildInquiryPayload({
     },
     language,
     draftId,
+    catalog,
   });
   if (notes) configuration.notes = notes;
 

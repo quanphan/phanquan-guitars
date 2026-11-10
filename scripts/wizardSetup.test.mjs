@@ -530,6 +530,8 @@ test("compatibility only includes earlier wizard groups", () => {
   assert.equal(pickupKeys.includes("instrumentTypeIds"), true);
   assert.equal(pickupKeys.includes("seriesIds"), true);
   assert.equal(pickupKeys.includes("shapeIds"), true);
+  assert.equal(pickupKeys.includes("scaleIds"), false);
+  assert.equal(pickupKeys.includes("stringCounts"), false);
   assert.equal(pickupKeys.includes("bodyWoodIds"), false);
   const pickupTypeKeys = allowedCompatibilityFields("pickups").map((item) => item.key);
   assert.equal(pickupTypeKeys.includes("instrumentTypeIds"), true);
@@ -574,8 +576,11 @@ test("compatibility only includes earlier wizard groups", () => {
   assert.deepEqual(savedPickupCompat.bodyWoodIds, []);
   assert.deepEqual(savedPickupCompat.fingerboardWoodIds, []);
   const bodyWoodKeys = allowedCompatibilityFields("body-wood").map((item) => item.key);
+  assert.equal(bodyWoodKeys.includes("instrumentTypeIds"), true);
   assert.equal(bodyWoodKeys.includes("seriesIds"), true);
   assert.equal(bodyWoodKeys.includes("shapeIds"), true);
+  assert.equal(bodyWoodKeys.includes("scaleIds"), false);
+  assert.equal(bodyWoodKeys.includes("stringCounts"), false);
 
   const lists = {
     instrumentTypes: [{ id: "electric-guitar", optionId: "instrument-type.electric-guitar", code: "electric-guitar" }],

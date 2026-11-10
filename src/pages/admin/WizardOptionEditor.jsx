@@ -6,6 +6,7 @@ import { errorText } from "../../auth/errorText.js";
 import CompatibilityPicker, { DefaultForTypesPicker } from "../../components/admin/CompatibilityPicker.jsx";
 import ImageUploadField from "../../components/admin/ImageUploadField.jsx";
 import ScaleLengthFields from "../../components/admin/ScaleLengthFields.jsx";
+import SeriesConstructionFields from "../../components/admin/SeriesConstructionFields.jsx";
 import SeriesNameAutocomplete from "../../components/admin/SeriesNameAutocomplete.jsx";
 import Field from "../../components/auth/Field.jsx";
 import Button from "../../components/Button.jsx";
@@ -19,6 +20,7 @@ import {
   precedingGroupIds,
   WIZARD_STEP_COPY,
 } from "../../data/wizardSetupLayout.js";
+import { mergeSeriesConstructionAttributes } from "../../data/wizardSeriesConstruction.js";
 import {
   applySeriesSuggestion,
   buildWizardOptionCreatePayload,
@@ -61,6 +63,8 @@ const emptyForm = {
   isDefault: false,
   defaultForInstrumentTypeIds: [],
   attributes: {},
+  bodyConstruction: [],
+  neckConstruction: [],
   compatibility: emptyCompatibility(),
 };
 
@@ -178,7 +182,9 @@ export default function WizardOptionEditor() {
   function payload() {
     const attributes = form.categoryId === "scale"
       ? mergeScaleAttributes(form.attributes, scaleForm)
-      : form.attributes;
+      : form.categoryId === "series"
+        ? mergeSeriesConstructionAttributes(form.attributes, form.bodyConstruction, form.neckConstruction)
+        : form.attributes;
     const nextForm = { ...form, attributes };
     const options = {
       canScopeDefault,
@@ -260,6 +266,15 @@ export default function WizardOptionEditor() {
                 form={scaleForm}
                 onChange={setScaleForm}
                 errors={fieldErrors}
+                t={t}
+              />
+            ) : null}
+            {form.categoryId === "series" ? (
+              <SeriesConstructionFields
+                bodyConstruction={form.bodyConstruction}
+                neckConstruction={form.neckConstruction}
+                onBodyChange={(value) => setField("bodyConstruction", value)}
+                onNeckChange={(value) => setField("neckConstruction", value)}
                 t={t}
               />
             ) : null}

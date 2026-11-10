@@ -338,3 +338,42 @@ test("Test F — inquiry mapping rejects a scale that is not available for the s
   }, catalog);
   assert.equal(rejected.some((issue) => issue.code === "INCOMPATIBLE_OPTION" && issue.field === "selections.scale"), true);
 });
+
+test("Test G — later groups ignore leftover scale and string-count rules", () => {
+  assert.equal(allowedCompatibilityFields("body-wood").some((item) => item.key === "scaleIds"), false);
+  assert.equal(allowedCompatibilityFields("body-wood").some((item) => item.key === "stringCounts"), false);
+  assert.equal(allowedCompatibilityFields("pickup-config").some((item) => item.key === "scaleIds"), false);
+  assert.equal(allowedCompatibilityFields("neck-wood").some((item) => item.key === "shapeIds"), true);
+
+  const wood = {
+    id: "alder",
+    optionId: "body-wood.alder",
+    code: "alder",
+    active: true,
+    instrumentTypeIds: ["electric-guitar"],
+    shapeIds: ["compact-modern"],
+    scaleIds: ["25.5"],
+    stringCounts: [6],
+  };
+  const laterLists = {
+    instrumentTypes: lists.instrumentTypes,
+    series: lists.series,
+    shapes: lists.shapes,
+    scales: lists.scales,
+    stringCounts: lists.stringCounts,
+    radii: lists.radii,
+    bodyWoods: [wood],
+  };
+  assert.equal(
+    optionMatches(wood, selected("compact-modern", { scaleId: "27", stringCount: 7 }), laterLists, "body-wood"),
+    true,
+  );
+  const kept = pruneSelections({
+    ...selected("compact-modern"),
+    bodyWoodId: "alder",
+  }, laterLists);
+  assert.equal(kept.bodyWoodId, "alder");
+  assert.equal(kept.scaleId, "25.5");
+  assert.equal(kept.stringCount, 6);
+  assert.equal(kept.radiusId, "16");
+});

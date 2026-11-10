@@ -1,12 +1,17 @@
 import { mediaUrl } from "../../../config/api.js";
 import FitImage from "../../FitImage.jsx";
+import { Select, fieldClass } from "../../auth/Field.jsx";
 import { choiceImageSrc, optionDescription, optionLabel } from "../../../data/wizardCatalog.js";
 import { DEFAULT_FRET_COUNT, parsePositiveFretCount } from "../../../data/wizardScaleAttributes.js";
-import { fieldClass } from "../../auth/Field.jsx";
+import { usesSecondaryNeckWood } from "../../../data/wizardSeriesConstruction.js";
 import { useLanguage } from "../../../i18n/LanguageContext.jsx";
 import ChoiceButton from "../ChoiceButton.jsx";
 
-function WoodCard({ option, selected, onSelect, nameKey, t, language }) {
+function constructionLabel(option, language) {
+  return option?.translations?.[language]?.name || option?.translations?.en?.name || option?.name || option?.id || "";
+}
+
+function WoodCard({ option, selected, onSelect, nameKey, t, language, imageFit = "contain" }) {
   const name = optionLabel(option, language, t, `${nameKey}.${option.id}.name`);
   const description = optionDescription(option, language, t, `${nameKey}.${option.id}.description`);
   const hasDescription = Boolean(description);
@@ -16,10 +21,16 @@ function WoodCard({ option, selected, onSelect, nameKey, t, language }) {
       selected={selected}
       onSelect={onSelect}
       label={name}
-      className="flex h-full flex-col overflow-hidden"
+      className="flex h-full flex-col overflow-hidden p-0"
     >
       {option.image ? (
-        <FitImage src={choiceImageSrc(option.image, mediaUrl)} alt="" fit="contain" frameClassName="aspect-[4/3] w-full" />
+        <FitImage
+          src={choiceImageSrc(option.image, mediaUrl)}
+          alt=""
+          fit={imageFit}
+          frameClassName="aspect-[4/3] w-full"
+          className={imageFit === "cover" ? "max-h-none max-w-none" : ""}
+        />
       ) : (
         <div
           className="flex aspect-[4/3] w-full items-center justify-center bg-ink text-[10px] uppercase tracking-[0.18em] text-muted"
@@ -73,11 +84,14 @@ function ChipGroup({ label, options, selectedId, onSelect, nameKey, t, language 
 export default function StepNeckFingerboard({
   selections,
   availableNeckWoods,
+  availableNeckPieces = [],
   availableNeckConstructions,
   availableFingerboardWoods,
   availableNeckProfiles,
   availableFretSpecs,
+  selectNeckPieces,
   selectNeckWood,
+  selectSecondaryNeckWood,
   selectNeckConstruction,
   selectFingerboardWood,
   selectNeckProfile,
@@ -85,6 +99,23 @@ export default function StepNeckFingerboard({
   selectFretCount,
 }) {
   const { t, language } = useLanguage();
+  const selectedPieces = availableNeckPieces.find((item) => item.id === selections.neckPiecesId);
+  const showSecondary = usesSecondaryNeckWood(selectedPieces);
+  const woodChoices = availableNeckWoods.map((wood) => ({
+    value: wood.id,
+    label: optionLabel(wood, language, t, `customBuild.neckWoods.${wood.id}.name`),
+  }));
+  const pieceChoices = availableNeckPieces.map((option) => ({
+    value: option.id,
+    label: constructionLabel(option, language),
+  }));
+  const showNeckWoodSection = availableNeckPieces.length > 0 || availableNeckWoods.length > 0;
+  const noSeries = !selections.seriesId;
+  const piecesHint = noSeries
+    ? t("customBuild.step3.neckPiecesNeedSeries")
+    : availableNeckPieces.length === 0
+      ? t("customBuild.step3.neckPiecesEmpty")
+      : "";
 
   return (
     <div>
@@ -98,29 +129,41 @@ export default function StepNeckFingerboard({
         {t("customBuild.provisional")}
       </p>
 
-      {availableNeckWoods.length > 0 ? (
+      {showNeckWoodSection ? (
       <section className="mt-10">
         <h3 className="text-[11px] uppercase tracking-[0.22em] text-gold">
           {t("customBuild.step3.neckWoodLabel")}
         </h3>
-        <div className="mt-4">
-            <div
-              role="radiogroup"
-              aria-label={t("customBuild.step3.neckWoodLabel")}
-              className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
-            >
-              {availableNeckWoods.map((wood) => (
-                <WoodCard
-                  key={wood.id}
-                  option={wood}
-                  selected={selections.neckWoodId === wood.id}
-                  onSelect={() => selectNeckWood(wood.id)}
-                  nameKey="customBuild.neckWoods"
-                  t={t}
-                  language={language}
-                />
-              ))}
-            </div>
+        <div className="mt-4 grid gap-4">
+          <Select
+            id="neck-pieces"
+            ariaLabel={t("customBuild.step3.neckPiecesLabel")}
+            value={selections.neckPiecesId}
+            onChange={selectNeckPieces}
+            options={pieceChoices}
+            disabled={pieceChoices.length === 0}
+            hint={piecesHint}
+          />
+          {availableNeckWoods.length > 0 ? (
+            <Select
+              id="main-neck-wood"
+              label={t("customBuild.step3.mainWoodLabel")}
+              value={selections.neckWoodId}
+              onChange={selectNeckWood}
+              options={woodChoices}
+            />
+          ) : (
+            <p className="text-sm text-muted">{t("customBuild.step3.contact")}</p>
+          )}
+          {showSecondary ? (
+            <Select
+              id="secondary-neck-wood"
+              label={t("customBuild.step3.secondaryWoodLabel")}
+              value={selections.secondaryNeckWoodId}
+              onChange={selectSecondaryNeckWood}
+              options={woodChoices}
+            />
+          ) : null}
         </div>
       </section>
       ) : null}
@@ -164,6 +207,7 @@ export default function StepNeckFingerboard({
                     nameKey="customBuild.fingerboards"
                     t={t}
                     language={language}
+                    imageFit="cover"
                   />
                 ))}
               </div>

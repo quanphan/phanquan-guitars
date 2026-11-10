@@ -6,6 +6,12 @@ import {
   translatedLabel,
 } from "../data/wizardCatalog.js";
 import { inquiryFretCount, scaleDisplayValue } from "../data/wizardScaleAttributes.js";
+import {
+  findSeriesConstructionOption,
+  findSeriesNeckConstructionOption,
+  usesSecondaryBodyWood,
+  usesSecondaryNeckWood,
+} from "../data/wizardSeriesConstruction.js";
 
 export { humanizeOptionId };
 
@@ -146,6 +152,47 @@ function named(t, key) {
   return translatedLabel(t, key) || null;
 }
 
+function findSeriesCatalogOption(catalog, seriesId) {
+  if (seriesId == null || seriesId === "") return null;
+  const needle = String(seriesId);
+  const category = catalog?.categories?.find((item) => item.id === "series");
+  return (category?.options || []).find((option) => (
+    option?.id === needle
+    || option?.code === needle
+    || option?.attributes?.wizardId === needle
+  )) || null;
+}
+
+function bodyConstructionLabel(wizard, catalog, language) {
+  if (!wizard?.bodyConstructionId) return null;
+  const option = findSeriesConstructionOption(
+    findSeriesCatalogOption(catalog, wizard.seriesId),
+    wizard.bodyConstructionId,
+  );
+  if (option) {
+    return option.translations?.[language]?.name
+      || option.translations?.en?.name
+      || option.name
+      || humanizeOptionId(option.id);
+  }
+  return humanizeOptionId(wizard.bodyConstructionId);
+}
+
+function neckPiecesLabel(wizard, catalog, language) {
+  if (!wizard?.neckPiecesId) return null;
+  const option = findSeriesNeckConstructionOption(
+    findSeriesCatalogOption(catalog, wizard.seriesId),
+    wizard.neckPiecesId,
+  );
+  if (option) {
+    return option.translations?.[language]?.name
+      || option.translations?.en?.name
+      || option.name
+      || humanizeOptionId(option.id);
+  }
+  return humanizeOptionId(wizard.neckPiecesId);
+}
+
 function wizardFromCatalog(selections) {
   const wizard = {};
   if (!selections || typeof selections !== "object") return wizard;
@@ -163,8 +210,10 @@ const CHOICE_I18N = {
   seriesId: (id) => `customBuild.series.${id}.name`,
   shapeId: (id) => `customBuild.shapes.${id}.name`,
   bodyWoodId: (id) => `customBuild.woods.${id}.name`,
+  secondaryBodyWoodId: (id) => `customBuild.woods.${id}.name`,
   topWoodId: (id) => `customBuild.woods.${id}.name`,
   neckWoodId: (id) => `customBuild.neckWoods.${id}.name`,
+  secondaryNeckWoodId: (id) => `customBuild.neckWoods.${id}.name`,
   neckConstructionId: (id) => `customBuild.constructions.${id}.name`,
   fingerboardWoodId: (id) => `customBuild.fingerboards.${id}.name`,
   neckProfileId: (id) => `customBuild.profiles.${id}.name`,
@@ -245,7 +294,7 @@ export function resolveChoiceLabel(t, field, raw, { catalog, selections, languag
     if (fromOption) return fromOption;
   }
 
-  if ((field === "bodyWoodId" || field === "topWoodId") && id === "none") {
+  if ((field === "bodyWoodId" || field === "secondaryBodyWoodId" || field === "topWoodId") && id === "none") {
     return named(t, "customBuild.woods.none.name") || named(t, "customBuild.step2.topNotApplicable") || humanizeOptionId(id);
   }
 
@@ -312,7 +361,24 @@ export function buildInquiryDisplay(inquiry, t, { catalog, language } = {}) {
       id: "body",
       titleKey: "admin.detail.groups.body",
       rows: [
-        row(t, "customBuild.summary.bodyWood", resolveChoiceLabel(t, "bodyWoodId", wizard.bodyWoodId, choiceOpts)),
+        ...(wizard.bodyConstructionId
+          ? [row(t, "customBuild.summary.bodyPieces", bodyConstructionLabel(wizard, catalog, language))]
+          : []),
+        row(
+          t,
+          wizard.bodyConstructionId ? "customBuild.summary.mainBodyWood" : "customBuild.summary.bodyWood",
+          resolveChoiceLabel(t, "bodyWoodId", wizard.bodyWoodId, choiceOpts),
+        ),
+        ...(usesSecondaryBodyWood(
+          findSeriesConstructionOption(findSeriesCatalogOption(catalog, wizard.seriesId), wizard.bodyConstructionId)
+            || { id: wizard.bodyConstructionId },
+        ) && wizard.secondaryBodyWoodId
+          ? [row(
+            t,
+            "customBuild.summary.secondaryBodyWood",
+            resolveChoiceLabel(t, "secondaryBodyWoodId", wizard.secondaryBodyWoodId, choiceOpts),
+          )]
+          : []),
         row(t, "customBuild.summary.topWood", resolveChoiceLabel(t, "topWoodId", wizard.topWoodId, choiceOpts)),
       ],
     },
@@ -320,7 +386,24 @@ export function buildInquiryDisplay(inquiry, t, { catalog, language } = {}) {
       id: "neck",
       titleKey: "admin.detail.groups.neck",
       rows: [
-        row(t, "customBuild.summary.neckWood", resolveChoiceLabel(t, "neckWoodId", wizard.neckWoodId, choiceOpts)),
+        ...(wizard.neckPiecesId
+          ? [row(t, "customBuild.summary.neckPieces", neckPiecesLabel(wizard, catalog, language))]
+          : []),
+        row(
+          t,
+          wizard.neckPiecesId ? "customBuild.summary.mainNeckWood" : "customBuild.summary.neckWood",
+          resolveChoiceLabel(t, "neckWoodId", wizard.neckWoodId, choiceOpts),
+        ),
+        ...(usesSecondaryNeckWood(
+          findSeriesNeckConstructionOption(findSeriesCatalogOption(catalog, wizard.seriesId), wizard.neckPiecesId)
+            || { id: wizard.neckPiecesId },
+        ) && wizard.secondaryNeckWoodId
+          ? [row(
+            t,
+            "customBuild.summary.secondaryNeckWood",
+            resolveChoiceLabel(t, "secondaryNeckWoodId", wizard.secondaryNeckWoodId, choiceOpts),
+          )]
+          : []),
         row(t, "customBuild.summary.neckConstruction", resolveChoiceLabel(t, "neckConstructionId", wizard.neckConstructionId, choiceOpts)),
         row(t, "customBuild.summary.fingerboard", resolveChoiceLabel(t, "fingerboardWoodId", wizard.fingerboardWoodId, choiceOpts)),
         row(t, "customBuild.summary.neckProfile", resolveChoiceLabel(t, "neckProfileId", wizard.neckProfileId, choiceOpts)),

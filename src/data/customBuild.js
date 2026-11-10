@@ -73,6 +73,14 @@ import {
   shouldKeepCustomScaleValue,
 } from "./wizardScaleAttributes.js";
 import {
+  findSeriesConstructionOption,
+  findSeriesNeckConstructionOption,
+  seriesBodyConstructionOptions,
+  seriesNeckConstructionOptions,
+  usesSecondaryBodyWood,
+  usesSecondaryNeckWood,
+} from "./wizardSeriesConstruction.js";
+import {
   filterOptions as filterListedOptions,
   findSelectedOption,
   isHeadlessOption,
@@ -608,8 +616,12 @@ export const EMPTY_SELECTIONS = {
   stringCount: null,
   radiusId: null,
   bodyWoodId: null,
+  bodyConstructionId: null,
+  secondaryBodyWoodId: null,
   topWoodId: null,
   neckWoodId: null,
+  neckPiecesId: null,
+  secondaryNeckWoodId: null,
   neckConstructionId: null,
   fingerboardWoodId: null,
   neckProfileId: null,
@@ -707,6 +719,18 @@ export function getAvailableBodyWoods(selections) {
   return filterOptions(list("bodyWoods"), selections);
 }
 
+export function getAvailableBodyConstructions(selections) {
+  return seriesBodyConstructionOptions(getSeriesById(selections?.seriesId));
+}
+
+export function getBodyConstructionById(selections) {
+  return findSeriesConstructionOption(getSeriesById(selections?.seriesId), selections?.bodyConstructionId);
+}
+
+export function usesSecondaryBodyWoodSelection(selections) {
+  return usesSecondaryBodyWood(getBodyConstructionById(selections));
+}
+
 export function isTopApplicable(selections) {
   const body = getBodyWoodById(selections.bodyWoodId);
   if (!body) return false;
@@ -776,6 +800,18 @@ export function getFretSpecById(id) {
 
 export function getAvailableNeckWoods(selections) {
   return filterOptions(list("neckWoods"), selections);
+}
+
+export function getAvailableNeckPieces(selections) {
+  return seriesNeckConstructionOptions(getSeriesById(selections?.seriesId));
+}
+
+export function getNeckPiecesById(selections) {
+  return findSeriesNeckConstructionOption(getSeriesById(selections?.seriesId), selections?.neckPiecesId);
+}
+
+export function usesSecondaryNeckWoodSelection(selections) {
+  return usesSecondaryNeckWood(getNeckPiecesById(selections));
 }
 
 export function getAvailableNeckConstructions(selections) {
@@ -941,9 +977,12 @@ export function isStepOneComplete(selections) {
 
 export function isStepTwoComplete(selections) {
   if (!isStepOneComplete(selections)) return false;
+  const constructions = getAvailableBodyConstructions(selections);
+  if (constructions.length > 0 && !selections.bodyConstructionId) return false;
   const bodies = getAvailableBodyWoods(selections);
   if (bodies.length === 0) return false;
   if (!selections.bodyWoodId) return false;
+  if (usesSecondaryBodyWoodSelection(selections) && !selections.secondaryBodyWoodId) return false;
   if (!isTopApplicable(selections)) return true;
   const tops = getAvailableTopWoods(selections);
   if (tops.length === 0) return true;
@@ -957,6 +996,9 @@ function requiredIfOptions(options, selectedId) {
 
 export function isStepThreeComplete(selections) {
   if (!isStepTwoComplete(selections)) return false;
+  const pieces = getAvailableNeckPieces(selections);
+  if (pieces.length > 0 && !selections.neckPiecesId) return false;
+  if (usesSecondaryNeckWoodSelection(selections) && !selections.secondaryNeckWoodId) return false;
   return (
     requiredIfOptions(getAvailableNeckWoods(selections), selections.neckWoodId) &&
     requiredIfOptions(

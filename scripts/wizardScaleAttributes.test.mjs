@@ -169,8 +169,8 @@ test("admin custom scale copy exists in English and Vietnamese", () => {
   assert.equal(tFor("en", "customBuild.step1.customScaleInputLabel"), "Your scale length");
   assert.equal(tFor("vi", "customBuild.step1.customScaleError").includes("scale"), true);
   assert.equal(tFor("en", "customBuild.step3.fretCountInputHelp").includes("24"), true);
-  assert.equal(tFor("en", "customBuild.step1.fretCountLabel"), "Number of frets");
-  assert.equal(tFor("vi", "customBuild.step1.fretCountLabel"), "Số phím");
+  assert.equal(tFor("en", "customBuild.step3.fretCountLabel"), "Number of frets");
+  assert.equal(tFor("vi", "customBuild.step3.fretCountLabel"), "Số fret");
 });
 
 test("loaded custom scale type stays custom without requiring a stored length", () => {

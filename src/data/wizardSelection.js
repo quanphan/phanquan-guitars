@@ -1,5 +1,9 @@
 import { LIST_CATEGORY_IDS } from "./wizardCatalog.js";
 import { isCustomScale } from "./wizardScaleAttributes.js";
+import {
+  findSeriesConstructionOption,
+  findSeriesNeckConstructionOption,
+} from "./wizardSeriesConstruction.js";
 import { allowedCompatibilityFields } from "./wizardSetupLayout.js";
 
 function asList(value) {
@@ -218,6 +222,10 @@ export function pruneSelections(selections, lists) {
     next.radiusId = null;
     next.bodyWoodId = null;
     next.topWoodId = null;
+    next.bodyConstructionId = null;
+    next.secondaryBodyWoodId = null;
+    next.neckPiecesId = null;
+    next.secondaryNeckWoodId = null;
     clearStepThreeSelections(next);
     clearStepFourAndFiveSelections(next);
   }
@@ -230,6 +238,10 @@ export function pruneSelections(selections, lists) {
     next.radiusId = null;
     next.bodyWoodId = null;
     next.topWoodId = null;
+    next.bodyConstructionId = null;
+    next.secondaryBodyWoodId = null;
+    next.neckPiecesId = null;
+    next.secondaryNeckWoodId = null;
     clearStepThreeSelections(next);
   }
 
@@ -259,10 +271,26 @@ export function pruneSelections(selections, lists) {
     }
   }
 
+  const selectedSeries = findSelectedOption(lists.series, next.seriesId);
+  if (!next.seriesId || (next.bodyConstructionId && !findSeriesConstructionOption(selectedSeries, next.bodyConstructionId))) {
+    next.bodyConstructionId = null;
+  }
+
+  if (!next.seriesId || (next.neckPiecesId && !findSeriesNeckConstructionOption(selectedSeries, next.neckPiecesId))) {
+    next.neckPiecesId = null;
+  }
+
   if (next.bodyWoodId && !available("bodyWoods").some((item) => optionIdEquals(item, next.bodyWoodId))) {
     next.bodyWoodId = null;
     next.topWoodId = null;
     clearStepThreeSelections(next);
+  }
+
+  if (
+    next.secondaryBodyWoodId
+    && !available("bodyWoods").some((item) => optionIdEquals(item, next.secondaryBodyWoodId))
+  ) {
+    next.secondaryBodyWoodId = null;
   }
 
   const body = findSelectedOption(lists.bodyWoods, next.bodyWoodId);
@@ -286,6 +314,13 @@ export function pruneSelections(selections, lists) {
   if (next.neckWoodId && !available("neckWoods").some((item) => optionIdEquals(item, next.neckWoodId))) {
     next.neckWoodId = null;
     next.fingerboardWoodId = null;
+  }
+
+  if (
+    next.secondaryNeckWoodId
+    && !available("neckWoods").some((item) => optionIdEquals(item, next.secondaryNeckWoodId))
+  ) {
+    next.secondaryNeckWoodId = null;
   }
 
   if (
@@ -386,6 +421,7 @@ export function pruneSelections(selections, lists) {
 
 function clearStepThreeSelections(next) {
   next.neckWoodId = null;
+  next.secondaryNeckWoodId = null;
   next.neckConstructionId = null;
   next.fingerboardWoodId = null;
   next.neckProfileId = null;

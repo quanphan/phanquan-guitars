@@ -2,6 +2,7 @@ import { wizardOptionLabel } from "../data/wizardCatalog.js";
 import { visibleReviewRows } from "../data/wizardDisplay.js";
 import { sanitizeReferenceImages } from "../data/referenceImages.js";
 import { isCustomScale, isMultiscale, scaleDisplayValue } from "../data/wizardScaleAttributes.js";
+import { usesSecondaryBodyWood, usesSecondaryNeckWood } from "../data/wizardSeriesConstruction.js";
 
 function scaleDisplay(builder, t) {
   if (!builder?.scale) return null;
@@ -19,7 +20,7 @@ function scaleDisplay(builder, t) {
   return display || null;
 }
 
-export function customBuildReviewGroups({ t, builder, optionName }) {
+export function customBuildReviewGroups({ t, builder, optionName, language }) {
   const selections = builder?.selections || {};
   return [
     {
@@ -43,14 +44,44 @@ export function customBuildReviewGroups({ t, builder, optionName }) {
     {
       title: t("customBuild.steps.bodyTop"),
       rows: [
-        { key: "bodyWood", label: t("customBuild.summary.bodyWood"), value: optionName(builder.bodyWood, "woods") },
+        {
+          key: "bodyPieces",
+          label: t("customBuild.summary.bodyPieces"),
+          value: builder.bodyConstruction?.translations?.[language]?.name
+            || builder.bodyConstruction?.translations?.en?.name
+            || builder.bodyConstruction?.name
+            || null,
+        },
+        { key: "bodyWood", label: t("customBuild.summary.mainBodyWood"), value: optionName(builder.bodyWood, "woods") },
+        {
+          key: "secondaryBodyWood",
+          label: t("customBuild.summary.secondaryBodyWood"),
+          value: usesSecondaryBodyWood(builder.bodyConstruction)
+            ? optionName(builder.secondaryBodyWood, "woods")
+            : null,
+        },
         { key: "topWood", label: t("customBuild.summary.topWood"), value: optionName(builder.topWood, "woods") },
       ],
     },
     {
       title: t("customBuild.steps.neckFingerboard"),
       rows: [
-        { key: "neckWood", label: t("customBuild.summary.neckWood"), value: optionName(builder.neckWood, "neckWoods") },
+        {
+          key: "neckPieces",
+          label: t("customBuild.summary.neckPieces"),
+          value: builder.neckPieces?.translations?.[language]?.name
+            || builder.neckPieces?.translations?.en?.name
+            || builder.neckPieces?.name
+            || null,
+        },
+        { key: "neckWood", label: t("customBuild.summary.mainNeckWood"), value: optionName(builder.neckWood, "neckWoods") },
+        {
+          key: "secondaryNeckWood",
+          label: t("customBuild.summary.secondaryNeckWood"),
+          value: usesSecondaryNeckWood(builder.neckPieces)
+            ? optionName(builder.secondaryNeckWood, "neckWoods")
+            : null,
+        },
         {
           key: "neckConstruction",
           label: t("customBuild.summary.neckConstruction"),
@@ -158,7 +189,7 @@ export function buildCustomBuildChatSummary({ builder, language, t }) {
   if (phone) lines.push(`${t("customBuild.step6.fields.phone")}: ${phone}`);
   if (country) lines.push(`${t("customBuild.step6.fields.country")}: ${country}`);
 
-  for (const group of customBuildReviewGroups({ t, builder, optionName })) {
+  for (const group of customBuildReviewGroups({ t, builder, optionName, language })) {
     const rows = visibleReviewRows(group.rows);
     if (!rows.length) continue;
     lines.push("");

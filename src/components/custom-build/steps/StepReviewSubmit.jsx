@@ -241,7 +241,7 @@ export default function StepReviewSubmit({
     }
   }, [submitAttempt, submitStatus, submitted, submitting, contactErrors]);
 
-  const reviewGroups = customBuildReviewGroups({ t, builder, optionName });
+  const reviewGroups = customBuildReviewGroups({ t, builder, optionName, language });
 
   return (
     <div>
