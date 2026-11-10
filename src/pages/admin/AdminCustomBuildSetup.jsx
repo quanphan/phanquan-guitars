@@ -10,6 +10,7 @@ import {
   addTargetCategoryId,
   filterWizardSetupRows,
   groupLabel,
+  wizardSetupRowKey,
   groupsWithOptions,
   resolveGroupAfterStepChange,
   wizardSetupSteps,
@@ -129,14 +130,14 @@ export default function AdminCustomBuildSetup() {
 
   async function toggleActive(category, option) {
     if (!canWrite || !canStartExclusiveAction(busyId || deleting)) return;
-    setBusyId(option.id);
+    setBusyId(wizardSetupRowKey(category.id, option));
     setError(null);
     const nextActive = option.active === false;
     const result = await updateWizardOption(authorizedRequest, category.id, option.id, {
       active: nextActive,
       isDefault: nextActive ? option.isDefault : false,
       defaultForInstrumentTypeIds: nextActive ? option.defaultForInstrumentTypeIds || [] : [],
-    });
+    }, option);
     setBusyId(null);
     if (!result.ok) {
       setError(result.code);
@@ -148,12 +149,16 @@ export default function AdminCustomBuildSetup() {
 
   async function duplicate(category, option) {
     if (!canWrite || !canStartExclusiveAction(busyId || deleting)) return;
-    setBusyId(option.id);
+    setBusyId(wizardSetupRowKey(category.id, option));
     setError(null);
-    const result = await duplicateWizardOption(authorizedRequest, category.id, option.id);
+    const result = await duplicateWizardOption(authorizedRequest, category.id, option.id, option);
     setBusyId(null);
     if (!result.ok) {
       setError(result.code);
+      return;
+    }
+    if (result.option?.id && result.option.id === option.id && result.option.code === option.code) {
+      setError("DUPLICATE");
       return;
     }
     setNotice("duplicated");
@@ -164,10 +169,10 @@ export default function AdminCustomBuildSetup() {
     const current = pendingDelete;
     if (!current || !canDelete || deleting) return;
     setDeleting(true);
-    setBusyId(current.option.id);
+    setBusyId(wizardSetupRowKey(current.category.id, current.option));
     setDeleteError(null);
     setNotice(null);
-    const result = await deleteWizardOption(authorizedRequest, current.category.id, current.option.id);
+    const result = await deleteWizardOption(authorizedRequest, current.category.id, current.option.id, current.option);
     if (!result.ok) {
       setDeleting(false);
       setBusyId(null);
@@ -191,13 +196,13 @@ export default function AdminCustomBuildSetup() {
     const current = pendingDelete;
     if (!current || !canWrite || deleting) return;
     setDeleting(true);
-    setBusyId(current.option.id);
+    setBusyId(wizardSetupRowKey(current.category.id, current.option));
     setError(null);
     const result = await updateWizardOption(authorizedRequest, current.category.id, current.option.id, {
       active: false,
       isDefault: false,
       defaultForInstrumentTypeIds: [],
-    });
+    }, current.option);
     if (!result.ok) {
       setDeleting(false);
       setBusyId(null);
@@ -347,10 +352,10 @@ export default function AdminCustomBuildSetup() {
                 {rows.map(({ category, option }) => {
                   const label = language === "vi" ? option.translations?.vi?.name || option.name : option.translations?.en?.name || option.name;
                   return (
-                    <tr key={`${category.id}:${option.id}`} className="border-t border-white/8">
+                    <tr key={wizardSetupRowKey(category.id, option)} className="border-t border-white/8">
                       <td className="px-4 py-3 text-muted">{groupLabel(t, category)}</td>
                       <td className="px-4 py-3">
-                        <Link to={`/admin/custom-build-setup/${category.id}/${encodeURIComponent(option.id)}${listQuery}`} className="text-gold hover:text-gold-light">
+                        <Link to={`/admin/custom-build-setup/${category.id}/${encodeURIComponent(option.id)}${listQuery}${listQuery ? "&" : "?"}optionCode=${encodeURIComponent(option.code || "")}`} className="text-gold hover:text-gold-light">
                           {label}
                         </Link>
                         {category.id === "scale" ? (
@@ -375,10 +380,10 @@ export default function AdminCustomBuildSetup() {
                         <div className="flex flex-wrap gap-3">
                           {canWrite ? (
                             <>
-                              <button type="button" disabled={busyId === option.id} className="text-[11px] uppercase tracking-[0.16em] text-gold" onClick={() => void toggleActive(category, option)}>
+                              <button type="button" disabled={busyId === wizardSetupRowKey(category.id, option)} className="text-[11px] uppercase tracking-[0.16em] text-gold" onClick={() => void toggleActive(category, option)}>
                                 {option.active === false ? t("admin.catalog.activate") : t("admin.catalog.deactivate")}
                               </button>
-                              <button type="button" disabled={busyId === option.id} className="text-[11px] uppercase tracking-[0.16em] text-ivory/70 hover:text-gold" onClick={() => void duplicate(category, option)}>
+                              <button type="button" disabled={busyId === wizardSetupRowKey(category.id, option)} className="text-[11px] uppercase tracking-[0.16em] text-ivory/70 hover:text-gold" onClick={() => void duplicate(category, option)}>
                                 {t("admin.catalog.copy")}
                               </button>
                             </>

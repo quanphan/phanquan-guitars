@@ -64,30 +64,35 @@ export async function createWizardOption(request, categoryId, body) {
   return { ok: true, option: result.payload.data };
 }
 
-export async function updateWizardOption(request, categoryId, optionId, body) {
-  const result = await request(
-    `/api/admin/custom-build/setup/${encodeURIComponent(categoryId)}/options/${encodeURIComponent(optionId)}`,
-    { method: "PATCH", body },
-  );
+function optionActionPath(categoryId, optionId, option, suffix = "") {
+  const path = `/api/admin/custom-build/setup/${encodeURIComponent(categoryId)}/options/${encodeURIComponent(optionId)}${suffix}`;
+  const code = typeof option === "string" ? option : option?.code;
+  if (!code) return path;
+  return `${path}?code=${encodeURIComponent(code)}`;
+}
+
+export async function updateWizardOption(request, categoryId, optionId, body, option) {
+  const result = await request(optionActionPath(categoryId, optionId, option), {
+    method: "PATCH",
+    body,
+  });
   if (!result.ok || result.payload?.success !== true) return { ...failure(result), option: null };
   return { ok: true, option: result.payload.data };
 }
 
-export async function duplicateWizardOption(request, categoryId, optionId) {
-  const result = await request(
-    `/api/admin/custom-build/setup/${encodeURIComponent(categoryId)}/options/${encodeURIComponent(optionId)}/duplicate`,
-    { method: "POST" },
-  );
+export async function duplicateWizardOption(request, categoryId, optionId, option) {
+  const result = await request(optionActionPath(categoryId, optionId, option, "/duplicate"), {
+    method: "POST",
+  });
   if (!result.ok || result.payload?.success !== true) return { ...failure(result), option: null };
   return { ok: true, option: result.payload.data };
 }
 
-export async function deleteWizardOption(request, categoryId, optionId) {
-  logSetup("delete-request", { categoryId, optionId });
-  const result = await request(
-    `/api/admin/custom-build/setup/${encodeURIComponent(categoryId)}/options/${encodeURIComponent(optionId)}`,
-    { method: "DELETE" },
-  );
+export async function deleteWizardOption(request, categoryId, optionId, option) {
+  logSetup("delete-request", { categoryId, optionId, code: option?.code });
+  const result = await request(optionActionPath(categoryId, optionId, option), {
+    method: "DELETE",
+  });
   if (!result.ok || result.payload?.success !== true || result.payload?.data?.deleted !== true) {
     const failed = failure(result);
     logSetup("delete-result", { categoryId, optionId, status: result.status, code: failed.code });

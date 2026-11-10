@@ -52,6 +52,21 @@ export function addTargetCategoryId(groupId, stepCategories, optionGroups) {
   return optionGroups?.[0]?.id || stepCategories?.[0]?.id || "";
 }
 
+export function wizardSetupRowKey(categoryId, option) {
+  return [categoryId, option?.id, option?.code].filter((part) => part != null && String(part) !== "").join(":");
+}
+
+export function findWizardSetupOption(options, optionId, codeHint = "") {
+  const matches = (options || []).filter((item) => item.id === optionId);
+  const hint = String(codeHint || "").trim();
+  if (hint) {
+    const byCode = matches.find((item) => item.code === hint);
+    if (byCode) return byCode;
+  }
+  if (matches[0]) return matches[0];
+  return (options || []).find((item) => item.code === optionId) || null;
+}
+
 export function filterWizardSetupRows({ categories, stepId, groupId, status, search }) {
   const query = String(search || "").trim().toLowerCase();
   return (categories || [])

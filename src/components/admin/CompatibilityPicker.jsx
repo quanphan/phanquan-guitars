@@ -95,7 +95,7 @@ export default function CompatibilityPicker({
                       const en = option.translations?.en?.name || option.name;
                       const bilingual = vi && en && vi !== en ? `${en} / ${vi}` : label;
                       return (
-                        <label key={option.id} className="flex items-start gap-2 text-sm text-ivory">
+                        <label key={`${option.id}:${option.code || ""}`} className="flex items-start gap-2 text-sm text-ivory">
                           <input
                             type="checkbox"
                             checked={checked}
@@ -137,7 +137,7 @@ export function DefaultForTypesPicker({ types, selected, onChange, language, t, 
           const en = option.translations?.en?.name || option.name;
           const vi = option.translations?.vi?.name;
           return (
-            <label key={option.id} className={`flex items-start gap-2 text-sm ${allowed ? "text-ivory" : "text-muted"}`}>
+            <label key={`${option.id}:${option.code || ""}`} className={`flex items-start gap-2 text-sm ${allowed ? "text-ivory" : "text-muted"}`}>
               <input
                 type="checkbox"
                 checked={checked}

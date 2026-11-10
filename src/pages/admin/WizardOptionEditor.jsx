@@ -15,6 +15,7 @@ import { COMPATIBILITY_FIELDS } from "../../data/wizardCatalog.js";
 import {
   categoryStepId,
   compatibilityEditorOptions,
+  findWizardSetupOption,
   groupLabel,
   keepAllowedCompatibility,
   precedingGroupIds,
@@ -71,6 +72,7 @@ const emptyForm = {
 export default function WizardOptionEditor() {
   const { categoryId, optionId } = useParams();
   const [searchParams] = useSearchParams();
+  const optionCode = searchParams.get("optionCode") || "";
   const isNew = !optionId || optionId === "new";
   const { t, language } = useLanguage();
   const navigate = useNavigate();
@@ -111,7 +113,7 @@ export default function WizardOptionEditor() {
       setLoading(false);
       return;
     }
-    const option = result.category.options.find((item) => item.id === optionId);
+    const option = findWizardSetupOption(result.category.options, optionId, optionCode);
     if (!option) {
       setError("NOT_FOUND");
       setLoading(false);
@@ -120,7 +122,7 @@ export default function WizardOptionEditor() {
     setForm(formFromWizardOption(option, categoryId, listed.categories));
     setScaleForm(scaleFormFromAttributes(option.attributes));
     setLoading(false);
-  }, [authorizedRequest, categoryId, isNew, optionId]);
+  }, [authorizedRequest, categoryId, isNew, optionId, optionCode]);
 
   useEffect(() => {
     void load();
@@ -213,7 +215,7 @@ export default function WizardOptionEditor() {
     const body = payload();
     const result = isNew
       ? await createWizardOption(authorizedRequest, form.categoryId, body)
-      : await updateWizardOption(authorizedRequest, categoryId, optionId, body);
+      : await updateWizardOption(authorizedRequest, categoryId, optionId, body, { code: form.code });
     setSaving(false);
     if (!result.ok) {
       setError(result.code);

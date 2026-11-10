@@ -13,7 +13,9 @@ import {
   compatibilityEditorOptions,
   compatibilitySelectAllState,
   filterWizardSetupRows,
+  findWizardSetupOption,
   groupsWithOptions,
+  wizardSetupRowKey,
   keepAllowedCompatibility,
   precedingGroupIds,
   resolveGroupAfterStepChange,
@@ -44,6 +46,15 @@ test("wizard setup copy exists in English and Vietnamese", () => {
   assert.equal(tFor("en", "customBuild.summary.customerSuppliedParts"), "Customer-supplied parts");
   assert.equal(tFor("en", "admin.wizardSetup.noImage"), "No image");
   assert.equal(tFor("vi", "admin.wizardSetup.noImage"), "Không có ảnh");
+});
+
+test("wizard setup rows stay unique when two options share an id", () => {
+  const first = { id: "radius.16-2", code: "10", name: "10" };
+  const copy = { id: "radius.16-2", code: "16-2", name: "16 copy" };
+  assert.notEqual(wizardSetupRowKey("radius", first), wizardSetupRowKey("radius", copy));
+  const options = [first, copy];
+  assert.equal(findWizardSetupOption(options, "radius.16-2", "16-2").name, "16 copy");
+  assert.equal(findWizardSetupOption(options, "radius.16-2", "10").name, "10");
 });
 
 test("admin custom build setup lists image instead of slug and omits icon key from the editor", () => {
