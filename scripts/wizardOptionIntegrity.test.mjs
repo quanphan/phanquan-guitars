@@ -6,6 +6,7 @@ import {
   buildWizardOptionUpdatePayload,
   formFromWizardOption,
   isIdentifierLocked,
+  wizardOptionImagePath,
 } from "../src/data/wizardOptionPayload.js";
 
 const categories = [
@@ -177,4 +178,29 @@ test("create payloads still include a code and sanitize newly selected compatibi
   });
   assert.equal(body.code, "new-line");
   assert.deepEqual(body.compatibility.instrumentTypeIds, ["electric-guitar"]);
+});
+
+test("wizard option image path prefers imagePath then image then attributes.image", () => {
+  assert.equal(wizardOptionImagePath({ imagePath: "/uploads/a.jpg", image: "/uploads/b.jpg" }), "/uploads/a.jpg");
+  assert.equal(wizardOptionImagePath({ image: " /uploads/b.jpg " }), "/uploads/b.jpg");
+  assert.equal(wizardOptionImagePath({ attributes: { image: "/uploads/c.jpg" } }), "/uploads/c.jpg");
+  assert.equal(wizardOptionImagePath({}), "");
+  assert.equal(wizardOptionImagePath(null), "");
+});
+
+test("editing an old option with iconKey still round-trips icon without requiring the admin field", () => {
+  const legacy = {
+    ...boutique,
+    icon: "electric",
+    attributes: { ...boutique.attributes, icon: "electric" },
+  };
+  const form = formFromWizardOption(legacy, "series", categories);
+  assert.equal(form.icon, "electric");
+  const body = buildWizardOptionUpdatePayload(form, {
+    canScopeDefault: true,
+    instrumentTypes: categories[0].options,
+    categories,
+  });
+  assert.equal(body.icon, "electric");
+  assert.equal(body.imagePath, boutique.imagePath);
 });

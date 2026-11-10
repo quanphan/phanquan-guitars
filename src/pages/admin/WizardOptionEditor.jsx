@@ -314,7 +314,6 @@ export default function WizardOptionEditor() {
               <p className="-mt-3 text-xs text-muted">{t("admin.wizardSetup.codeLocked")}</p>
             ) : null}
             <Field id="wizard-desc" label={t("admin.catalog.fields.description")} value={form.description} onChange={(value) => setField("description", value)} multiline rows={3} />
-            <Field id="wizard-icon" label={t("admin.wizardSetup.fields.icon")} value={form.icon} onChange={(value) => setField("icon", value)} />
             <ImageUploadField
               label={t("admin.catalog.fields.image")}
               storedPath={form.imagePath}

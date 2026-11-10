@@ -42,6 +42,20 @@ test("wizard setup copy exists in English and Vietnamese", () => {
   assert.equal(tFor("en", "customBuild.step4.customerSuppliedLabel"), "I will supply my own parts");
   assert.equal(tFor("vi", "customBuild.step4.customerSuppliedLabel"), "Tôi tự chuẩn bị / đã có sẵn linh kiện");
   assert.equal(tFor("en", "customBuild.summary.customerSuppliedParts"), "Customer-supplied parts");
+  assert.equal(tFor("en", "admin.wizardSetup.noImage"), "No image");
+  assert.equal(tFor("vi", "admin.wizardSetup.noImage"), "Không có ảnh");
+});
+
+test("admin custom build setup lists image instead of slug and omits icon key from the editor", () => {
+  const root = dirname(fileURLToPath(import.meta.url));
+  const editor = readFileSync(join(root, "../src/pages/admin/WizardOptionEditor.jsx"), "utf8");
+  const list = readFileSync(join(root, "../src/pages/admin/AdminCustomBuildSetup.jsx"), "utf8");
+  assert.equal(editor.includes("wizard-icon"), false);
+  assert.equal(editor.includes("admin.wizardSetup.fields.icon"), false);
+  assert.equal(editor.includes("ImageUploadField"), true);
+  assert.equal(list.includes("admin.catalog.columns.slug"), false);
+  assert.equal(list.includes("admin.catalog.columns.image"), true);
+  assert.equal(list.includes("WizardOptionThumb"), true);
 });
 
 test("failed public catalog loads do not invent local option lists", () => {

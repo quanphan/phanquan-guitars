@@ -682,6 +682,7 @@ export const translations = {
           multiscale: "Multiscale range",
         },
         columns: { step: "Step", group: "Group", default: "Default" },
+        noImage: "No image",
         fields: {
           enName: "Name (English)",
           viName: "Name (Vietnamese)",
@@ -3166,6 +3167,7 @@ export const translations = {
           multiscale: "Dải multiscale",
         },
         columns: { step: "Bước", group: "Nhóm", default: "Mặc định" },
+        noImage: "Không có ảnh",
         fields: {
           enName: "Tên (English)",
           viName: "Tên (Tiếng Việt)",

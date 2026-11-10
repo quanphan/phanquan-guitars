@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { errorText } from "../../auth/errorText.js";
 import ConfirmDialog from "../../components/admin/ConfirmDialog.jsx";
+import WizardOptionThumb from "../../components/admin/WizardOptionThumb.jsx";
 import Button from "../../components/Button.jsx";
 import PageHeader from "../../components/PageHeader.jsx";
 import {
@@ -334,7 +335,7 @@ export default function AdminCustomBuildSetup() {
                 <tr>
                   <th className="px-4 py-3 font-medium">{t("admin.wizardSetup.columns.group")}</th>
                   <th className="px-4 py-3 font-medium">{t("admin.catalog.columns.name")}</th>
-                  <th className="px-4 py-3 font-medium">{t("admin.catalog.columns.slug")}</th>
+                  <th className="px-4 py-3 font-medium">{t("admin.catalog.columns.image")}</th>
                   <th className="px-4 py-3 font-medium">{t("admin.catalog.columns.status")}</th>
                   <th className="px-4 py-3 font-medium">{t("admin.wizardSetup.columns.default")}</th>
                   <th className="px-4 py-3 font-medium">
@@ -358,7 +359,9 @@ export default function AdminCustomBuildSetup() {
                           </span>
                         ) : null}
                       </td>
-                      <td className="px-4 py-3 text-muted">{option.code}</td>
+                      <td className="px-4 py-3 align-middle">
+                        <WizardOptionThumb option={option} t={t} />
+                      </td>
                       <td className="px-4 py-3">{option.active === false ? t("admin.catalog.inactive") : t("admin.catalog.active")}</td>
                       <td className="px-4 py-3">
                         {option.isDefault ? t("admin.wizardSetup.default") : "—"}

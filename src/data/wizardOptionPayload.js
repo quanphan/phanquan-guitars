@@ -12,6 +12,17 @@ function emptyCompatibility() {
   return Object.fromEntries(COMPATIBILITY_FIELDS.map((field) => [field.key, []]));
 }
 
+export function wizardOptionImagePath(option) {
+  if (!option || typeof option !== "object") return "";
+  const attributes = option.attributes && typeof option.attributes === "object" && !Array.isArray(option.attributes)
+    ? option.attributes
+    : {};
+  for (const value of [option.imagePath, option.image, attributes.image]) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return "";
+}
+
 export function storedCompatibility(compatibility, categoryId, categories) {
   const source = compatibility && typeof compatibility === "object" && !Array.isArray(compatibility)
     ? compatibility
@@ -34,8 +45,8 @@ export function formFromWizardOption(option, categoryId, categories) {
     description: option.description || option.translations?.en?.description || option.translations?.vi?.description || "",
     viName: option.translations?.vi?.name || "",
     enName: option.translations?.en?.name || option.name || "",
-    icon: option.icon || "",
-    imagePath: option.imagePath || "",
+    icon: option.icon || (typeof option.attributes?.icon === "string" ? option.attributes.icon : "") || "",
+    imagePath: wizardOptionImagePath(option),
     active: option.active !== false,
     isDefault: Boolean(option.isDefault),
     defaultForInstrumentTypeIds: Array.isArray(option.defaultForInstrumentTypeIds)

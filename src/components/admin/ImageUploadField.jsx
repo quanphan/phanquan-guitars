@@ -15,6 +15,11 @@ export default function ImageUploadField({
   const [preview, setPreview] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [broken, setBroken] = useState(false);
+
+  useEffect(() => {
+    setBroken(false);
+  }, [storedPath]);
 
   useEffect(() => {
     return () => {
@@ -27,6 +32,7 @@ export default function ImageUploadField({
     event.target.value = "";
     if (!file || !canUpload) return;
     setError(null);
+    setBroken(false);
     if (preview) URL.revokeObjectURL(preview);
     const local = URL.createObjectURL(file);
     setPreview(local);
@@ -42,13 +48,19 @@ export default function ImageUploadField({
     onUploaded(result.path);
   }
 
-  const shown = preview || (storedPath ? mediaUrl(storedPath) : "");
+  const shown = broken ? "" : preview || (storedPath ? mediaUrl(storedPath) : "");
 
   return (
     <div>
       <p className="text-[11px] uppercase tracking-[0.18em] text-gold">{label}</p>
       {shown ? (
-        <img src={shown} alt="" className="mt-3 h-32 w-32 border border-white/10 bg-ink object-contain" />
+        storedPath ? (
+          <a href={shown} target="_blank" rel="noreferrer" className="mt-3 inline-block">
+            <img src={shown} alt="" className="h-32 w-32 border border-white/10 bg-ink object-contain" onError={() => setBroken(true)} />
+          </a>
+        ) : (
+          <img src={shown} alt="" className="mt-3 h-32 w-32 border border-white/10 bg-ink object-contain" onError={() => setBroken(true)} />
+        )
       ) : (
         <p className="mt-3 text-sm text-muted">{t("admin.catalog.noImage")}</p>
       )}
