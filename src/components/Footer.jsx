@@ -12,12 +12,13 @@ import { telHref, whatsappHref } from "../services/brandSettings.js";
 import { listPublicFooterQuickLinks } from "../services/footerQuickLinkService.js";
 
 const linkClass = "transition-colors hover:text-gold";
+const quickLinkClass = "transition-colors duration-300 ease-out hover:text-gold";
 const FALLBACK_PHONE = "+84 903083489";
 
 function FooterQuickLink({ link, language, t }) {
   const locale = footerLinkLocale(link, language);
   const label = locale.title || (link.titleKey ? t(link.titleKey) : link.title || link.url);
-  const className = linkClass;
+  const className = quickLinkClass;
   if (link.linkType === "external") {
     return (
       <a

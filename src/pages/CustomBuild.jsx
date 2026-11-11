@@ -13,6 +13,8 @@ import { optionLabel, wizardOptionLabel } from "../data/wizardCatalog.js";
 import { usesSecondaryBodyWood, usesSecondaryNeckWood } from "../data/wizardSeriesConstruction.js";
 import { isCustomScale, scaleDisplayValue } from "../data/wizardScaleAttributes.js";
 import { visibleSummaryRows } from "../data/wizardDisplay.js";
+import { clearSubmittedDraftSnapshot } from "../data/customBuildDraft.js";
+import { isCustomBuildPath } from "../data/customBuildDraftResume.js";
 import { useCustomBuild } from "../hooks/useCustomBuild.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import { isMissingRequiredConfig } from "../services/customBuildPayload.js";
@@ -22,6 +24,24 @@ export default function CustomBuild() {
   const builder = useCustomBuild();
   const isFirstStep = builder.currentStep === 1;
   const isLastStep = builder.currentStep === builder.totalSteps;
+
+  useEffect(() => {
+    return () => {
+      clearSubmittedDraftSnapshot();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (builder.submitStatus !== "success") return undefined;
+    function onClick(event) {
+      const link = event.target instanceof Element ? event.target.closest("a[href]") : null;
+      if (!link || !isCustomBuildPath(link.getAttribute("href"))) return;
+      event.preventDefault();
+      builder.reset();
+    }
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, [builder.submitStatus, builder.reset]);
 
   useEffect(() => {
     if (builder.submitStatus !== "invalid-config") return;

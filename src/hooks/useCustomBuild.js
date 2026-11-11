@@ -92,11 +92,22 @@ import {
   clearCustomBuildDraft,
   createEmptyDraft,
   readCustomBuildDraft,
+  readSubmittedDraftSnapshot,
   writeCustomBuildDraft,
+  writeSubmittedDraftSnapshot,
+  clearSubmittedDraftSnapshot,
 } from "../data/customBuildDraft.js";
+import { storedDraftShouldStartFresh } from "../data/customBuildDraftResume.js";
 
 function getInitialBuilderState() {
+  const submitted = readSubmittedDraftSnapshot();
+  if (submitted?.submitStatus === "success") return submitted;
   const stored = readCustomBuildDraft();
+  if (storedDraftShouldStartFresh(stored, submitted)) {
+    const empty = createEmptyDraft();
+    writeCustomBuildDraft(empty);
+    return empty;
+  }
   if (stored) return stored;
   return createEmptyDraft();
 }
@@ -110,6 +121,7 @@ export function useCustomBuild() {
     updatedAt: initial.updatedAt,
   });
   const skipAutosaveRef = useRef(true);
+  const emptyAfterSuccessRef = useRef(false);
   const persistableRef = useRef({
     currentStep: initial.currentStep,
     selections: initial.selections,
@@ -466,6 +478,8 @@ export function useCustomBuild() {
     };
     skipAutosaveRef.current = true;
     submitLockRef.current = false;
+    emptyAfterSuccessRef.current = false;
+    clearSubmittedDraftSnapshot();
     clearCustomBuildDraft();
     writeCustomBuildDraft(empty);
     setSelections(empty.selections);
@@ -651,6 +665,23 @@ export function useCustomBuild() {
       submitStatus,
       inquiryReference,
     };
+    if (submitStatus === "success") {
+      const snapshot = buildPersistedDraft({
+        previous: draftMetaRef.current,
+        currentStep,
+        selections,
+        submitStatus,
+        inquiryReference,
+        refreshExpiry: true,
+      });
+      writeSubmittedDraftSnapshot(snapshot);
+      if (!emptyAfterSuccessRef.current) {
+        emptyAfterSuccessRef.current = true;
+        writeCustomBuildDraft(createEmptyDraft());
+      }
+      return;
+    }
+    emptyAfterSuccessRef.current = false;
     if (skipAutosaveRef.current) {
       skipAutosaveRef.current = false;
       persistDraft(

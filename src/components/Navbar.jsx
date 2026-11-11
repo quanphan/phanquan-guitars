@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import { ShoppingBag } from "lucide-react";
 import brandLogo from "../assets/guitars/logo/Screenshot 2026-10-16 at 15.56.04.png";
 import { useCart } from "../cart/CartContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import { PRIMARY_NAV_LINKS } from "../data/nav.js";
+import useResumableCustomBuildDraft from "../hooks/useResumableCustomBuildDraft.js";
 import AccountMenu from "./AccountMenu.jsx";
 
 function LanguageSwitcher({ className = "" }) {
@@ -40,6 +41,23 @@ function LanguageSwitcher({ className = "" }) {
         EN
       </button>
     </div>
+  );
+}
+
+function ContinueBuildLink({ className = "", onNavigate }) {
+  const { t } = useLanguage();
+  const location = useLocation();
+  const resumable = useResumableCustomBuildDraft();
+  if (!resumable || location.pathname === "/custom-build") return null;
+
+  return (
+    <Link
+      to="/custom-build"
+      onClick={onNavigate}
+      className={`inline-flex items-center border border-gold/70 px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-gold transition-colors duration-300 hover:bg-gold/10 hover:text-gold-light sm:text-[11px] ${className}`}
+    >
+      {t("nav.continueBuild")}
+    </Link>
   );
 }
 
@@ -115,12 +133,17 @@ export default function Navbar() {
               {t(link.key)}
             </NavLink>
           ))}
+          <ContinueBuildLink />
           <AccountMenu />
           <CartLink className="h-11 w-11" />
           <LanguageSwitcher />
         </nav>
 
         <div className="flex shrink-0 items-center gap-0.5 max-[360px]:gap-0 sm:gap-2.5 lg:hidden">
+          <ContinueBuildLink
+            className="max-w-[5.75rem] px-1.5 py-1.5 text-center text-[8px] leading-tight tracking-[0.12em] sm:max-w-none sm:px-3 sm:py-2 sm:text-[10px] sm:leading-none"
+            onNavigate={closeMenu}
+          />
           <LanguageSwitcher className="gap-0.5 text-[10px] tracking-[0.08em] [&_button]:min-h-9 [&_button]:px-0.5 sm:[&_button]:min-h-10" />
           <CartLink className="h-9 w-9 sm:h-10 sm:w-10" onNavigate={closeMenu} />
           <AccountMenu
@@ -156,6 +179,7 @@ export default function Navbar() {
           className="border-t border-white/5 bg-ink px-6 py-6 lg:hidden"
           aria-label="Mobile"
         >
+          <ContinueBuildLink className="mb-5 w-fit" onNavigate={closeMenu} />
           <ul className="flex flex-col gap-5">
             {PRIMARY_NAV_LINKS.map((link) => (
               <li key={link.to}>

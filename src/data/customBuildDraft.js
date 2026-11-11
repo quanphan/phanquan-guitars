@@ -8,6 +8,8 @@ import { sanitizeReferenceImages } from "./referenceImages.js";
 export const DRAFT_STORAGE_KEY = "phanquan-guitars-custom-build-draft-v1";
 export const DRAFT_SCHEMA_VERSION = 1;
 export const DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
+export const CUSTOM_BUILD_DRAFT_CHANGE_EVENT = "phanquan-custom-build-draft-change";
+export const SUBMITTED_DRAFT_SESSION_KEY = "phanquan-guitars-custom-build-success-v1";
 
 const SUBMIT_STATUSES = new Set([
   "idle",
@@ -73,6 +75,11 @@ function sanitizeStep(value) {
   return Math.min(Math.max(step, 1), BUILDER_STEPS.length);
 }
 
+function notifyDraftChange() {
+  if (typeof window === "undefined" || typeof window.dispatchEvent !== "function") return;
+  window.dispatchEvent(new Event(CUSTOM_BUILD_DRAFT_CHANGE_EVENT));
+}
+
 function sanitizeSubmitStatus(value) {
   if (value === "submitting") return "idle";
   return SUBMIT_STATUSES.has(value) ? value : "idle";
@@ -123,7 +130,10 @@ export function readCustomBuildDraft(
     const raw = storage?.getItem(DRAFT_STORAGE_KEY);
     const draft = parseDraft(raw, now);
     if (draft) return draft;
-    if (raw) storage?.removeItem(DRAFT_STORAGE_KEY);
+    if (raw) {
+      storage?.removeItem(DRAFT_STORAGE_KEY);
+      notifyDraftChange();
+    }
     return null;
   } catch {
     return null;
@@ -136,6 +146,7 @@ export function writeCustomBuildDraft(
 ) {
   try {
     storage?.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+    notifyDraftChange();
     return true;
   } catch {
     return false;
@@ -145,6 +156,31 @@ export function writeCustomBuildDraft(
 export function clearCustomBuildDraft(storage = globalThis.localStorage) {
   try {
     storage?.removeItem(DRAFT_STORAGE_KEY);
+    notifyDraftChange();
+  } catch {
+    // Ignore quota / private-mode failures.
+  }
+}
+
+export function readSubmittedDraftSnapshot(now = Date.now()) {
+  try {
+    return parseDraft(sessionStorage.getItem(SUBMITTED_DRAFT_SESSION_KEY), now);
+  } catch {
+    return null;
+  }
+}
+
+export function writeSubmittedDraftSnapshot(draft) {
+  try {
+    sessionStorage.setItem(SUBMITTED_DRAFT_SESSION_KEY, JSON.stringify(draft));
+  } catch {
+    // Ignore quota / private-mode failures.
+  }
+}
+
+export function clearSubmittedDraftSnapshot() {
+  try {
+    sessionStorage.removeItem(SUBMITTED_DRAFT_SESSION_KEY);
   } catch {
     // Ignore quota / private-mode failures.
   }

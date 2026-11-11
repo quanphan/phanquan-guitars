@@ -30,6 +30,7 @@ export const translations = {
       adminAccess: "Administration",
       cart: "Cart",
       cartWithCount: "Cart, {count} items",
+      continueBuild: "Continue Build",
     },
     auth: {
       eyebrow: "Account",
@@ -2521,6 +2522,7 @@ export const translations = {
       adminAccess: "Quản trị",
       cart: "Giỏ hàng",
       cartWithCount: "Giỏ hàng, {count} sản phẩm",
+      continueBuild: "Tiếp tục Build",
     },
     auth: {
       eyebrow: "Tài khoản",
