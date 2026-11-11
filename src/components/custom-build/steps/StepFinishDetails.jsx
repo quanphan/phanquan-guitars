@@ -1,4 +1,4 @@
-import { humanizeOptionId, optionLabel, translatedLabel } from "../../../data/wizardCatalog.js";
+import { humanizeOptionId, optionDescription, optionLabel, translatedLabel } from "../../../data/wizardCatalog.js";
 import { useLanguage } from "../../../i18n/LanguageContext.jsx";
 import ChoiceButton from "../ChoiceButton.jsx";
 import OptionChips from "../OptionChips.jsx";
@@ -114,6 +114,7 @@ export default function StepFinishDetails({
                     selected={selections.finishColorId === color.id}
                     onSelect={() => selectFinishColor(color.id)}
                     label={name}
+                    description={optionDescription(color, language)}
                     className="flex min-w-[7.5rem] items-center gap-3 px-3 py-3 text-[11px] uppercase tracking-[0.16em]"
                   >
                     <span

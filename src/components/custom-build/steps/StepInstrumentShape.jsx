@@ -78,6 +78,7 @@ export default function StepInstrumentShape({
                 selected={selected}
                 onSelect={() => selectInstrumentType(type.id)}
                 label={name}
+                description={optionDescription(type, language)}
                 className="flex w-[8.25rem] flex-col items-center gap-2 px-3 py-3 sm:w-[9.25rem]"
               >
                 <WizardChoiceArt
@@ -115,7 +116,7 @@ export default function StepInstrumentShape({
                   selected={selections.seriesId === series.id}
                   onSelect={() => selectSeries(series.id)}
                   label={name}
-                  description={optionDescription(series, language, t, `customBuild.series.${series.id}.description`)}
+                  description={optionDescription(series, language)}
                   className={chipClass}
                 >
                   {name}
@@ -136,6 +137,7 @@ export default function StepInstrumentShape({
               {availableShapes.map((shape) => {
                 const selected = selections.shapeId === shape.id;
                 const name = optionLabel(shape, language, t, `customBuild.shapes.${shape.id}.name`);
+                const description = optionDescription(shape, language);
                 return (
                   <ChoiceButton
                     key={shape.id}
@@ -157,11 +159,16 @@ export default function StepInstrumentShape({
                       )}
                     />
                     <span
-                      className={`flex min-h-[2.75rem] w-full items-center justify-center px-3 py-3 text-center text-[10px] uppercase tracking-[0.14em] ${
+                      className={`flex min-h-[2.75rem] w-full flex-col items-center justify-center px-3 py-3 text-center text-[10px] uppercase tracking-[0.14em] ${
                         selected ? "bg-gold/15 text-gold" : "bg-ink text-ivory/80"
                       }`}
                     >
                       {name}
+                      {description ? (
+                        <span className="mt-1 block whitespace-pre-wrap text-[11px] font-normal normal-case tracking-normal text-muted">
+                          {description}
+                        </span>
+                      ) : null}
                     </span>
                   </ChoiceButton>
                 );
@@ -189,6 +196,7 @@ export default function StepInstrumentShape({
                   selected={selections.scaleId === scale.id}
                   onSelect={() => selectScale(scale.id)}
                   label={label}
+                  description={optionDescription(scale, language)}
                   className={chipClass}
                 >
                   {label}
@@ -248,6 +256,7 @@ export default function StepInstrumentShape({
                   selected={selections.stringCount === option.value}
                   onSelect={() => selectStringCount(option.value)}
                   label={label}
+                  description={optionDescription(option, language)}
                   className={chipClass}
                 >
                   {label}
@@ -273,6 +282,7 @@ export default function StepInstrumentShape({
                   selected={selections.radiusId === radius.id}
                   onSelect={() => selectRadius(radius.id)}
                   label={label}
+                  description={optionDescription(radius, language)}
                   className={chipClass}
                 >
                   {label}

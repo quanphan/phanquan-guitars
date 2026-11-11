@@ -55,7 +55,7 @@ export function Select({
     </select>
   );
   const hintNode = hint ? (
-    <span className="mt-2 block text-xs font-normal normal-case tracking-normal text-muted">
+    <span className="mt-2 block whitespace-pre-wrap text-xs font-normal normal-case tracking-normal text-muted">
       {hint}
     </span>
   ) : null;

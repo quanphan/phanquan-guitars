@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
-import { interpretPublicCatalog, listsFromPublicCatalog, optionLabel, optionMatchesAlias, uniqueCatalogOptions, wizardChoiceKey, wizardOptionLabel } from "../src/data/wizardCatalog.js";
+import { interpretPublicCatalog, listsFromPublicCatalog, optionDescription, optionLabel, optionMatchesAlias, uniqueCatalogOptions, wizardChoiceKey, wizardOptionLabel } from "../src/data/wizardCatalog.js";
 import { hasConfiguredOptions, visibleSummaryRows } from "../src/data/wizardDisplay.js";
 import {
   addTargetCategoryId,
@@ -220,6 +220,47 @@ test("wizard option labels never show raw translation keys", () => {
     optionLabel(gloss, "en", tEn, "customBuild.finishTypes.gloss.name").includes("customBuild."),
     false,
   );
+});
+
+test("wizard option descriptions come from the item and stay hidden when empty", () => {
+  const tEn = tFor.bind(null, "en");
+  const both = {
+    id: "offset-dots",
+    description: "Catalog fallback",
+    translations: {
+      vi: { description: "Chấm lệch" },
+      en: { description: "Offset dots note" },
+    },
+  };
+  const viOnly = { id: "side-dots", translations: { vi: { description: "Chấm hông" }, en: { description: "" } } };
+  const enOnly = { id: "custom-inlay", translations: { en: { description: "Custom inlay note" } } };
+  const none = { id: "none", name: "None", description: "", translations: { vi: { description: null }, en: { description: "  " } } };
+  const multiline = { id: "logo", description: "Line one\nLine two" };
+
+  assert.equal(optionDescription(both, "en"), "Offset dots note");
+  assert.equal(optionDescription(both, "vi"), "Chấm lệch");
+  assert.equal(optionDescription(viOnly, "en"), "Chấm hông");
+  assert.equal(optionDescription(enOnly, "vi"), "Custom inlay note");
+  assert.equal(optionDescription(none, "en", tEn, "customBuild.inlays.none.detail"), "");
+  assert.equal(optionDescription(none, "vi"), "");
+  assert.equal(optionDescription(multiline, "en"), "Line one\nLine two");
+  assert.equal(optionDescription({ id: "alder" }, "en", tEn, "customBuild.woods.alder.description"), "");
+  assert.equal(optionDescription(null, "en"), "");
+
+  const lists = listsFromPublicCatalog({
+    categories: [{
+      id: "inlay",
+      options: [{
+        id: "inlay.offset-dots",
+        code: "offset-dots",
+        name: "Offset dots",
+        active: true,
+        translations: { vi: { name: "OFFSET DOTS", description: "Từ API" }, en: { name: "Offset dots", description: "" } },
+      }],
+    }],
+  });
+  assert.equal(optionDescription(lists.inlays[0], "en"), "Từ API");
+  assert.equal(optionDescription(lists.inlays[0], "vi"), "Từ API");
 });
 
 test("inactive wizard options stay out of lists, defaults, and compatibility filters", () => {

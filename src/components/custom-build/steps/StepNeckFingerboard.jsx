@@ -14,7 +14,7 @@ function constructionLabel(option, language) {
 
 function WoodCard({ option, selected, onSelect, nameKey, t, language, imageFit = "contain" }) {
   const name = optionLabel(option, language, t, `${nameKey}.${option.id}.name`);
-  const description = optionDescription(option, language, t, `${nameKey}.${option.id}.description`);
+  const description = optionDescription(option, language);
   const hasDescription = Boolean(description);
 
   return (
@@ -44,7 +44,7 @@ function WoodCard({ option, selected, onSelect, nameKey, t, language, imageFit =
         {name}
       </span>
       {hasDescription ? (
-        <span className="px-4 pb-4 text-[11px] font-normal normal-case tracking-normal text-muted">
+        <span className="whitespace-pre-wrap px-4 pb-4 text-[11px] font-normal normal-case tracking-normal text-muted">
           {description}
         </span>
       ) : null}
@@ -59,8 +59,6 @@ function ChipGroup({ id, label, options, selectedId, onSelect, nameKey, t, langu
     <div id={id} role="radiogroup" aria-label={label} aria-invalid={invalid || undefined} className={`flex flex-wrap gap-3${invalid ? " rounded-sm ring-1 ring-gold/70 p-1" : ""}`}>
       {options.map((option) => {
         const name = optionLabel(option, language, t, `${nameKey}.${option.id}.name`);
-        const detail = optionDescription(option, language, t, `${nameKey}.${option.id}.detail`);
-        const hasDetail = Boolean(detail);
         const selected = optionIdEquals(option, selectedId);
         return (
           <ChoiceButton
@@ -68,14 +66,10 @@ function ChipGroup({ id, label, options, selectedId, onSelect, nameKey, t, langu
             selected={selected}
             onSelect={() => onSelect(option.id)}
             label={name}
+            description={optionDescription(option, language)}
             className="min-w-[5.5rem] px-4 py-3 text-[11px] uppercase tracking-[0.16em]"
           >
             {name}
-            {hasDetail ? (
-              <span className="mt-1 block text-[10px] font-normal normal-case tracking-normal text-muted">
-                {detail}
-              </span>
-            ) : null}
           </ChoiceButton>
         );
       })}
@@ -104,6 +98,8 @@ export default function StepNeckFingerboard({
   const { t, language } = useLanguage();
   const missingKeys = new Set((missingFields || []).map((item) => item.key));
   const selectedPieces = availableNeckPieces.find((item) => item.id === selections.neckPiecesId);
+  const selectedNeckWood = availableNeckWoods.find((item) => optionIdEquals(item, selections.neckWoodId));
+  const selectedSecondaryNeckWood = availableNeckWoods.find((item) => optionIdEquals(item, selections.secondaryNeckWoodId));
   const showSecondary = usesSecondaryNeckWood(selectedPieces);
   const woodChoices = availableNeckWoods.map((wood) => ({
     value: wood.id,
@@ -119,7 +115,7 @@ export default function StepNeckFingerboard({
     ? t("customBuild.step3.neckPiecesNeedSeries")
     : availableNeckPieces.length === 0
       ? t("customBuild.step3.neckPiecesEmpty")
-      : "";
+      : optionDescription(selectedPieces, language);
 
   return (
     <div>
@@ -164,6 +160,7 @@ export default function StepNeckFingerboard({
               value={selections.neckWoodId}
               onChange={selectNeckWood}
               options={woodChoices}
+              hint={optionDescription(selectedNeckWood, language)}
               invalid={missingKeys.has("neckWoodId")}
             />
           ) : (
@@ -176,6 +173,7 @@ export default function StepNeckFingerboard({
               value={selections.secondaryNeckWoodId}
               onChange={selectSecondaryNeckWood}
               options={woodChoices}
+              hint={optionDescription(selectedSecondaryNeckWood, language)}
               invalid={missingKeys.has("secondaryNeckWoodId")}
             />
           ) : null}

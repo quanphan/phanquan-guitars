@@ -22,7 +22,7 @@ export default function ChoiceButton({
     >
       {children}
       {description ? (
-        <span className="mt-1 block text-[11px] font-normal normal-case tracking-normal text-muted">
+        <span className="mt-1 block whitespace-pre-wrap text-[11px] font-normal normal-case tracking-normal text-muted">
           {description}
         </span>
       ) : null}

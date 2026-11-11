@@ -107,7 +107,11 @@ function toWizardOption(option) {
     optionId: option.id,
     code: option.code || id,
     name: option.name,
-    description: option.description,
+    description:
+      option.description
+      || option.translations?.en?.description
+      || option.translations?.vi?.description
+      || "",
     translations: option.translations,
     image: option.imagePath || attributes.image || null,
     icon: option.icon || attributes.icon || "",
@@ -237,17 +241,11 @@ export function wizardOptionLabel(option, language, t, groupKey) {
   return optionLabel(option, language, t, key);
 }
 
-export function optionDescription(option, language, t, key) {
+export function optionDescription(option, language) {
   if (!option) return "";
   const current = language === "vi" ? option.translations?.vi?.description : option.translations?.en?.description;
   const other = language === "vi" ? option.translations?.en?.description : option.translations?.vi?.description;
-  const fromData = pickDisplayName(current) || pickDisplayName(option.description) || pickDisplayName(other);
-  if (fromData) return fromData;
-  if (!key) return "";
-  const translated = translatedLabel(t, key);
-  if (!translated) return "";
-  if (translated.endsWith(".description") || translated.endsWith(".detail")) return "";
-  return translated;
+  return pickDisplayName(current) || pickDisplayName(option.description) || pickDisplayName(other);
 }
 
 export function choiceImageSrc(image, resolveUpload) {

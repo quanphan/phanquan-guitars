@@ -9,7 +9,7 @@ import ChoiceButton from "../ChoiceButton.jsx";
 
 function WoodCard({ wood, selected, onSelect, t, language }) {
   const name = optionLabel(wood, language, t, `customBuild.woods.${wood.id}.name`);
-  const description = optionDescription(wood, language, t, `customBuild.woods.${wood.id}.description`);
+  const description = optionDescription(wood, language);
   const hasDescription = Boolean(description);
 
   return (
@@ -39,7 +39,7 @@ function WoodCard({ wood, selected, onSelect, t, language }) {
         {name}
       </span>
       {hasDescription ? (
-        <span className="px-4 pb-4 text-[11px] font-normal normal-case tracking-normal text-muted">
+        <span className="whitespace-pre-wrap px-4 pb-4 text-[11px] font-normal normal-case tracking-normal text-muted">
           {description}
         </span>
       ) : null}
@@ -66,6 +66,8 @@ export default function StepBodyTop({
   const { t, language } = useLanguage();
   const missingKeys = new Set((missingFields || []).map((item) => item.key));
   const selectedConstruction = availableBodyConstructions.find((item) => item.id === selections.bodyConstructionId);
+  const selectedBodyWood = availableBodyWoods.find((item) => optionIdEquals(item, selections.bodyWoodId));
+  const selectedSecondaryWood = availableBodyWoods.find((item) => optionIdEquals(item, selections.secondaryBodyWoodId));
   const showSecondary = usesSecondaryBodyWood(selectedConstruction);
   const woodChoices = availableBodyWoods.map((wood) => ({
     value: wood.id,
@@ -81,7 +83,7 @@ export default function StepBodyTop({
     ? t("customBuild.step2.bodyPiecesNeedSeries")
     : availableBodyConstructions.length === 0
       ? t("customBuild.step2.bodyPiecesEmpty")
-      : "";
+      : optionDescription(selectedConstruction, language);
 
   return (
     <div>
@@ -126,6 +128,7 @@ export default function StepBodyTop({
               value={selections.bodyWoodId}
               onChange={selectBodyWood}
               options={woodChoices}
+              hint={optionDescription(selectedBodyWood, language)}
               invalid={missingKeys.has("bodyWoodId")}
             />
           ) : (
@@ -138,6 +141,7 @@ export default function StepBodyTop({
               value={selections.secondaryBodyWoodId}
               onChange={selectSecondaryBodyWood}
               options={woodChoices}
+              hint={optionDescription(selectedSecondaryWood, language)}
               invalid={missingKeys.has("secondaryBodyWoodId")}
             />
           ) : null}
