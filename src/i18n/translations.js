@@ -1017,7 +1017,7 @@ export const translations = {
     },
     home: {
       hero: {
-        eyebrow: "Handmade in Vietnam",
+        eyebrow: "Handmade guitar in Vietnam",
         titleLine1: "Crafted for",
         titleLine2: "your sound",
         subtitle: "Handcrafted Custom Guitars — Made in Vietnam",
@@ -1942,7 +1942,7 @@ export const translations = {
       },
     },
     footer: {
-      handmade: "Handmade in Vietnam",
+      handmade: "Handmade guitar in Vietnam",
       startBuild: "Start a custom build",
       contact: "Contact",
       rights: "All rights reserved.",
@@ -3508,7 +3508,7 @@ export const translations = {
     },
     home: {
       hero: {
-        eyebrow: "Thủ công tại Việt Nam",
+        eyebrow: "Guitar thủ công tại Việt Nam",
         titleLine1: "Chế tác cho",
         titleLine2: "âm thanh của bạn",
         subtitle: "Guitar custom thủ công — Made in Vietnam",
@@ -4437,7 +4437,7 @@ export const translations = {
       },
     },
     footer: {
-      handmade: "Thủ công tại Việt Nam",
+      handmade: "Guitar thủ công tại Việt Nam",
       startBuild: "Bắt đầu custom build",
       contact: "Liên hệ",
       rights: "Mọi quyền được bảo lưu.",

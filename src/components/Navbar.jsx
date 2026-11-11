@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { ShoppingBag } from "lucide-react";
+import { ArrowRight, ShoppingBag } from "lucide-react";
 import brandLogo from "../assets/guitars/logo/Screenshot 2026-10-16 at 15.56.04.png";
 import { useCart } from "../cart/CartContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
@@ -44,17 +44,30 @@ function LanguageSwitcher({ className = "" }) {
   );
 }
 
-function ContinueBuildLink({ className = "", onNavigate }) {
+function ContinueBuildLink({ className = "", onNavigate, overlay = false }) {
   const { t } = useLanguage();
   const location = useLocation();
   const resumable = useResumableCustomBuildDraft();
   if (!resumable || location.pathname === "/custom-build") return null;
 
+  if (overlay) {
+    return (
+      <Link
+        to="/custom-build"
+        onClick={onNavigate}
+        className={`inline-flex max-w-full items-center gap-1 whitespace-nowrap bg-transparent py-1.5 pl-3 pr-0 text-[10px] uppercase tracking-[0.16em] text-gold transition-colors duration-300 hover:text-gold-light ${className}`}
+      >
+        {t("nav.continueBuild")}
+        <ArrowRight className="size-3 shrink-0" aria-hidden="true" />
+      </Link>
+    );
+  }
+
   return (
     <Link
       to="/custom-build"
       onClick={onNavigate}
-      className={`inline-flex items-center border border-gold/70 px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-gold transition-colors duration-300 hover:bg-gold/10 hover:text-gold-light sm:text-[11px] ${className}`}
+      className={`inline-flex items-center border border-gold/70 bg-transparent px-3 py-2 text-[10px] uppercase tracking-[0.18em] text-gold transition-colors duration-300 hover:bg-gold/10 hover:text-gold-light sm:text-[11px] ${className}`}
     >
       {t("nav.continueBuild")}
     </Link>
@@ -140,10 +153,6 @@ export default function Navbar() {
         </nav>
 
         <div className="flex shrink-0 items-center gap-0.5 max-[360px]:gap-0 sm:gap-2.5 lg:hidden">
-          <ContinueBuildLink
-            className="max-w-[5.75rem] px-1.5 py-1.5 text-center text-[8px] leading-tight tracking-[0.12em] sm:max-w-none sm:px-3 sm:py-2 sm:text-[10px] sm:leading-none"
-            onNavigate={closeMenu}
-          />
           <LanguageSwitcher className="gap-0.5 text-[10px] tracking-[0.08em] [&_button]:min-h-9 [&_button]:px-0.5 sm:[&_button]:min-h-10" />
           <CartLink className="h-9 w-9 sm:h-10 sm:w-10" onNavigate={closeMenu} />
           <AccountMenu
@@ -179,7 +188,6 @@ export default function Navbar() {
           className="border-t border-white/5 bg-ink px-6 py-6 lg:hidden"
           aria-label="Mobile"
         >
-          <ContinueBuildLink className="mb-5 w-fit" onNavigate={closeMenu} />
           <ul className="flex flex-col gap-5">
             {PRIMARY_NAV_LINKS.map((link) => (
               <li key={link.to}>
@@ -199,6 +207,10 @@ export default function Navbar() {
           </ul>
         </nav>
       ) : null}
+
+      <div className="pointer-events-none absolute inset-x-0 top-full z-[51] flex justify-end px-3 sm:px-6 lg:hidden">
+        <ContinueBuildLink overlay className="pointer-events-auto" onNavigate={closeMenu} />
+      </div>
     </header>
   );
 }
