@@ -12,7 +12,7 @@ export default function StepNav({
 }) {
   const backBlocked = Boolean(backDisabled);
   return (
-    <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:justify-between">
+    <div className="mt-10 flex min-w-0 flex-col gap-3 sm:flex-row sm:justify-between">
       <Button
         to={backBlocked ? undefined : backTo}
         onClick={backTo || backBlocked ? undefined : onBack}

@@ -22,7 +22,7 @@ export default function BuildProcess() {
               <div className="mt-6">
                 <StepIcon name={step.icon} />
               </div>
-              <h3 className="mt-5 font-display text-2xl uppercase tracking-[0.16em] text-ivory">
+              <h3 className="mt-5 max-w-full font-display text-2xl uppercase tracking-[0.08em] text-ivory break-words sm:tracking-[0.16em]">
                 {t(`home.process.steps.${step.id}.title`)}
               </h3>
               <p className="mt-4 text-sm leading-relaxed text-muted">

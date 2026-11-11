@@ -38,7 +38,7 @@ export default function Cart() {
         </div>
       </PageHeader>
       <section className="pb-24 lg:pb-32">
-        <div className="mx-auto max-w-5xl overflow-x-hidden px-6 pt-8 lg:px-10 lg:pt-10">
+        <div className="mx-auto max-w-5xl min-w-0 px-6 pt-8 lg:px-10 lg:pt-10">
           {hasUnavailable ? (
             <p className="mb-4 text-sm text-gold" role="alert">
               {t("cart.unavailableItems")}

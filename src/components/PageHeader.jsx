@@ -12,15 +12,15 @@ export default function PageHeader({
     <header className="mx-auto max-w-7xl px-6 pt-16 lg:px-10 lg:pt-20">
       <div className={alignment}>
         {eyebrow ? (
-          <p className="text-[11px] uppercase tracking-[0.32em] text-gold">
+          <p className="max-w-full text-[11px] uppercase tracking-[0.18em] text-gold sm:tracking-[0.32em]">
             {eyebrow}
           </p>
         ) : null}
-        <h1 className="mt-4 font-display text-4xl font-medium tracking-wide text-ivory sm:text-5xl">
+        <h1 className="mt-4 max-w-full font-display text-[clamp(1.75rem,4vw+1rem,3rem)] font-medium tracking-wide text-ivory break-words">
           {title}
         </h1>
         {description ? (
-          <p className="mt-5 text-base leading-relaxed text-muted sm:text-lg">
+          <p className="mt-5 max-w-full text-base leading-relaxed text-muted sm:text-lg">
             {description}
           </p>
         ) : null}

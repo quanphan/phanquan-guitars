@@ -163,11 +163,11 @@ export default function Contact() {
       {(session) => {
         const hero = contactHeroImage(session.locale, session.ready);
         return (
-    <section className="overflow-x-hidden pb-20">
+    <section className="min-w-0 pb-20">
       <header className="mx-auto grid max-w-7xl items-end gap-8 px-6 pt-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-12 lg:px-10 lg:pt-16">
         <div className="min-w-0">
-          <p className="text-[11px] uppercase tracking-[0.32em] text-gold">{t("contact.eyebrow")}</p>
-          <h1 className="mt-4 font-display text-4xl font-medium tracking-wide text-ivory sm:text-5xl">
+          <p className="max-w-full text-[11px] uppercase tracking-[0.18em] text-gold sm:tracking-[0.32em]">{t("contact.eyebrow")}</p>
+          <h1 className="mt-4 max-w-full font-display text-[clamp(1.75rem,4vw+1rem,3rem)] font-medium tracking-wide text-ivory break-words">
             {t("contact.title")}
           </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-muted sm:text-lg">

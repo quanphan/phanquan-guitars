@@ -17,7 +17,7 @@ export default function Introduction() {
       <Reveal delay={120}>
         <p className="text-lg leading-relaxed text-ivory/85">{t("home.intro.p1")}</p>
         <p className="mt-6 leading-relaxed text-muted">{t("home.intro.p2")}</p>
-        <ul className="mt-10 grid grid-cols-2 gap-x-6 gap-y-3 text-[11px] uppercase tracking-[0.2em] text-gold sm:grid-cols-3">
+        <ul className="mt-10 grid grid-cols-2 gap-x-4 gap-y-3 text-[11px] uppercase tracking-[0.12em] text-gold sm:grid-cols-3 sm:gap-x-6 sm:tracking-[0.2em]">
           {specs.map((spec) => (
             <li key={spec} className="border-l border-gold/40 pl-3">
               {spec}

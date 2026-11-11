@@ -21,7 +21,7 @@ export default function FeaturedSeriesCard({ series }) {
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-charcoal/70 via-transparent to-transparent" />
         </Link>
         <div className="flex flex-1 flex-col gap-4 px-6 py-7">
-          <h3 className="font-display text-3xl text-ivory">{series.name}</h3>
+          <h3 className="max-w-full font-display text-3xl text-ivory break-words">{series.name}</h3>
           {series.shortDescription ? (
             <p className="text-sm leading-relaxed text-muted">{series.shortDescription}</p>
           ) : null}

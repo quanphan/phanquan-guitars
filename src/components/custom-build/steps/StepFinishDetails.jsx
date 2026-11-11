@@ -115,7 +115,7 @@ export default function StepFinishDetails({
                     onSelect={() => selectFinishColor(color.id)}
                     label={name}
                     description={optionDescription(color, language)}
-                    className="flex min-w-[7.5rem] items-center gap-3 px-3 py-3 text-[11px] uppercase tracking-[0.16em]"
+                    className="flex min-w-0 max-w-full items-center gap-3 px-3 py-3 text-[11px] uppercase tracking-[0.16em]"
                   >
                     <span
                       className="size-7 shrink-0 border border-white/20"

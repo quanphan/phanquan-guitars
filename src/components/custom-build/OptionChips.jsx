@@ -24,7 +24,7 @@ export default function OptionChips({
             onSelect={() => onSelect(option.id)}
             label={name}
             description={optionDescription(option, language)}
-            className="min-w-[5.5rem] px-4 py-3 text-[11px] uppercase tracking-[0.16em]"
+            className="min-w-0 max-w-full px-4 py-3 text-[11px] uppercase tracking-[0.16em]"
           >
             {name}
           </ChoiceButton>

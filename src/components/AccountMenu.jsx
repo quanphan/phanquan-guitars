@@ -89,7 +89,7 @@ export default function AccountMenu({
           id={menuId}
           role="menu"
           aria-label={t("nav.accountMenu")}
-          className="absolute right-0 z-[60] mt-2 max-h-[min(70dvh,24rem)] min-w-[13.5rem] max-w-[calc(100vw-1.5rem)] overflow-y-auto border border-gold/25 bg-ink py-2 shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
+          className="absolute right-0 z-[60] mt-2 max-h-[min(70dvh,24rem)] min-w-[13.5rem] max-w-[min(18rem,calc(100vw-1.5rem))] overflow-y-auto border border-gold/25 bg-ink py-2 shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
         >
           {displayName ? (
             <p className="truncate px-4 py-2 text-sm text-ivory/90">{displayName}</p>

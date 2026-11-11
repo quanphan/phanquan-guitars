@@ -254,14 +254,14 @@ export default function CustomBuild() {
   ]);
 
   return (
-    <div className="pb-24 lg:pb-32">
+    <div className="min-w-0 pb-24 lg:pb-32">
       <PageHeader
         eyebrow={t("customBuild.header.eyebrow")}
         title={t("customBuild.header.heading")}
         description={t("customBuild.header.description")}
       />
 
-      <div className="mx-auto mt-10 max-w-7xl px-6 lg:px-10">
+      <div className="mx-auto mt-10 w-full min-w-0 max-w-7xl px-6 lg:px-10">
         {builder.catalogSource === "loading" ? (
           <p className="mt-8 text-sm text-muted" role="status">
             {t("customBuild.catalogLoading")}

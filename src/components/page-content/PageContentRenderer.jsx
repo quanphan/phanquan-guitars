@@ -211,7 +211,7 @@ export default function PageContentRenderer({ locale, fallbacks, wrapSection }) 
   const sections = visibleSections(locale);
   let assignedPriority = false;
   return (
-    <article className="overflow-x-hidden pb-24">
+    <article className="min-w-0 pb-24">
       {sections.map((section) => {
         const usesImage = Boolean(section.image || (section.images || []).length || fallbacks?.[section.id]?.src);
         const priority = usesImage && !assignedPriority;

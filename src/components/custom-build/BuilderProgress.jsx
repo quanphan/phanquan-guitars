@@ -32,7 +32,7 @@ export default function BuilderProgress({ steps, currentStep, totalSteps, t }) {
                   : `${String(step.id).padStart(2, "0")}`}
               </p>
               <p
-                className={`mt-1 text-[11px] uppercase tracking-[0.14em] ${
+                className={`mt-1 text-[11px] uppercase tracking-[0.08em] break-words sm:tracking-[0.14em] ${
                   current ? "text-ivory" : "text-ivory/60"
                 }`}
               >

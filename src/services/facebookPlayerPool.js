@@ -21,7 +21,8 @@ function playerId(href) {
 }
 
 function parkHost(host) {
-  host.style.cssText = "position:absolute;left:-10000px;top:0;width:560px;height:315px;overflow:hidden;";
+  host.style.cssText =
+    "position:fixed;left:0;top:0;width:560px;height:315px;transform:translate(-100%,-100%);overflow:hidden;opacity:0;pointer-events:none;";
   document.body.appendChild(host);
 }
 

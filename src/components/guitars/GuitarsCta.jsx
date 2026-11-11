@@ -8,14 +8,16 @@ export default function GuitarsCta() {
   return (
     <section className="mx-auto max-w-7xl px-6 py-24 text-center lg:px-10 lg:py-32">
       <Reveal className="mx-auto max-w-2xl">
-        <h2 className="font-display text-4xl tracking-wide text-ivory sm:text-6xl">
+        <h2 className="max-w-full font-display text-[clamp(1.75rem,4vw+1rem,3.75rem)] tracking-wide text-ivory break-words">
           {t("guitars.cta.title")}
         </h2>
-        <p className="mt-6 text-lg leading-relaxed text-muted">
+        <p className="mt-6 max-w-full text-base leading-relaxed text-muted sm:text-lg">
           {t("guitars.cta.description")}
         </p>
         <div className="mt-10">
-          <Button to="/custom-build">{t("guitars.cta.button")}</Button>
+          <Button to="/custom-build" className="w-full sm:w-auto">
+            {t("guitars.cta.button")}
+          </Button>
         </div>
       </Reveal>
     </section>

@@ -96,11 +96,11 @@ export default function Navbar() {
   const closeMenu = () => setOpen(false);
 
   return (
-    <header className="sticky top-0 z-50 overflow-visible border-b border-white/5 bg-charcoal/85 backdrop-blur-md">
-      <div className="mx-auto flex max-w-7xl flex-nowrap items-center justify-between gap-2 px-3 py-3 sm:px-6 lg:gap-8 lg:px-10 lg:py-4">
+    <header className="sticky top-0 z-50 overflow-visible border-b border-white/5 bg-charcoal/85 pt-[env(safe-area-inset-top,0px)] backdrop-blur-md">
+      <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-nowrap items-center justify-between gap-2 px-3 py-3 sm:px-6 lg:gap-8 lg:px-10 lg:py-4">
         <Link
           to="/"
-          className="group flex shrink-0 items-center gap-1.5 sm:gap-3"
+          className="group flex min-w-0 shrink items-center gap-1.5 sm:gap-3"
           onClick={closeMenu}
         >
           <img
@@ -109,11 +109,11 @@ export default function Navbar() {
             aria-hidden="true"
             className="h-8 w-auto shrink-0 object-contain max-[360px]:h-7 sm:h-10 lg:h-11"
           />
-          <span className="whitespace-nowrap">
-            <span className="block font-display text-base tracking-[0.08em] text-ivory max-[360px]:text-[15px] sm:text-xl sm:tracking-[0.14em] lg:text-2xl">
+          <span className="min-w-0">
+            <span className="block truncate font-display text-base tracking-[0.08em] text-ivory max-[360px]:text-[15px] sm:text-xl sm:tracking-[0.14em] lg:text-2xl">
               PhanQuan
             </span>
-            <span className="block text-[9px] uppercase tracking-[0.32em] text-gold transition-colors group-hover:text-gold-light sm:text-[10px] sm:tracking-[0.42em]">
+            <span className="block text-[9px] uppercase tracking-[0.22em] text-gold transition-colors group-hover:text-gold-light sm:text-[10px] sm:tracking-[0.42em]">
               Guitars
             </span>
           </span>

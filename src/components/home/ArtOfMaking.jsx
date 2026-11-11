@@ -173,10 +173,10 @@ export default function ArtOfMaking() {
     <section className="border-y border-gold/20 bg-charcoal py-24 lg:py-32">
       <div className="mx-auto max-w-7xl px-6 lg:px-10">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="text-[11px] font-medium uppercase tracking-[0.32em] text-gold">
+          <p className="max-w-full text-[11px] font-medium uppercase tracking-[0.18em] text-gold sm:tracking-[0.32em]">
             {t("home.artOfMaking.eyebrow")}
           </p>
-          <h2 className="mt-4 font-display text-4xl font-medium uppercase tracking-wide text-ivory sm:text-5xl lg:text-6xl">
+          <h2 className="mt-4 max-w-full font-display text-[clamp(1.75rem,4vw+1rem,3.75rem)] font-medium uppercase tracking-wide text-ivory break-words">
             {t("home.artOfMaking.title")}
           </h2>
           <p className="mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-muted sm:text-base">

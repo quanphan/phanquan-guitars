@@ -56,10 +56,10 @@ export default function Footer() {
   }, []);
 
   return (
-    <footer className="border-t border-white/5 bg-ink">
-      <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 lg:grid-cols-3 lg:items-start lg:px-10">
+    <footer className="border-t border-white/5 bg-ink pb-[env(safe-area-inset-bottom,0px)]">
+      <div className="mx-auto grid w-full min-w-0 max-w-7xl gap-10 px-6 py-16 lg:grid-cols-3 lg:items-start lg:px-10">
         <div>
-          <p className="font-display text-2xl tracking-[0.12em] text-ivory">
+          <p className="max-w-full font-display text-2xl tracking-[0.08em] text-ivory break-words sm:tracking-[0.12em]">
             PhanQuan Guitars
           </p>
           <p className="mt-3 text-sm text-muted">{t("footer.handmade")}</p>

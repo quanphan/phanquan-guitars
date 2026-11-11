@@ -267,15 +267,17 @@ export default function Services() {
       <section className="border-t border-white/5">
         <div className="mx-auto max-w-7xl px-6 py-24 text-center lg:px-10 lg:py-32">
           <Reveal className="mx-auto max-w-2xl">
-            <p className="text-[11px] uppercase tracking-[0.32em] text-gold">
+            <p className="max-w-full text-[11px] uppercase tracking-[0.18em] text-gold sm:tracking-[0.32em]">
               {t("services.cta.eyebrow")}
             </p>
-            <h2 className="mt-5 font-display text-4xl tracking-wide text-ivory sm:text-5xl">
+            <h2 className="mt-5 max-w-full font-display text-[clamp(1.75rem,4vw+1rem,3rem)] tracking-wide text-ivory break-words">
               {t("services.cta.title")}
             </h2>
-            <p className="mt-6 text-lg leading-relaxed text-muted">{t("services.cta.body")}</p>
+            <p className="mt-6 max-w-full text-base leading-relaxed text-muted sm:text-lg">{t("services.cta.body")}</p>
             <div className="mt-10">
-              <Button to="/contact">{t("services.contact")}</Button>
+              <Button to="/contact" className="w-full sm:w-auto">
+                {t("services.contact")}
+              </Button>
             </div>
           </Reveal>
         </div>
