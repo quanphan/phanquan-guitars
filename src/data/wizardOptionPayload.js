@@ -38,11 +38,27 @@ export function compatibilityPayload(compatibility, categoryId, categories) {
   return storedCompatibility(compatibility, categoryId, categories);
 }
 
+function localeDescription(option, locale) {
+  const translated = option?.translations?.[locale]?.description;
+  if (typeof translated === "string" && translated.trim()) return translated.trim();
+  const root = option?.description;
+  if (root && typeof root === "object" && !Array.isArray(root)) {
+    const nested = root[locale];
+    if (typeof nested === "string" && nested.trim()) return nested.trim();
+  }
+  if (locale === "en" && typeof root === "string") return root.trim();
+  return "";
+}
+
 export function formFromWizardOption(option, categoryId, categories) {
+  const enDescription = localeDescription(option, "en");
+  const viDescription = localeDescription(option, "vi");
   return {
     categoryId,
     code: option.code || "",
-    description: option.description || option.translations?.en?.description || option.translations?.vi?.description || "",
+    description: enDescription,
+    enDescription,
+    viDescription,
     viName: option.translations?.vi?.name || "",
     enName: option.translations?.en?.name || option.name || "",
     icon: option.icon || (typeof option.attributes?.icon === "string" ? option.attributes.icon : "") || "",
@@ -61,10 +77,22 @@ export function formFromWizardOption(option, categoryId, categories) {
   };
 }
 
+function formEnDescription(form) {
+  if (typeof form?.enDescription === "string") return form.enDescription;
+  if (typeof form?.description === "string") return form.description;
+  return "";
+}
+
+function formViDescription(form) {
+  return typeof form?.viDescription === "string" ? form.viDescription : "";
+}
+
 function sharedBody(form, { canScopeDefault, instrumentTypes, categories }) {
+  const enDescription = formEnDescription(form);
+  const viDescription = formViDescription(form);
   return {
     name: form.enName || form.viName,
-    description: form.description,
+    description: enDescription,
     icon: form.icon,
     imagePath: form.imagePath,
     active: form.active,
@@ -75,8 +103,8 @@ function sharedBody(form, { canScopeDefault, instrumentTypes, categories }) {
       ))
       : [],
     translations: {
-      vi: { name: form.viName, description: form.description },
-      en: { name: form.enName || form.viName, description: form.description },
+      vi: { name: form.viName, description: viDescription },
+      en: { name: form.enName || form.viName, description: enDescription },
     },
     compatibility: compatibilityPayload(form.compatibility, form.categoryId, categories),
     attributes: attributesForForm(form),

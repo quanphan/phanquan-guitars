@@ -93,6 +93,8 @@ test("Test A — renaming a series keeps id, code, and compatibility in the upda
     formFromWizardOption(essential, "series", categories).compatibility.instrumentTypeIds,
     ["electric-guitar", "bass"],
   );
+  assert.equal(body.translations.en.description, "Boutique line");
+  assert.equal(body.translations.vi.description, "Dòng boutique");
 });
 
 test("Test B — renaming an option leaves other configuration fields on the form", () => {
@@ -154,6 +156,98 @@ test("Test E — a name-only update payload omits the identifier and keeps neste
   assert.equal(Object.hasOwn(body, "id"), false);
   assert.deepEqual(body.compatibility.instrumentTypeIds, boutique.compatibility.instrumentTypeIds);
   assert.deepEqual(body.attributes, boutique.attributes);
+});
+
+test("description EN and VI stay independent across load, create, and partial edits", () => {
+  const loaded = formFromWizardOption(boutique, "series", categories);
+  assert.equal(loaded.enDescription, "Boutique line");
+  assert.equal(loaded.viDescription, "Dòng boutique");
+
+  const legacy = formFromWizardOption({
+    ...essential,
+    description: "Legacy English note",
+    translations: { en: { name: "PQ-ESSENTIAL" }, vi: { name: "PQ-ESSENTIAL" } },
+  }, "series", categories);
+  assert.equal(legacy.enDescription, "Legacy English note");
+  assert.equal(legacy.viDescription, "");
+
+  const objectRoot = formFromWizardOption({
+    ...essential,
+    description: { en: "Object EN", vi: "Object VI" },
+    translations: { en: { name: "PQ-ESSENTIAL" }, vi: { name: "PQ-ESSENTIAL" } },
+  }, "series", categories);
+  assert.equal(objectRoot.enDescription, "Object EN");
+  assert.equal(objectRoot.viDescription, "Object VI");
+
+  const both = buildWizardOptionCreatePayload({
+    categoryId: "body-wood",
+    code: "alder-desc",
+    enName: "Alder",
+    viName: "Alder",
+    enDescription: "Light body wood",
+    viDescription: "Gỗ thân nhẹ",
+    icon: "",
+    imagePath: "",
+    active: true,
+    isDefault: false,
+    defaultForInstrumentTypeIds: [],
+    attributes: {},
+    compatibility: {},
+  }, { canScopeDefault: false, instrumentTypes: [], categories });
+  assert.equal(both.description, "Light body wood");
+  assert.equal(both.translations.en.description, "Light body wood");
+  assert.equal(both.translations.vi.description, "Gỗ thân nhẹ");
+
+  const enOnly = buildWizardOptionCreatePayload({
+    categoryId: "inlay",
+    code: "offset-dots",
+    enName: "Offset dots",
+    viName: "Chấm lệch",
+    enDescription: "English only",
+    viDescription: "",
+    icon: "",
+    imagePath: "",
+    active: true,
+    isDefault: false,
+    defaultForInstrumentTypeIds: [],
+    attributes: {},
+    compatibility: {},
+  }, { canScopeDefault: false, instrumentTypes: [], categories });
+  assert.equal(enOnly.translations.en.description, "English only");
+  assert.equal(enOnly.translations.vi.description, "");
+
+  const viOnly = buildWizardOptionCreatePayload({
+    categoryId: "inlay",
+    code: "side-dots",
+    enName: "Side dots",
+    viName: "Chấm hông",
+    enDescription: "",
+    viDescription: "Chỉ tiếng Việt",
+    icon: "",
+    imagePath: "",
+    active: true,
+    isDefault: false,
+    defaultForInstrumentTypeIds: [],
+    attributes: {},
+    compatibility: {},
+  }, { canScopeDefault: false, instrumentTypes: [], categories });
+  assert.equal(viOnly.description, "");
+  assert.equal(viOnly.translations.en.description, "");
+  assert.equal(viOnly.translations.vi.description, "Chỉ tiếng Việt");
+
+  const editedEn = buildWizardOptionUpdatePayload({
+    ...loaded,
+    enDescription: "Updated boutique line",
+  }, { canScopeDefault: true, instrumentTypes: categories[0].options, categories });
+  assert.equal(editedEn.translations.en.description, "Updated boutique line");
+  assert.equal(editedEn.translations.vi.description, "Dòng boutique");
+
+  const editedVi = buildWizardOptionUpdatePayload({
+    ...loaded,
+    viDescription: "Dòng boutique mới",
+  }, { canScopeDefault: true, instrumentTypes: categories[0].options, categories });
+  assert.equal(editedVi.translations.en.description, "Boutique line");
+  assert.equal(editedVi.translations.vi.description, "Dòng boutique mới");
 });
 
 test("create payloads still include a code and sanitize newly selected compatibility", () => {

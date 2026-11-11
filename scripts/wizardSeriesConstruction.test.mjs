@@ -128,3 +128,36 @@ test("series update payload keeps compatibility, code off the body, and writes c
   assert.equal(created.code, "new-line");
   assert.equal(created.attributes.bodyConstruction[0].id, "2-pieces");
 });
+
+test("body and neck construction keep independent EN and VI descriptions", () => {
+  const saved = sanitizeConstructionList([
+    {
+      id: "1-piece",
+      enName: "1 Piece",
+      viName: "1 mảnh",
+      enDescription: "Solid body blank",
+      viDescription: "Thân nguyên khối",
+      active: true,
+    },
+  ]);
+  assert.equal(saved[0].translations.en.description, "Solid body blank");
+  assert.equal(saved[0].translations.vi.description, "Thân nguyên khối");
+
+  const loaded = constructionListFromAttributes({
+    bodyConstruction: [{
+      id: "1-piece",
+      name: "1 Piece",
+      translations: {
+        en: { name: "1 Piece", description: "Solid body blank" },
+        vi: { name: "1 mảnh", description: "Thân nguyên khối" },
+      },
+    }],
+  }, BODY_CONSTRUCTION_ATTR);
+  assert.equal(loaded[0].enDescription, "Solid body blank");
+  assert.equal(loaded[0].viDescription, "Thân nguyên khối");
+
+  loaded[0].enDescription = "Updated EN";
+  const merged = mergeSeriesConstructionAttributes({ wizardId: "player" }, loaded, []);
+  assert.equal(merged.bodyConstruction[0].translations.en.description, "Updated EN");
+  assert.equal(merged.bodyConstruction[0].translations.vi.description, "Thân nguyên khối");
+});

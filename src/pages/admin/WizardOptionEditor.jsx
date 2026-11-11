@@ -56,6 +56,8 @@ const emptyForm = {
   categoryId: "instrument-type",
   code: "",
   description: "",
+  enDescription: "",
+  viDescription: "",
   viName: "",
   enName: "",
   icon: "",
@@ -315,7 +317,24 @@ export default function WizardOptionEditor() {
             {isIdentifierLocked(isNew) ? (
               <p className="-mt-3 text-xs text-muted">{t("admin.wizardSetup.codeLocked")}</p>
             ) : null}
-            <Field id="wizard-desc" label={t("admin.catalog.fields.description")} value={form.description} onChange={(value) => setField("description", value)} multiline rows={3} />
+            <Field
+              id="wizard-desc-en"
+              label={t("admin.catalog.fields.description")}
+              value={form.enDescription || ""}
+              onChange={(value) => {
+                setForm((current) => ({ ...current, enDescription: value, description: value }));
+              }}
+              multiline
+              rows={3}
+            />
+            <Field
+              id="wizard-desc-vi"
+              label={t("admin.catalog.fields.viDescription")}
+              value={form.viDescription || ""}
+              onChange={(value) => setField("viDescription", value)}
+              multiline
+              rows={3}
+            />
             <ImageUploadField
               label={t("admin.catalog.fields.image")}
               storedPath={form.imagePath}

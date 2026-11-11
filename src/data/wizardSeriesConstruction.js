@@ -3,6 +3,7 @@ export const NECK_CONSTRUCTION_ATTR = "neckConstruction";
 export const CONSTRUCTION_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const CONSTRUCTION_ID_MAX = 40;
 export const CONSTRUCTION_NAME_MAX = 80;
+export const CONSTRUCTION_DESC_MAX = 800;
 
 function trimText(value) {
   return typeof value === "string" ? value.trim() : "";
@@ -28,6 +29,8 @@ export function emptyConstructionOption() {
     id: "",
     enName: "",
     viName: "",
+    enDescription: "",
+    viDescription: "",
     active: true,
   };
 }
@@ -94,6 +97,20 @@ function translationName(item, language) {
   return trimText(item?.translations?.[language]?.name);
 }
 
+function localeDescription(item, language) {
+  const translated = trimText(item?.translations?.[language]?.description);
+  if (translated) return translated;
+  const root = item?.description;
+  if (root && typeof root === "object" && !Array.isArray(root)) {
+    return trimText(root[language]);
+  }
+  if (language === "en") {
+    if (typeof root === "string") return trimText(root);
+    return trimText(item?.enDescription);
+  }
+  return trimText(item?.viDescription);
+}
+
 export function constructionListFromAttributes(attributes, key) {
   const source = attributes && typeof attributes === "object" && !Array.isArray(attributes)
     ? attributes[key]
@@ -111,6 +128,8 @@ export function constructionListFromAttributes(attributes, key) {
         id,
         enName,
         viName,
+        enDescription: localeDescription(item, "en"),
+        viDescription: localeDescription(item, "vi"),
         active: item.active !== false,
         sortOrder: Number.isFinite(Number(item.sortOrder)) ? Number(item.sortOrder) : index,
         pieceCount: parseConstructionPieceCount(item),
@@ -140,6 +159,8 @@ export function sanitizeConstructionList(list) {
     if (!item || typeof item !== "object") continue;
     const enName = trimText(item.enName).slice(0, CONSTRUCTION_NAME_MAX);
     const viName = trimText(item.viName).slice(0, CONSTRUCTION_NAME_MAX);
+    const enDescription = localeDescription(item, "en").slice(0, CONSTRUCTION_DESC_MAX);
+    const viDescription = localeDescription(item, "vi").slice(0, CONSTRUCTION_DESC_MAX);
     if (!enName && !viName) continue;
     const lockedId = trimText(item.id);
     let id = lockedId;
@@ -155,8 +176,8 @@ export function sanitizeConstructionList(list) {
       active: item.active !== false,
       name: enName || viName,
       translations: {
-        en: { name: enName || viName },
-        vi: { name: viName || enName },
+        en: { name: enName || viName, description: enDescription },
+        vi: { name: viName || enName, description: viDescription },
       },
       ...(pieceCount != null ? { pieceCount } : {}),
     });

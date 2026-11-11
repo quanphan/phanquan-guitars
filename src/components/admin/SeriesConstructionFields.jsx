@@ -67,6 +67,22 @@ function ConstructionList({ title, hint, list, onChange, t, idPrefix }) {
                   onChange={(value) => updateRow(index, { viName: value })}
                 />
               </div>
+              <Field
+                id={`${idPrefix}-en-desc-${key}`}
+                label={t("admin.catalog.fields.description")}
+                value={item.enDescription || ""}
+                onChange={(value) => updateRow(index, { enDescription: value })}
+                multiline
+                rows={2}
+              />
+              <Field
+                id={`${idPrefix}-vi-desc-${key}`}
+                label={t("admin.catalog.fields.viDescription")}
+                value={item.viDescription || ""}
+                onChange={(value) => updateRow(index, { viDescription: value })}
+                multiline
+                rows={2}
+              />
               <label className="flex items-center gap-2 text-sm text-ivory">
                 <input
                   type="checkbox"

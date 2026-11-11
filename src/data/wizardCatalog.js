@@ -110,7 +110,6 @@ function toWizardOption(option) {
     description:
       option.description
       || option.translations?.en?.description
-      || option.translations?.vi?.description
       || "",
     translations: option.translations,
     image: option.imagePath || attributes.image || null,
