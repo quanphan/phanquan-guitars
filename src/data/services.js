@@ -151,3 +151,10 @@ export function optionValueLabel(value, language) {
   return serviceLocale(value, language).label || value?.label || "";
 }
 
+export function serviceCardImageFit(width, height) {
+  const w = Number(width);
+  const h = Number(height);
+  if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) return "cover";
+  return h > w ? "contain" : "cover";
+}
+

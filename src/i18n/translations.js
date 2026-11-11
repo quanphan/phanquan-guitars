@@ -4889,7 +4889,7 @@ export const translations = {
       addFailed: "Không thêm được hạng mục này. Hãy thử lại.",
       remove: "Xóa",
       quantity: "Số lượng",
-      priceOnRequest: "Price on Request",
+      priceOnRequest: "Giá liên hệ",
       quotationRequired: "Quotation Required",
       summary: "Tổng tham khảo",
       requestTitle: "Gửi yêu cầu báo giá",

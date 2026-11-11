@@ -77,7 +77,7 @@ export default function ServiceCategory() {
             <p className="text-sm text-muted">{t("services.detail.empty")}</p>
           ) : null}
           {status === "ready" && items.length > 0 ? (
-            <div className="grid gap-8 md:grid-cols-2">
+            <div className="grid items-stretch gap-8 md:grid-cols-2 xl:grid-cols-3">
               {items.map((item) => (
                 <ServiceItemCard key={item.id} item={item} categorySlug={slug} />
               ))}

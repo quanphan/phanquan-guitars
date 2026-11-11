@@ -6,6 +6,7 @@ import {
   mergePublicCategories,
   optionGroupsFromItem,
   resolveServiceItemPrice,
+  serviceCardImageFit,
 } from "../src/data/services.js";
 import { tFor } from "../src/i18n/translations.js";
 import { safeServiceHtml } from "../src/data/services.js";
@@ -80,6 +81,15 @@ test("service item prices use combination, then a single value override, then th
   assert.equal(resolveServiceItemPrice(item, ["v-12", "v-9"]), 55);
   assert.equal(resolveServiceItemPrice(item, ["v-12", "v-16"]), 70);
   assert.equal(resolveServiceItemPrice({ price: 40, optionGroups: [] }, []), 40);
+});
+
+test("service item cards cover landscape and square photos, and contain portraits", () => {
+  assert.equal(serviceCardImageFit(1600, 900), "cover");
+  assert.equal(serviceCardImageFit(1200, 1200), "cover");
+  assert.equal(serviceCardImageFit(800, 1200), "contain");
+  assert.equal(serviceCardImageFit(0, 10), "cover");
+  assert.equal(tFor("en", "cart.priceOnRequest"), "Price on Request");
+  assert.equal(tFor("vi", "cart.priceOnRequest"), "Giá liên hệ");
 });
 
 test("copying a service item remaps option ids and keeps combination prices", () => {

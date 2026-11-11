@@ -86,6 +86,7 @@ test("cart copy is bilingual", () => {
   assert.equal(tFor("en", "nav.cart"), "Cart");
   assert.equal(tFor("vi", "nav.cart"), "Giỏ hàng");
   assert.equal(tFor("en", "cart.priceOnRequest"), "Price on Request");
+  assert.equal(tFor("vi", "cart.priceOnRequest"), "Giá liên hệ");
   assert.equal(tFor("en", "cart.quotationRequired"), "Quotation Required");
   assert.equal(tFor("en", "admin.detail.serviceCart"), "Service cart quotation");
   assert.equal(
