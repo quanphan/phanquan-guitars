@@ -12,6 +12,7 @@ export const INQUIRY_TYPE_VALUES = [
 export const SUBJECT_MAX = 200;
 export const PRODUCT_REF_MAX = 160;
 export const DRAFT_ID_MAX = 80;
+export const CONTACT_PHONE_MAX = 40;
 const PRODUCT_ID_MAX = 80;
 
 const TYPE_ALIASES = {
@@ -127,9 +128,13 @@ export function buildContactInquiryPayload(values) {
   const productRef = clampField(values.productRef, PRODUCT_REF_MAX);
   const draftId =
     inquiryType === "custom-guitar" ? clampField(values.draftId, DRAFT_ID_MAX) : "";
+  const phone = clampField(values.phone, CONTACT_PHONE_MAX);
+  const language = String(values.language || "").trim().toLowerCase();
   if (subject) payload.subject = subject;
+  if (phone) payload.phone = phone;
   if (productId) payload.productId = productId;
   if (productRef) payload.productRef = productRef;
   if (draftId) payload.draftId = draftId;
+  if (language === "vi" || language === "en") payload.language = language;
   return payload;
 }

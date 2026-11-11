@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { optionAlias, optionLabel, optionMatchesAlias } from "../../data/wizardCatalog.js";
 import {
   allowedCompatibilityFields,
+  usesTypeSeriesShapeCompatibility,
   applyCompatibilitySelectAll,
   compatibilityEditorOptions,
   compatibilitySelectAllState,
@@ -65,7 +66,13 @@ export default function CompatibilityPicker({
         <p className="text-sm text-muted">{t("admin.wizardSetup.compatNone")}</p>
       ) : (
         <>
-          <p className="text-sm text-muted">{t("admin.wizardSetup.compatibilityHelp")}</p>
+          <p className="text-sm text-muted">
+            {t(
+              usesTypeSeriesShapeCompatibility(currentCategoryId)
+                ? "admin.wizardSetup.compatibilityHelpTypeSeriesShape"
+                : "admin.wizardSetup.compatibilityHelp",
+            )}
+          </p>
           {fields.map((field) => {
             const category = categories.find((item) => item.id === field.categoryId);
             const options = compatibilityEditorOptions(category?.options);

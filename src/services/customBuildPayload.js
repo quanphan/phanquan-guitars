@@ -1,11 +1,12 @@
 import { sanitizeReferenceImages } from "../data/referenceImages.js";
 import { optionMatchesAlias, WIZARD_SETUP_GROUPS } from "../data/wizardCatalog.js";
-import { allowedCompatibilityFields, isShapeChildGroup, knownGroupStep } from "../data/wizardSetupLayout.js";
+import { allowedCompatibilityFields, isShapeChildGroup, knownGroupStep, usesTypeSeriesShapeCompatibility } from "../data/wizardSetupLayout.js";
 import { DEFAULT_FRET_COUNT, parsePositiveFretCount } from "../data/wizardScaleAttributes.js";
 import { isCustomerSuppliedParts, STEP4_OPTION_KEYS } from "../data/wizardSelection.js";
 import {
   findSeriesConstructionOption,
   findSeriesNeckConstructionOption,
+  seriesBodyConstructionOptions,
   seriesNeckConstructionOptions,
   usesSecondaryBodyWood,
   usesSecondaryNeckWood,
@@ -202,14 +203,23 @@ function wizardLines(selections, catalog) {
     "specialRequests",
   ];
   const skipStepFour = isCustomerSuppliedParts(selections);
+  const context = catalogSelectionContext(catalog, selections);
+  const series = catalogSeriesOption(catalog, selections?.seriesId);
   return keys
     .map((key) => {
       if (skipStepFour && STEP4_OPTION_KEYS.includes(key)) return null;
+      if (key === "bodyConstructionId" && seriesBodyConstructionOptions(series).length === 0) return null;
+      if (key === "neckPiecesId" && seriesNeckConstructionOptions(series).length === 0) return null;
       if (key === "secondaryBodyWoodId" && !usesSecondaryBodyWood(selectedBodyConstruction(catalog, selections))) {
         return null;
       }
       if (key === "secondaryNeckWoodId" && !usesSecondaryNeckWood(selectedNeckPieces(catalog, selections))) {
         return null;
+      }
+      const binding = SELECTION_CATEGORY_BINDINGS.find((item) => item.selectionKey === key);
+      if (binding) {
+        const category = findCategory(catalog, binding.categoryId);
+        if (!categoryHasApplicableOptions(category, context, catalog)) return null;
       }
       const value = selections[key];
       if (value == null || value === false) return null;
@@ -281,7 +291,8 @@ function mapCatalogSelections(catalog, selections, finishSheen) {
     if (skipStepFour && binding.stepFour) continue;
     const selected = selections[binding.selectionKey];
     if (binding.categoryId === "finish-type") {
-      if (!findCategory(catalog, "finish-type")) continue;
+      const finishCategory = findCategory(catalog, "finish-type");
+      if (!finishCategory || !categoryHasApplicableOptions(finishCategory, mapped, catalog)) continue;
       const option = resolveCatalogOption(
         catalog,
         "finish-type",
@@ -296,6 +307,7 @@ function mapCatalogSelections(catalog, selections, finishSheen) {
       continue;
     }
     const category = findCategory(catalog, binding.categoryId);
+    if (category && !categoryHasApplicableOptions(category, mapped, catalog)) continue;
     setIfPresent(
       mapped,
       binding.categoryId,
@@ -342,6 +354,40 @@ function constraintAllows(allowed, selectedAliases) {
   return allowed.some((value) => selectedAliases.has(String(value)));
 }
 
+function optionCompatibleWithMapped(option, category, mapped, catalog) {
+  const compatibility =
+    option?.compatibility && typeof option.compatibility === "object" && !Array.isArray(option.compatibility)
+      ? option.compatibility
+      : {};
+  const categories = catalog?.categories || [];
+  for (const compatField of allowedCompatibilityFields(category.id, categories)) {
+    const target = findCategory(catalog, compatField.categoryId);
+    const selectedTarget = mapped?.[compatField.categoryId];
+    const targetOption = findOptionInCategory(target, selectedTarget);
+    const aliases = optionAliases(targetOption, compatField.categoryId);
+    if (selectedTarget && aliases.size === 0) aliases.add(String(selectedTarget));
+    if (!constraintAllows(compatibility[compatField.key], aliases)) return false;
+  }
+  return true;
+}
+
+export function categoryHasApplicableOptions(category, mapped, catalog) {
+  const options = (category?.options || []).filter((item) => item && item.active !== false);
+  if (!options.length) return false;
+  return options.some((option) => optionCompatibleWithMapped(option, category, mapped, catalog));
+}
+
+function catalogSelectionContext(catalog, selections) {
+  const mapped = {};
+  for (const categoryId of ["instrument-type", "series", "body-shape"]) {
+    const binding = BINDING_BY_CATEGORY.get(categoryId);
+    const selected = selections?.[binding?.selectionKey];
+    const optionId = resolveSelectionId(catalog, categoryId, selected, legacyId(binding, selected));
+    if (optionId) mapped[categoryId] = optionId;
+  }
+  return mapped;
+}
+
 function validateSingleValue(category, value, field) {
   if (typeof value !== "string" && typeof value !== "number") {
     return { ok: false, issue: { field, code: "INVALID_TYPE" } };
@@ -365,7 +411,9 @@ export function evaluateMappedSelections(mapped, catalog) {
     const value = mapped?.[category.id];
     const field = `selections.${category.id}`;
     if (value === undefined || value === null || value === "") {
-      if (category.required) issues.push({ field, code: "REQUIRED" });
+      if (category.required && categoryHasApplicableOptions(category, mapped, catalog)) {
+        issues.push({ field, code: "REQUIRED" });
+      }
       continue;
     }
     if (category.selectionMode === "multiple") {
@@ -397,7 +445,13 @@ export function evaluateMappedSelections(mapped, catalog) {
 
   for (const category of categories) {
     const step = category.step ?? knownGroupStep(category.id, categories);
-    if (Number(step) < 4 && !isShapeChildGroup(category.id) && category.id !== "series" && category.id !== "body-shape") continue;
+    if (
+      Number(step) < 4
+      && !isShapeChildGroup(category.id)
+      && !usesTypeSeriesShapeCompatibility(category.id)
+      && category.id !== "series"
+      && category.id !== "body-shape"
+    ) continue;
     const selectedId = normalized[category.id];
     if (!selectedId || Array.isArray(selectedId)) continue;
     const option = findOptionInCategory(category, selectedId);

@@ -77,13 +77,9 @@ export default function StepBodyTop({
     value: option.id,
     label: constructionLabel(option, language),
   }));
-  const showBodySection = availableBodyConstructions.length > 0 || availableBodyWoods.length > 0;
-  const noSeries = !selections.seriesId;
-  const constructionHint = noSeries
-    ? t("customBuild.step2.bodyPiecesNeedSeries")
-    : availableBodyConstructions.length === 0
-      ? t("customBuild.step2.bodyPiecesEmpty")
-      : optionDescription(selectedConstruction, language);
+  const showConstruction = constructionChoices.length > 0;
+  const showWoods = woodChoices.length > 0;
+  const showBodySection = showConstruction || showWoods;
 
   return (
     <div>
@@ -111,17 +107,18 @@ export default function StepBodyTop({
           {t("customBuild.step2.bodyLabel")}
         </h3>
         <div className="mt-4 grid gap-4">
-          <Select
-            id="body-pieces"
-            ariaLabel={t("customBuild.step2.bodyPiecesLabel")}
-            value={selections.bodyConstructionId}
-            onChange={selectBodyConstruction}
-            options={constructionChoices}
-            disabled={constructionChoices.length === 0}
-            hint={constructionHint}
-            invalid={missingKeys.has("bodyConstructionId")}
-          />
-          {availableBodyWoods.length > 0 ? (
+          {showConstruction ? (
+            <Select
+              id="body-pieces"
+              ariaLabel={t("customBuild.step2.bodyPiecesLabel")}
+              value={selections.bodyConstructionId}
+              onChange={selectBodyConstruction}
+              options={constructionChoices}
+              hint={optionDescription(selectedConstruction, language)}
+              invalid={missingKeys.has("bodyConstructionId")}
+            />
+          ) : null}
+          {showWoods ? (
             <Select
               id="main-body-wood"
               label={t("customBuild.step2.mainWoodLabel")}
@@ -131,10 +128,8 @@ export default function StepBodyTop({
               hint={optionDescription(selectedBodyWood, language)}
               invalid={missingKeys.has("bodyWoodId")}
             />
-          ) : (
-            <p className="text-sm text-muted">{t("customBuild.step2.bodyContact")}</p>
-          )}
-          {showSecondary ? (
+          ) : null}
+          {showSecondary && showWoods ? (
             <Select
               id="secondary-body-wood"
               label={t("customBuild.step2.secondaryWoodLabel")}
@@ -147,9 +142,7 @@ export default function StepBodyTop({
           ) : null}
         </div>
       </section>
-      ) : (
-        <p className="mt-10 text-sm text-muted">{t("customBuild.step2.bodyContact")}</p>
-      )}
+      ) : null}
 
       {topApplicable && availableTopWoods.length > 0 ? (
         <section className="mt-10">

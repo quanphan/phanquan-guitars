@@ -123,15 +123,36 @@ export function knownGroupStep(categoryId, categories) {
 
 export const SHAPE_CHILD_GROUP_IDS = ["scale", "string-count", "radius"];
 export const BODY_SHAPE_UPSTREAM_GROUP_IDS = ["instrument-type", "series"];
+export const ROOT_COMPATIBILITY_GROUP_IDS = ["instrument-type", "series", "body-shape"];
+export const TYPE_SERIES_SHAPE_COMPAT_GROUP_IDS = [
+  ...SHAPE_CHILD_GROUP_IDS,
+  "neck-construction",
+  "neck-profile",
+  "fret-spec",
+  "pickup-config",
+  "pickups",
+  "electronics",
+  "tuners",
+  "hardware",
+  "bridge",
+  "finish-color",
+  "finish-type",
+  "inlay",
+  "engraving",
+];
 
 export function isShapeChildGroup(categoryId) {
   return SHAPE_CHILD_GROUP_IDS.includes(String(categoryId || ""));
 }
 
+export function usesTypeSeriesShapeCompatibility(categoryId) {
+  return TYPE_SERIES_SHAPE_COMPAT_GROUP_IDS.includes(String(categoryId || ""));
+}
+
 export function allowedCompatibilityGroupIds(categoryId, categories) {
   if (categoryId === "series") return ["instrument-type"];
   if (categoryId === "body-shape") return [...BODY_SHAPE_UPSTREAM_GROUP_IDS];
-  if (isShapeChildGroup(categoryId)) return [...BODY_SHAPE_UPSTREAM_GROUP_IDS, "body-shape"];
+  if (usesTypeSeriesShapeCompatibility(categoryId)) return [...ROOT_COMPATIBILITY_GROUP_IDS];
   const preceding = precedingGroupIds(categoryId, categories).filter((id) => !isShapeChildGroup(id));
   const step = knownGroupStep(categoryId, categories);
   if (Number(step) >= 4) {
@@ -157,10 +178,9 @@ export function compatibilityEditorOptions(options) {
 }
 
 export function keepAllowedCompatibility(compatibility, categoryId, categories) {
-  const allowed = new Set(allowedCompatibilityFields(categoryId, categories).map((field) => field.key));
   const next = {};
-  for (const field of COMPATIBILITY_FIELDS) {
-    if (!allowed.has(field.key) || !Array.isArray(compatibility?.[field.key])) {
+  for (const field of allowedCompatibilityFields(categoryId, categories)) {
+    if (!Array.isArray(compatibility?.[field.key])) {
       next[field.key] = [];
       continue;
     }

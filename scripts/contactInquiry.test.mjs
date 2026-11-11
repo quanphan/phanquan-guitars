@@ -53,6 +53,7 @@ test("payload matches POST /api/contact and omits empty optional fields", () => 
     productId: "prod_88",
     productRef: "PQ Headless Bass",
     draftId: "should-not-store",
+    language: "en",
   });
   assert.deepEqual(payload, {
     name: "Lan Pham",
@@ -62,6 +63,7 @@ test("payload matches POST /api/contact and omits empty optional fields", () => 
     subject: "In-stock bass",
     productId: "prod_88",
     productRef: "PQ Headless Bass",
+    language: "en",
   });
 });
 
@@ -103,16 +105,26 @@ test("contact chat summary includes name, email, phone, inquiry type, and messag
   assert.match(text, /I want an offset six-string/);
 });
 
-test("contact payload still omits phone so email submit is unchanged", () => {
+test("contact payload includes phone and form language when present", () => {
   const payload = buildContactInquiryPayload({
     inquiryType: "technical",
     name: "Lan Pham",
     email: "lan@example.com",
     phone: "0903083489",
     message: "What scale is this?",
+    language: "vi",
   });
-  assert.equal(payload.phone, undefined);
+  assert.equal(payload.phone, "0903083489");
+  assert.equal(payload.language, "vi");
   assert.equal(payload.inquiryType, "technical");
+  const withoutOptional = buildContactInquiryPayload({
+    inquiryType: "technical",
+    name: "Lan Pham",
+    email: "lan@example.com",
+    message: "What scale is this?",
+  });
+  assert.equal(withoutOptional.phone, undefined);
+  assert.equal(withoutOptional.language, undefined);
 });
 
 test("contact copy exists in English and Vietnamese", () => {

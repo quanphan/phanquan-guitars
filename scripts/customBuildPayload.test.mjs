@@ -319,3 +319,56 @@ test("array pickup type against a single catalog is INVALID_TYPE", () => {
   assert.equal(isMissingRequiredConfig(issues, 4), false);
 });
 
+test("hidden required groups are omitted and not validated as REQUIRED", () => {
+  const catalog = {
+    ...wizardCatalog,
+    categories: wizardCatalog.categories.map((category) => {
+      if (category.id === "body-wood") {
+        return {
+          ...category,
+          options: [{
+            id: "body-wood.mahogany",
+            code: "mahogany",
+            active: true,
+            compatibility: { seriesIds: ["other-line"] },
+          }],
+        };
+      }
+      if (category.id === "neck-wood") {
+        return {
+          ...category,
+          options: [{ id: "neck-wood.hidden", code: "hidden", active: false }],
+        };
+      }
+      if (category.id === "fingerboard") {
+        return { ...category, options: [] };
+      }
+      return category;
+    }),
+  };
+  const payload = buildInquiryPayload({
+    selections: contact({
+      bodyWoodId: "mahogany",
+      neckWoodId: "hidden",
+      fingerboardWoodId: "ebony",
+      finishTypeId: "oil-thin-varnish",
+    }),
+    language: "en",
+    catalog,
+  });
+  const mapped = payload.configuration.selections;
+  assert.equal(mapped["body-wood"], undefined);
+  assert.equal(mapped["neck-wood"], undefined);
+  assert.equal(mapped.fingerboard, undefined);
+  assert.equal(mapped["finish-type"], "finish-type.oil-thin-varnish");
+  const notes = payload.configuration.notes || "";
+  assert.equal(notes.includes("bodyWoodId="), false);
+  assert.equal(notes.includes("neckWoodId="), false);
+  assert.equal(notes.includes("fingerboardWoodId="), false);
+  const issues = evaluateMappedSelections(mapped, catalog);
+  assert.equal(issues.some((item) => item.field === "selections.body-wood"), false);
+  assert.equal(issues.some((item) => item.field === "selections.neck-wood"), false);
+  assert.equal(issues.some((item) => item.field === "selections.fingerboard"), false);
+  assert.deepEqual(issues, []);
+});
+

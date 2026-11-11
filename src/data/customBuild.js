@@ -684,6 +684,10 @@ export function getInstrumentTypeById(id) {
   return findSelectedOption(list("instrumentTypes"), id);
 }
 
+export function getAvailableInstrumentTypes(selections = EMPTY_SELECTIONS) {
+  return filterOptions(list("instrumentTypes"), selections);
+}
+
 export function getSeriesById(id) {
   return findSelectedOption(list("series"), id);
 }
@@ -904,7 +908,6 @@ export function getAvailablePickupConfigs(selections) {
 }
 
 export function getAvailablePickupTypes(selections) {
-  if (!selections.pickupConfigId) return [];
   return filterOptions(list("pickupTypes"), selections);
 }
 
@@ -913,10 +916,7 @@ export function getAvailableBridges(selections) {
 }
 
 export function isTunersApplicable(selections) {
-  if (isHeadlessSeries(selections)) return false;
-  const bridge = getBridgeById(selections.bridgeId);
-  if (bridge) return bridge.traditionalTuners === true;
-  return true;
+  return !isHeadlessSeries(selections);
 }
 
 export function getAvailableTuners(selections) {
@@ -928,7 +928,6 @@ export function getAvailableHardwareFinishes(selections) {
 }
 
 export function getAvailableControlLayouts(selections) {
-  if (!selections.pickupConfigId) return [];
   return filterOptions(list("controlLayouts"), selections);
 }
 
@@ -937,7 +936,6 @@ export function getAvailableFinishTypes(selections) {
 }
 
 export function getAvailableFinishColors(selections) {
-  if (!selections.finishTypeId) return [];
   return filterOptions(list("finishColors"), selections);
 }
 
@@ -963,16 +961,20 @@ export function pruneSelections(selections) {
 }
 
 export function isStepOneComplete(selections) {
-  if (!selections.instrumentTypeId || !selections.seriesId) return false;
-  if (!selections.shapeId || !selections.scaleId) return false;
-  const scale = getScaleById(selections.scaleId);
-  if (isCustomScale(scale) && !isValidCustomScaleValue(selections.customScaleValue)) {
-    return false;
+  if (getAvailableInstrumentTypes().length > 0 && !selections.instrumentTypeId) return false;
+  if (getAvailableSeries(selections).length > 0 && !selections.seriesId) return false;
+  if (getAvailableShapes(selections).length > 0 && !selections.shapeId) return false;
+  const scales = getAvailableScales(selections);
+  if (scales.length > 0) {
+    if (!selections.scaleId) return false;
+    const scale = getScaleById(selections.scaleId);
+    if (isCustomScale(scale) && !isValidCustomScaleValue(selections.customScaleValue)) {
+      return false;
+    }
   }
   if (getAvailableStringCounts(selections).length > 0 && selections.stringCount == null) return false;
-  const radii = getAvailableRadii(selections);
-  if (radii.length === 0) return true;
-  return Boolean(selections.radiusId);
+  if (getAvailableRadii(selections).length > 0 && !selections.radiusId) return false;
+  return true;
 }
 
 export function stepTwoAvailability(selections) {
@@ -992,7 +994,6 @@ export function stepTwoMissingFields(selections) {
 
 export function isStepTwoComplete(selections) {
   if (!isStepOneComplete(selections)) return false;
-  if (getAvailableBodyWoods(selections).length === 0) return false;
   return stepTwoMissingFields(selections).length === 0;
 }
 

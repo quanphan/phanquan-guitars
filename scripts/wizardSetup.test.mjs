@@ -346,7 +346,7 @@ test("compatibility editor hides inactive options; create sanitizer drops inacti
   }, "body-shape", categories);
   assert.deepEqual(saved.instrumentTypeIds, ["electric-guitar"]);
   assert.deepEqual(saved.seriesIds, ["solid-body"]);
-  assert.deepEqual(saved.shapeIds, []);
+  assert.equal(Object.hasOwn(saved, "shapeIds"), false);
 
   const shape = {
     id: "offset",
@@ -409,7 +409,7 @@ test("compatibility select-all only snapshots currently active options", () => {
   ];
   const saved = keepAllowedCompatibility({ seriesIds: allSelected, shapeIds: ["offset"] }, "body-shape", categories);
   assert.deepEqual(saved.seriesIds, ["solid-body", "headless"]);
-  assert.deepEqual(saved.shapeIds, []);
+  assert.equal(Object.hasOwn(saved, "shapeIds"), false);
   const withExtra = compatibilityEditorOptions([
     ...series,
     { id: "series.extra", code: "extra", active: true },
@@ -644,15 +644,11 @@ test("compatibility only includes earlier wizard groups", () => {
   assert.equal(pickupKeys.includes("stringCounts"), false);
   assert.equal(pickupKeys.includes("bodyWoodIds"), false);
   const pickupTypeKeys = allowedCompatibilityFields("pickups").map((item) => item.key);
-  assert.equal(pickupTypeKeys.includes("instrumentTypeIds"), true);
-  assert.equal(pickupTypeKeys.includes("seriesIds"), true);
-  assert.equal(pickupTypeKeys.includes("pickupConfigIds"), true);
-  assert.equal(pickupTypeKeys.includes("bodyWoodIds"), false);
+  assert.deepEqual(pickupTypeKeys, ["instrumentTypeIds", "seriesIds", "shapeIds"]);
+  assert.equal(pickupTypeKeys.includes("pickupConfigIds"), false);
   const finishColorKeys = allowedCompatibilityFields("finish-color").map((item) => item.key);
-  assert.equal(finishColorKeys.includes("instrumentTypeIds"), true);
-  assert.equal(finishColorKeys.includes("seriesIds"), true);
-  assert.equal(finishColorKeys.includes("finishTypeIds"), true);
-  assert.equal(finishColorKeys.includes("fingerboardWoodIds"), false);
+  assert.deepEqual(finishColorKeys, ["instrumentTypeIds", "seriesIds", "shapeIds"]);
+  assert.equal(finishColorKeys.includes("finishTypeIds"), false);
 
   const savedPickupCompat = keepAllowedCompatibility(
     {
@@ -683,8 +679,8 @@ test("compatibility only includes earlier wizard groups", () => {
   );
   assert.deepEqual(savedPickupCompat.instrumentTypeIds, ["electric-guitar"]);
   assert.deepEqual(savedPickupCompat.seriesIds, ["solid-body"]);
-  assert.deepEqual(savedPickupCompat.bodyWoodIds, []);
-  assert.deepEqual(savedPickupCompat.fingerboardWoodIds, []);
+  assert.equal(Object.hasOwn(savedPickupCompat, "bodyWoodIds"), false);
+  assert.equal(Object.hasOwn(savedPickupCompat, "fingerboardWoodIds"), false);
   const bodyWoodKeys = allowedCompatibilityFields("body-wood").map((item) => item.key);
   assert.equal(bodyWoodKeys.includes("instrumentTypeIds"), true);
   assert.equal(bodyWoodKeys.includes("seriesIds"), true);
@@ -764,6 +760,11 @@ test("unconfigured tuner groups stay out of wizard lists and summary", () => {
   };
   const compatible = listedTuners(mixedLists, { seriesId: "solid-body", bridgeId: "hardtail" });
   assert.deepEqual(compatible.map((item) => item.id), ["hipshot"]);
+  const withoutTraditional = listedTuners(
+    { ...mixedLists, bridges: [{ id: "hardtail", traditionalTuners: false, active: true }] },
+    { seriesId: "solid-body", bridgeId: "hardtail" },
+  );
+  assert.deepEqual(withoutTraditional.map((item) => item.id), ["hipshot"]);
   assert.equal(wizardOptionLabel(compatible[0], "en", tEn, "tuners"), "Hipshot");
   const shown = visibleSummaryRows([
     { key: "tuners", label: "Tuners", value: wizardOptionLabel(compatible[0], "en", tEn, "tuners") },
@@ -1029,6 +1030,17 @@ test("steps 4 and 5 depend on step 1 type and series, not woods", () => {
 
   const afterFingerboard = stepFourFive({ ...electricMahogany, fingerboardWoodId: null, neckWoodId: null });
   assert.deepEqual(afterFingerboard, baseline);
+
+  const afterPickupConfig = stepFourFive({ ...electricMahogany, pickupConfigId: "bass-hh" });
+  assert.deepEqual(afterPickupConfig.pickupTypes, ["humbucker"]);
+  assert.deepEqual(afterPickupConfig.electronics, ["vol-tone-3way"]);
+  const afterFinishType = stepFourFive({ ...electricMahogany, finishTypeId: null });
+  assert.deepEqual(afterFinishType.finishColors, ["natural"]);
+  const afterInlay = pruneSelections({ ...electricMahogany, inlayId: null }, lists);
+  assert.equal(afterInlay.engravingId, "optional-top");
+  const afterNeckConstruction = pruneSelections({ ...electricMahogany, neckConstructionId: "set-neck" }, lists);
+  assert.equal(afterNeckConstruction.pickupTypeId, "humbucker");
+  assert.equal(afterNeckConstruction.finishTypeId, "gloss");
 
   const afterType = stepFourFive({ ...electricMahogany, instrumentTypeId: "bass" });
   assert.deepEqual(afterType.pickupConfigs, ["bass-hh"]);

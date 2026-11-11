@@ -344,6 +344,27 @@ test("Test G — later groups ignore leftover scale and string-count rules", () 
   assert.equal(allowedCompatibilityFields("body-wood").some((item) => item.key === "stringCounts"), false);
   assert.equal(allowedCompatibilityFields("pickup-config").some((item) => item.key === "scaleIds"), false);
   assert.equal(allowedCompatibilityFields("neck-wood").some((item) => item.key === "shapeIds"), true);
+  for (const groupId of [
+    "neck-construction",
+    "neck-profile",
+    "fret-spec",
+    "pickup-config",
+    "pickups",
+    "electronics",
+    "tuners",
+    "hardware",
+    "bridge",
+    "finish-color",
+    "finish-type",
+    "inlay",
+    "engraving",
+  ]) {
+    assert.deepEqual(
+      allowedCompatibilityFields(groupId).map((item) => item.key),
+      ["instrumentTypeIds", "seriesIds", "shapeIds"],
+      groupId,
+    );
+  }
 
   const wood = {
     id: "alder",

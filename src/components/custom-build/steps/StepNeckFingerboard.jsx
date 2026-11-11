@@ -109,13 +109,9 @@ export default function StepNeckFingerboard({
     value: option.id,
     label: constructionLabel(option, language),
   }));
-  const showNeckWoodSection = availableNeckPieces.length > 0 || availableNeckWoods.length > 0;
-  const noSeries = !selections.seriesId;
-  const piecesHint = noSeries
-    ? t("customBuild.step3.neckPiecesNeedSeries")
-    : availableNeckPieces.length === 0
-      ? t("customBuild.step3.neckPiecesEmpty")
-      : optionDescription(selectedPieces, language);
+  const showPieces = pieceChoices.length > 0;
+  const showWoods = availableNeckWoods.length > 0;
+  const showNeckWoodSection = showPieces || showWoods;
 
   return (
     <div>
@@ -143,17 +139,18 @@ export default function StepNeckFingerboard({
           {t("customBuild.step3.neckWoodLabel")}
         </h3>
         <div className="mt-4 grid gap-4">
-          <Select
-            id="neck-pieces"
-            ariaLabel={t("customBuild.step3.neckPiecesLabel")}
-            value={selections.neckPiecesId}
-            onChange={selectNeckPieces}
-            options={pieceChoices}
-            disabled={pieceChoices.length === 0}
-            hint={piecesHint}
-            invalid={missingKeys.has("neckPiecesId")}
-          />
-          {availableNeckWoods.length > 0 ? (
+          {showPieces ? (
+            <Select
+              id="neck-pieces"
+              ariaLabel={t("customBuild.step3.neckPiecesLabel")}
+              value={selections.neckPiecesId}
+              onChange={selectNeckPieces}
+              options={pieceChoices}
+              hint={optionDescription(selectedPieces, language)}
+              invalid={missingKeys.has("neckPiecesId")}
+            />
+          ) : null}
+          {showWoods ? (
             <Select
               id="main-neck-wood"
               label={t("customBuild.step3.mainWoodLabel")}
@@ -163,10 +160,8 @@ export default function StepNeckFingerboard({
               hint={optionDescription(selectedNeckWood, language)}
               invalid={missingKeys.has("neckWoodId")}
             />
-          ) : (
-            <p className="text-sm text-muted">{t("customBuild.step3.contact")}</p>
-          )}
-          {showSecondary ? (
+          ) : null}
+          {showSecondary && showWoods ? (
             <Select
               id="secondary-neck-wood"
               label={t("customBuild.step3.secondaryWoodLabel")}
@@ -202,12 +197,12 @@ export default function StepNeckFingerboard({
       </section>
       ) : null}
 
+      {availableFingerboardWoods.length > 0 ? (
       <section className="mt-10">
         <h3 className="text-[11px] uppercase tracking-[0.22em] text-gold">
           {t("customBuild.step3.fingerboardLabel")}
         </h3>
         <div className="mt-4">
-          {availableFingerboardWoods.length > 0 ? (
               <div
                 id="fingerboard-wood"
                 role="radiogroup"
@@ -228,11 +223,9 @@ export default function StepNeckFingerboard({
                   />
                 ))}
               </div>
-          ) : (
-            <p id="fingerboard-wood" className="text-sm text-muted">{t("customBuild.step3.contact")}</p>
-          )}
         </div>
       </section>
+      ) : null}
 
       {availableNeckProfiles.length > 0 ? (
       <section className="mt-10">

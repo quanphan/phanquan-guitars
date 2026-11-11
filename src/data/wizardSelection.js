@@ -190,8 +190,6 @@ export function listedTuners(lists, selections) {
   const catalog = lists || {};
   const series = findSelectedOption(catalog.series, selections?.seriesId);
   if (isHeadlessOption(series)) return [];
-  const bridge = findSelectedOption(catalog.bridges, selections?.bridgeId);
-  if (bridge && bridge.traditionalTuners !== true) return [];
   return filterOptions(catalog.tuners || [], selections, catalog, "tuners");
 }
 
@@ -278,6 +276,9 @@ export function pruneSelections(selections, lists) {
     next.neckPiecesId = null;
     next.secondaryNeckWoodId = null;
     clearStepThreeSelections(next);
+    next.neckConstructionId = null;
+    next.neckProfileId = null;
+    next.fretSpecId = null;
     clearStepFourAndFiveSelections(next);
   }
 
@@ -400,30 +401,18 @@ export function pruneSelections(selections, lists) {
 
   if (next.pickupConfigId && !available("pickupConfigs").some((item) => optionIdEquals(item, next.pickupConfigId))) {
     next.pickupConfigId = null;
-    next.pickupTypeId = null;
-    next.controlLayoutId = null;
   }
 
-  if (
-    next.pickupTypeId &&
-    !(next.pickupConfigId
-      ? available("pickupTypes").some((item) => optionIdEquals(item, next.pickupTypeId))
-      : false)
-  ) {
+  if (next.pickupTypeId && !available("pickupTypes").some((item) => optionIdEquals(item, next.pickupTypeId))) {
     next.pickupTypeId = null;
   }
 
   if (next.bridgeId && !available("bridges").some((item) => optionIdEquals(item, next.bridgeId))) {
     next.bridgeId = null;
-    next.tunerId = null;
   }
 
   const series = findSelectedOption(lists.series, next.seriesId);
-  const bridge = findSelectedOption(lists.bridges, next.bridgeId);
-  const tunersApplicable = !isHeadlessOption(series) && (bridge ? bridge.traditionalTuners === true : true);
-  if (!tunersApplicable) {
-    next.tunerId = null;
-  } else if (next.tunerId && !available("tuners").some((item) => optionIdEquals(item, next.tunerId))) {
+  if (isHeadlessOption(series) || (next.tunerId && !available("tuners").some((item) => optionIdEquals(item, next.tunerId)))) {
     next.tunerId = null;
   }
 
@@ -434,26 +423,15 @@ export function pruneSelections(selections, lists) {
     next.hardwareFinishId = null;
   }
 
-  if (
-    next.controlLayoutId &&
-    !(next.pickupConfigId
-      ? available("controlLayouts").some((item) => optionIdEquals(item, next.controlLayoutId))
-      : false)
-  ) {
+  if (next.controlLayoutId && !available("controlLayouts").some((item) => optionIdEquals(item, next.controlLayoutId))) {
     next.controlLayoutId = null;
   }
 
   if (next.finishTypeId && !available("finishTypes").some((item) => optionIdEquals(item, next.finishTypeId))) {
     next.finishTypeId = null;
-    next.finishColorId = null;
   }
 
-  if (
-    next.finishColorId &&
-    !(next.finishTypeId
-      ? available("finishColors").some((item) => optionIdEquals(item, next.finishColorId))
-      : false)
-  ) {
+  if (next.finishColorId && !available("finishColors").some((item) => optionIdEquals(item, next.finishColorId))) {
     next.finishColorId = null;
   }
 
@@ -473,10 +451,7 @@ export function pruneSelections(selections, lists) {
 function clearStepThreeSelections(next) {
   next.neckWoodId = null;
   next.secondaryNeckWoodId = null;
-  next.neckConstructionId = null;
   next.fingerboardWoodId = null;
-  next.neckProfileId = null;
-  next.fretSpecId = null;
 }
 
 function clearStepFourAndFiveSelections(next) {

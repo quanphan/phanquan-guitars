@@ -207,6 +207,13 @@ test("step two missing fields include body pieces when the dropdown looks select
   );
   assert.equal(tFor("en", "customBuild.step2.incomplete").includes("highlighted"), true);
   assert.equal(tFor("vi", "customBuild.step2.incomplete").includes("đánh dấu"), true);
+  assert.deepEqual(
+    collectStepTwoMissing(
+      { bodyConstructionId: null, bodyWoodId: null, topWoodId: null },
+      { constructions: [], bodyWoods: [], usesSecondary: false, topApplicable: false, tops: [] },
+    ).map((item) => item.key),
+    [],
+  );
 });
 
 test("step two requires construction and secondary wood only when they apply", () => {

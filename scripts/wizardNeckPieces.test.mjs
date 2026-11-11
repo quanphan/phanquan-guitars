@@ -306,6 +306,13 @@ test("step three missing fields follow neck pieces, woods, and fret count rules"
       .some((item) => item.key === "neckConstructionId" || item.key === "neckProfileId"),
     false,
   );
+  assert.equal(
+    collectStepThreeMissing(
+      { ...filled, neckPiecesId: null, neckWoodId: null, fingerboardWoodId: null, neckConstructionId: null, neckProfileId: null, fretSpecId: null },
+      { neckPieces: [], neckWoods: [], constructions: [], fingerboards: [], profiles: [], fretSpecs: [] },
+    ).some((item) => item.key !== "fretCount"),
+    false,
+  );
   assert.equal(tFor("en", "customBuild.step3.incomplete").includes("highlighted"), true);
   assert.equal(tFor("vi", "customBuild.step3.incomplete").includes("đánh dấu"), true);
 });

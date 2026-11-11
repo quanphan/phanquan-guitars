@@ -130,7 +130,7 @@ export default function Contact() {
     submittingRef.current = true;
     setFieldErrors({});
     setStatus("submitting");
-    const result = await submitContactInquiry(values);
+    const result = await submitContactInquiry({ ...values, language });
     submittingRef.current = false;
 
     if (result.ok && result.confirmed) {

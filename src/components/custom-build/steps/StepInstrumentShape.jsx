@@ -47,6 +47,8 @@ export default function StepInstrumentShape({
   const hasType = Boolean(selections.instrumentTypeId);
   const hasSeries = Boolean(selections.seriesId);
   const hasShape = Boolean(selections.shapeId);
+  const seriesReady = hasSeries || availableSeries.length === 0;
+  const shapeReady = hasShape || availableShapes.length === 0;
   const selectedScale = availableScales.find((scale) => scale.id === selections.scaleId);
   const customScaleSelected = isCustomScale(selectedScale);
 
@@ -167,7 +169,7 @@ export default function StepInstrumentShape({
         </Section>
       ) : null}
 
-      {hasSeries && availableShapes.length > 0 ? (
+      {hasType && seriesReady && availableShapes.length > 0 ? (
         <Section title={t("customBuild.step1.shapeLabel")}>
             <div
               role="radiogroup"
@@ -218,7 +220,7 @@ export default function StepInstrumentShape({
         </Section>
       ) : null}
 
-      {hasShape ? (
+      {hasType && seriesReady && shapeReady && availableScales.length > 0 ? (
         <Section title={t("customBuild.step1.scaleLabel")}>
             <div
               role="radiogroup"
@@ -275,7 +277,7 @@ export default function StepInstrumentShape({
         </Section>
       ) : null}
 
-      {hasShape ? (
+      {hasType && seriesReady && shapeReady && availableStringCounts.length > 0 ? (
         <Section title={t("customBuild.step1.stringsLabel")}>
             <div
               role="radiogroup"
@@ -308,7 +310,7 @@ export default function StepInstrumentShape({
         </Section>
       ) : null}
 
-      {hasShape ? (
+      {hasType && seriesReady && shapeReady && availableRadii.length > 0 ? (
         <Section title={t("customBuild.step1.radiusLabel")}>
             <div
               role="radiogroup"
