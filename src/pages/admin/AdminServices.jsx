@@ -237,50 +237,107 @@ export default function AdminServices() {
               </select>
             </label>
           </div>
-          <div className="mt-6 grid gap-6 md:grid-cols-2">
-            {items.map((item) => (
-              <article key={item.id} className="border border-white/10 p-5">
-                {item.imagePath ? (
-                  <FitImage src={mediaUrl(item.imagePath)} alt="" fit="contain" frameClassName="mb-4 h-32 w-full" />
-                ) : null}
-                <h3 className="font-display text-xl text-ivory">{serviceLocale(item, language).title || item.title}</h3>
-                <p className="mt-2 text-xs uppercase tracking-[0.16em] text-muted">{categoryName(item.categoryId)}</p>
-                <p className="mt-2 text-sm text-muted">
-                  {item.isActive === false ? t("admin.services.hidden") : t("admin.services.visible")}
-                </p>
-                <div className="mt-4 flex flex-wrap gap-3 text-sm">
-                  <Link className="text-gold" to={`/admin/services/items/${item.id}`}>{t("admin.services.edit")}</Link>
-                  {canWrite ? (
-                    <Link className="text-gold" to={`/admin/services/items/new?copyFrom=${encodeURIComponent(item.id)}`}>
-                      {t("admin.services.copyNew")}
-                    </Link>
-                  ) : null}
-                  {canWrite && categoryFilter ? (
-                    <>
-                      <button type="button" disabled={busyId === item.id} onClick={() => void moveItem(item.id, -1)}>
-                        {t("admin.pageContent.moveUp")}
-                      </button>
-                      <button type="button" disabled={busyId === item.id} onClick={() => void moveItem(item.id, 1)}>
-                        {t("admin.pageContent.moveDown")}
-                      </button>
-                    </>
-                  ) : null}
-                  {canWrite ? (
-                    <button type="button" disabled={busyId === item.id} onClick={() => void toggleItem(item)}>
-                      {item.isActive === false ? t("admin.services.show") : t("admin.services.hide")}
-                    </button>
-                  ) : null}
-                  {canDelete ? (
-                    <button type="button" className="text-gold" onClick={() => setPendingDelete({ kind: "item", id: item.id, name: item.title })}>
-                      {t("admin.delete")}
-                    </button>
-                  ) : null}
-                </div>
-              </article>
-            ))}
-          </div>
           {!loading && items.length === 0 ? (
             <p className="mt-6 text-sm text-muted">{t("admin.services.emptyItems")}</p>
+          ) : null}
+          {!loading && items.length > 0 ? (
+            <div className="mt-6 overflow-x-auto border border-white/10">
+              <table className="min-w-[44rem] w-full text-left text-sm">
+                <thead className="bg-ink text-[11px] uppercase tracking-[0.16em] text-gold">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">{t("admin.services.fields.image")}</th>
+                    <th className="px-4 py-3 font-medium">{t("admin.services.fields.title")}</th>
+                    <th className="px-4 py-3 font-medium">{t("admin.services.fields.category")}</th>
+                    <th className="px-4 py-3 font-medium">{t("admin.services.fields.status")}</th>
+                    <th className="px-4 py-3 font-medium">{t("admin.services.actions")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item) => {
+                    const title = serviceLocale(item, language).title || item.title;
+                    const hidden = item.isActive === false;
+                    return (
+                      <tr key={item.id} className="border-t border-white/8">
+                        <td className="px-4 py-2.5 align-middle">
+                          {item.imagePath ? (
+                            <FitImage
+                              src={mediaUrl(item.imagePath)}
+                              alt=""
+                              fit="cover"
+                              frameClassName="h-10 w-10 shrink-0"
+                            />
+                          ) : (
+                            <span className="block h-10 w-10 bg-ink" aria-hidden="true" />
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5 align-middle text-ivory">{title}</td>
+                        <td className="px-4 py-2.5 align-middle text-muted">{categoryName(item.categoryId)}</td>
+                        <td className={`px-4 py-2.5 align-middle ${hidden ? "text-muted" : "text-gold"}`}>
+                          {hidden ? t("admin.services.hidden") : t("admin.services.visible")}
+                        </td>
+                        <td className="px-4 py-2.5 align-middle">
+                          <div className="flex flex-nowrap items-center gap-3 whitespace-nowrap">
+                            <Link
+                              className="text-[11px] uppercase tracking-[0.16em] text-gold hover:text-gold-light"
+                              to={`/admin/services/items/${item.id}`}
+                            >
+                              {t("admin.services.edit")}
+                            </Link>
+                            {canWrite ? (
+                              <Link
+                                className="text-[11px] uppercase tracking-[0.16em] text-gold hover:text-gold-light"
+                                to={`/admin/services/items/new?copyFrom=${encodeURIComponent(item.id)}`}
+                              >
+                                {t("admin.services.copyNew")}
+                              </Link>
+                            ) : null}
+                            {canWrite && categoryFilter ? (
+                              <>
+                                <button
+                                  type="button"
+                                  className="text-[11px] uppercase tracking-[0.16em] text-gold disabled:opacity-40"
+                                  disabled={busyId === item.id}
+                                  onClick={() => void moveItem(item.id, -1)}
+                                >
+                                  {t("admin.pageContent.moveUp")}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="text-[11px] uppercase tracking-[0.16em] text-gold disabled:opacity-40"
+                                  disabled={busyId === item.id}
+                                  onClick={() => void moveItem(item.id, 1)}
+                                >
+                                  {t("admin.pageContent.moveDown")}
+                                </button>
+                              </>
+                            ) : null}
+                            {canWrite ? (
+                              <button
+                                type="button"
+                                className="text-[11px] uppercase tracking-[0.16em] text-gold disabled:opacity-40"
+                                disabled={busyId === item.id}
+                                onClick={() => void toggleItem(item)}
+                              >
+                                {hidden ? t("admin.services.show") : t("admin.services.hide")}
+                              </button>
+                            ) : null}
+                            {canDelete ? (
+                              <button
+                                type="button"
+                                className="text-[11px] uppercase tracking-[0.16em] text-gold"
+                                onClick={() => setPendingDelete({ kind: "item", id: item.id, name: item.title })}
+                              >
+                                {t("admin.delete")}
+                              </button>
+                            ) : null}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           ) : null}
         </section>
       </div>

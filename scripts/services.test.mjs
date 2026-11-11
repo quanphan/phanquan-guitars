@@ -104,4 +104,8 @@ test("copying a service item remaps option ids and keeps combination prices", ()
   assert.equal(copied.variantPrices[0].valueIds[0], copied.optionGroups[0].values[0].id);
   assert.equal(tFor("en", "admin.services.copyNew"), "Copy & New");
   assert.equal(tFor("vi", "admin.services.copyNew"), "Sao chép & tạo mới");
+  assert.equal(tFor("en", "admin.services.fields.title"), "Title");
+  assert.equal(tFor("vi", "admin.services.fields.title"), "Tiêu đề");
+  assert.equal(tFor("en", "admin.services.visible"), "Visible");
+  assert.equal(tFor("vi", "admin.services.hidden"), "Ẩn");
 });

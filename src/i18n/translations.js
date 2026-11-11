@@ -595,6 +595,7 @@ export const translations = {
           category: "Category",
           linkMode: "Button",
           status: "Status",
+          title: "Title",
           image: "Image",
           viName: "Name (Vietnamese)",
           enName: "Name (English)",
@@ -2368,7 +2369,6 @@ export const translations = {
         loading: "Loading service details…",
         error: "Could not load this service. Please try again.",
         empty: "No items are listed for this service yet.",
-        optionsHint: "Price updates when a selected option has its own price.",
       },
     },
     cart: {
@@ -3085,6 +3085,7 @@ export const translations = {
           category: "Danh mục",
           linkMode: "Nút",
           status: "Trạng thái",
+          title: "Tiêu đề",
           image: "Hình ảnh",
           viName: "Tên (Tiếng Việt)",
           enName: "Tên (English)",
@@ -4862,7 +4863,6 @@ export const translations = {
         loading: "Đang tải chi tiết dịch vụ…",
         error: "Không tải được dịch vụ này. Hãy thử lại.",
         empty: "Chưa có hạng mục nào cho dịch vụ này.",
-        optionsHint: "Giá sẽ đổi nếu lựa chọn có giá riêng.",
       },
     },
     cart: {

@@ -147,7 +147,6 @@ export default function ServiceItemCard({ item, categorySlug }) {
                 </fieldset>
               );
             })}
-            <p className="text-xs text-muted">{t("services.detail.optionsHint")}</p>
           </div>
         ) : null}
         {cartEnabled ? (
