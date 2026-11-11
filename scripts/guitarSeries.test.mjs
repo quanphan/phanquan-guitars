@@ -142,6 +142,8 @@ test("guitars series copy exists in English and Vietnamese", () => {
   assert.equal(tFor("vi", "guitars.series.details"), "Chi tiết");
   assert.equal(tFor("en", "guitars.series.viewSeries"), "View series");
   assert.equal(tFor("vi", "guitars.series.viewSeries"), "Xem series");
+  assert.equal(tFor("en", "guitars.series.next"), "Next series");
+  assert.equal(tFor("vi", "guitars.series.previous"), "Series trước");
   assert.equal(tFor("en", "guitars.series.readMore"), "Read more");
   assert.equal(tFor("vi", "guitars.series.showLess"), "Thu gọn");
   assert.equal(tFor("vi", "guitars.series.error").includes("series"), true);
