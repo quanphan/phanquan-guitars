@@ -67,23 +67,25 @@ export default function StepInstrumentShape({
         <div
           role="radiogroup"
           aria-label={t("customBuild.step1.instrumentLabel")}
-          className="flex flex-wrap gap-3"
+          className="grid grid-cols-2 items-stretch gap-3 sm:grid-cols-4"
         >
           {instrumentTypes.map((type) => {
             const selected = selections.instrumentTypeId === type.id;
             const name = optionLabel(type, language, t, `customBuild.types.${type.id}`);
+            const description = optionDescription(type, language);
             return (
               <ChoiceButton
                 key={type.id}
                 selected={selected}
                 onSelect={() => selectInstrumentType(type.id)}
                 label={name}
-                description={optionDescription(type, language)}
-                className="flex w-[8.25rem] flex-col items-center gap-2 px-3 py-3 sm:w-[9.25rem]"
+                selectedFill={false}
+                className="flex h-full min-w-0 flex-col overflow-hidden p-0"
               >
                 <WizardChoiceArt
                   src={type.image ? mediaUrl(type.image) : ""}
                   size="type"
+                  fit="contain"
                   fallback={(
                     <InstrumentTypeIcon
                       id={type.icon || type.id}
@@ -91,8 +93,17 @@ export default function StepInstrumentShape({
                     />
                   )}
                 />
-                <span className="text-center text-[10px] uppercase tracking-[0.14em] text-current">
+                <span
+                  className={`flex min-h-[2.75rem] w-full flex-1 flex-col items-center justify-center px-3 py-3 text-center text-[10px] uppercase tracking-[0.14em] ${
+                    selected ? "bg-gold/15 text-gold" : "bg-ink text-ivory/80"
+                  }`}
+                >
                   {name}
+                  {description ? (
+                    <span className="mt-1 block whitespace-pre-wrap text-[11px] font-normal normal-case tracking-normal text-muted">
+                      {description}
+                    </span>
+                  ) : null}
                 </span>
               </ChoiceButton>
             );
@@ -110,17 +121,46 @@ export default function StepInstrumentShape({
             >
               {availableSeries.map((series) => {
                 const name = optionLabel(series, language, t, `customBuild.series.${series.id}.name`);
+                const description = optionDescription(series, language);
+                const imageSrc = series.image ? mediaUrl(series.image) : "";
+                if (!imageSrc) {
+                  return (
+                    <ChoiceButton
+                      key={series.id}
+                      selected={selections.seriesId === series.id}
+                      onSelect={() => selectSeries(series.id)}
+                      label={name}
+                      description={description}
+                      className={chipClass}
+                    >
+                      {name}
+                    </ChoiceButton>
+                  );
+                }
+                const selected = selections.seriesId === series.id;
                 return (
-                <ChoiceButton
-                  key={series.id}
-                  selected={selections.seriesId === series.id}
-                  onSelect={() => selectSeries(series.id)}
-                  label={name}
-                  description={optionDescription(series, language)}
-                  className={chipClass}
-                >
-                  {name}
-                </ChoiceButton>
+                  <ChoiceButton
+                    key={series.id}
+                    selected={selected}
+                    onSelect={() => selectSeries(series.id)}
+                    label={name}
+                    selectedFill={false}
+                    className="flex w-[8.25rem] min-w-0 flex-col overflow-hidden p-0 sm:w-[9.25rem]"
+                  >
+                    <WizardChoiceArt src={imageSrc} size="type" fit="contain" />
+                    <span
+                      className={`flex min-h-[2.75rem] w-full flex-1 flex-col items-center justify-center px-3 py-3 text-center text-[10px] uppercase tracking-[0.14em] ${
+                        selected ? "bg-gold/15 text-gold" : "bg-ink text-ivory/80"
+                      }`}
+                    >
+                      {name}
+                      {description ? (
+                        <span className="mt-1 block whitespace-pre-wrap text-[11px] font-normal normal-case tracking-normal text-muted">
+                          {description}
+                        </span>
+                      ) : null}
+                    </span>
+                  </ChoiceButton>
                 );
               })}
             </div>
@@ -145,11 +185,12 @@ export default function StepInstrumentShape({
                     onSelect={() => selectShape(shape.id)}
                     label={name}
                     selectedFill={false}
-                    className="flex h-full flex-col overflow-hidden p-0"
+                    className="flex h-full min-w-0 flex-col overflow-hidden p-0"
                   >
                     <WizardChoiceArt
                       src={shape.image ? mediaUrl(shape.image) : ""}
                       size="shapeCard"
+                      fit="contain"
                       surface="white"
                       fallback={(
                         <ShapeSilhouette
@@ -159,7 +200,7 @@ export default function StepInstrumentShape({
                       )}
                     />
                     <span
-                      className={`flex min-h-[2.75rem] w-full flex-col items-center justify-center px-3 py-3 text-center text-[10px] uppercase tracking-[0.14em] ${
+                      className={`flex min-h-[2.75rem] w-full flex-1 flex-col items-center justify-center px-3 py-3 text-center text-[10px] uppercase tracking-[0.14em] ${
                         selected ? "bg-gold/15 text-gold" : "bg-ink text-ivory/80"
                       }`}
                     >
