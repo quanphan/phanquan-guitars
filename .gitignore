@@ -9,4 +9,5 @@ dist/
 *.pem
 *.key
 *.p12
+_exports/
 credentials.json

@@ -9,9 +9,11 @@ const itemClass =
   "block w-full px-4 py-2.5 text-left text-[11px] uppercase tracking-[0.18em] text-ivory/80 transition-colors hover:bg-gold/10 hover:text-gold focus-visible:bg-gold/10 focus-visible:text-gold focus-visible:outline-none";
 
 export default function AccountMenu({
+  className = "",
   buttonClassName = "",
   iconSize = 22,
   onOpen,
+  closeToken,
 }) {
   const { t } = useLanguage();
   const { ready, isAdmin, isAuthenticated, logout, session } = useAuth();
@@ -27,6 +29,10 @@ export default function AccountMenu({
     setOpen(next);
     if (next) onOpen?.();
   }
+
+  useEffect(() => {
+    setOpen(false);
+  }, [closeToken]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -62,7 +68,7 @@ export default function AccountMenu({
   }, [open]);
 
   return (
-    <div className="relative" ref={rootRef}>
+    <div className={`relative ${className}`} ref={rootRef}>
       <button
         type="button"
         className={`inline-flex h-11 w-11 items-center justify-center text-ivory/75 transition-colors duration-300 hover:text-gold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${buttonClassName}`}

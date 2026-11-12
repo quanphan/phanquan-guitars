@@ -77,6 +77,20 @@ test("series carousel controls have English and Vietnamese labels", () => {
   assert.equal(tFor("vi", "guitars.series.next"), "Series tiếp");
 });
 
+test("carousel arrows sit on the 16:9 image strip, not the card copy", () => {
+  const root = dirname(fileURLToPath(import.meta.url));
+  const carousel = readFileSync(join(root, "../src/components/series/SeriesCarousel.jsx"), "utf8");
+  const cover = readFileSync(join(root, "../src/components/cards/CatalogCardCoverImage.jsx"), "utf8");
+  assert.match(cover, /aspect-\[16\/9\]/);
+  assert.match(carousel, /IMAGE_ASPECT = 9 \/ 16/);
+  assert.match(carousel, /top: VIEWPORT_PAD_Y, height: imageHeight/);
+  assert.match(carousel, /navButtonClass} left-2/);
+  assert.match(carousel, /navButtonClass} right-2/);
+  assert.match(carousel, /size-8/);
+  assert.match(carousel, /lg:size-11/);
+  assert.match(carousel, /pointer-events-none absolute inset-x-0 z-30/);
+});
+
 test("home featured series reuse the guitar carousel and hide Session Workshop on mobile", () => {
   const root = dirname(fileURLToPath(import.meta.url));
   const featured = readFileSync(join(root, "../src/components/home/FeaturedGuitars.jsx"), "utf8");

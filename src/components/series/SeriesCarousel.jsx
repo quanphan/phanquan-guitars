@@ -10,6 +10,11 @@ import {
 const CARD_GAP_PX = 24;
 const SWIPE_THRESHOLD_PX = 48;
 const SLIDE_MS = 480;
+const IMAGE_ASPECT = 9 / 16;
+const VIEWPORT_PAD_Y = 16;
+
+const navButtonClass =
+  "pointer-events-auto absolute top-1/2 z-30 inline-flex size-8 -translate-y-1/2 items-center justify-center border border-gold/70 bg-charcoal/90 text-gold transition-colors hover:bg-gold/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold disabled:opacity-40 sm:size-10 lg:size-11";
 
 export default function SeriesCarousel({ items, previousLabel, nextLabel, onMove, children }) {
   const list = Array.isArray(items) ? items : [];
@@ -155,30 +160,10 @@ export default function SeriesCarousel({ items, previousLabel, nextLabel, onMove
     }
   }
 
+  const imageHeight = itemWidth > 0 ? itemWidth * IMAGE_ASPECT : 0;
+
   return (
     <div className="relative">
-      {looping ? (
-        <>
-          <button
-            type="button"
-            aria-label={previousLabel}
-            onClick={() => go(-1)}
-            disabled={busy}
-            className="absolute left-2 top-1/2 z-30 inline-flex size-11 -translate-y-1/2 items-center justify-center border border-gold/70 bg-charcoal/90 text-gold transition-colors hover:bg-gold/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold disabled:opacity-40"
-          >
-            <ChevronLeft className="size-5" aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            aria-label={nextLabel}
-            onClick={() => go(1)}
-            disabled={busy}
-            className="absolute right-2 top-1/2 z-30 inline-flex size-11 -translate-y-1/2 items-center justify-center border border-gold/70 bg-charcoal/90 text-gold transition-colors hover:bg-gold/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold disabled:opacity-40"
-          >
-            <ChevronRight className="size-5" aria-hidden="true" />
-          </button>
-        </>
-      ) : null}
       <div
         ref={viewportRef}
         className="overflow-x-clip py-4 touch-pan-y"
@@ -213,6 +198,31 @@ export default function SeriesCarousel({ items, previousLabel, nextLabel, onMove
           ))}
         </ul>
       </div>
+      {looping && imageHeight > 0 ? (
+        <div
+          className="pointer-events-none absolute inset-x-0 z-30"
+          style={{ top: VIEWPORT_PAD_Y, height: imageHeight }}
+        >
+          <button
+            type="button"
+            aria-label={previousLabel}
+            onClick={() => go(-1)}
+            disabled={busy}
+            className={`${navButtonClass} left-2`}
+          >
+            <ChevronLeft className="size-4 sm:size-5" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            aria-label={nextLabel}
+            onClick={() => go(1)}
+            disabled={busy}
+            className={`${navButtonClass} right-2`}
+          >
+            <ChevronRight className="size-4 sm:size-5" aria-hidden="true" />
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
