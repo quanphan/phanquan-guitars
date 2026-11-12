@@ -7,7 +7,7 @@ export default function CustomOptions() {
   const items = t("guitars.options.items");
 
   return (
-    <section className="bg-ink/60 py-24 lg:py-32">
+    <section className="section-y bg-ink/60">
       <div className="mx-auto max-w-7xl px-6 lg:px-10">
         <Reveal>
           <SectionHeading

@@ -8,6 +8,7 @@ import {
   PUBLIC_GALLERY_PAGE_SIZE,
   emptyGalleryForm,
   filterGalleryPosts,
+  galleryGridRowDividerAfter,
   galleryPostCopy,
   galleryPostHasVideo,
   galleryPostPath,
@@ -144,6 +145,12 @@ test("VIDEO tab lists posts by playable media, not category", () => {
 });
 
 test("gallery copy exists in English and Vietnamese", () => {
+  assert.equal(tFor("en", "nav.gallery"), "Journal");
+  assert.equal(tFor("vi", "nav.gallery"), "Journal");
+  assert.equal(tFor("en", "gallery.title"), "Journal");
+  assert.equal(tFor("vi", "gallery.title"), "Journal");
+  assert.equal(tFor("en", "pages.gallery.title"), "Journal");
+  assert.equal(tFor("vi", "pages.gallery.title"), "Journal");
   assert.equal(tFor("en", "gallery.filters.process"), "Build process");
   assert.equal(tFor("vi", "gallery.filters.process"), "Quá trình chế tác");
   assert.equal(tFor("en", "gallery.filters.art-of-making"), "ART OF MAKING");
@@ -181,6 +188,20 @@ test("gallery copy exists in English and Vietnamese", () => {
   assert.equal(tFor("vi", "gallery.errors.TOO_MANY_IMAGES"), "Mỗi bài gallery tối đa 5 ảnh.");
   assert.equal(tFor("en", "gallery.errors.TOO_MANY_VIDEOS"), "A gallery post can include at most 5 videos.");
   assert.equal(tFor("vi", "gallery.errors.TOO_MANY_VIDEOS"), "Mỗi bài gallery tối đa 5 video.");
+});
+
+test("Journal grid row dividers sit between rows and never after the last row", () => {
+  const after = (count, columns) =>
+    Array.from({ length: count }, (_, index) => index).filter((index) =>
+      galleryGridRowDividerAfter(index, count, columns),
+    );
+  assert.deepEqual(after(12, 3), [2, 5, 8]);
+  assert.deepEqual(after(10, 3), [2, 5, 8]);
+  assert.deepEqual(after(12, 2), [1, 3, 5, 7, 9]);
+  assert.deepEqual(after(5, 1), [0, 1, 2, 3]);
+  assert.deepEqual(after(1, 3), []);
+  assert.deepEqual(after(2, 3), []);
+  assert.equal(galleryGridRowDividerAfter(11, 12, 3), false);
 });
 
 test("home gallery posts stay on the gallery collection and default off the home section", () => {

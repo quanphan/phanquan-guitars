@@ -4,9 +4,10 @@ import { ArrowRight, ShoppingBag } from "lucide-react";
 import brandLogo from "../assets/guitars/logo/Screenshot 2026-10-16 at 15.56.04.png";
 import { useCart } from "../cart/CartContext.jsx";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
-import { PRIMARY_NAV_LINKS } from "../data/nav.js";
+import { INFO_NAV_LINKS, PRIMARY_NAV_LINKS, isInfoNavPath } from "../data/nav.js";
 import useResumableCustomBuildDraft from "../hooks/useResumableCustomBuildDraft.js";
 import AccountMenu from "./AccountMenu.jsx";
+import InfoNavMenu from "./InfoNavMenu.jsx";
 
 function LanguageSwitcher({ className = "" }) {
   const { language, setLanguage, t } = useLanguage();
@@ -105,8 +106,14 @@ function CartLink({ className = "", onNavigate }) {
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
   const { t } = useLanguage();
-  const closeMenu = () => setOpen(false);
+  const location = useLocation();
+  const infoActive = isInfoNavPath(location.pathname);
+  const closeMenu = () => {
+    setOpen(false);
+    setInfoOpen(false);
+  };
 
   return (
     <header className="sticky top-0 z-50 overflow-visible border-b border-white/5 bg-charcoal/85 pt-[env(safe-area-inset-top,0px)] backdrop-blur-md">
@@ -146,6 +153,7 @@ export default function Navbar() {
               {t(link.key)}
             </NavLink>
           ))}
+          <InfoNavMenu />
           <ContinueBuildLink />
           <AccountMenu />
           <CartLink className="h-11 w-11" />
@@ -204,6 +212,41 @@ export default function Navbar() {
                 </NavLink>
               </li>
             ))}
+            <li>
+              <a
+                href="#"
+                className={`text-sm uppercase tracking-[0.22em] ${
+                  infoActive ? "text-gold" : "text-ivory/80"
+                }`}
+                aria-expanded={infoOpen}
+                aria-controls="mobile-info-menu"
+                onClick={(event) => {
+                  event.preventDefault();
+                  setInfoOpen((value) => !value);
+                }}
+              >
+                {t("nav.info")}
+              </a>
+              {infoOpen ? (
+                <ul id="mobile-info-menu" className="mt-3 flex flex-col gap-1 border-l border-gold/30 pl-4">
+                  {INFO_NAV_LINKS.map((link) => (
+                    <li key={link.to}>
+                      <NavLink
+                        to={link.to}
+                        onClick={closeMenu}
+                        className={({ isActive }) =>
+                          `flex min-h-11 items-center text-sm uppercase tracking-[0.18em] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
+                            isActive ? "text-gold" : "text-ivory/75"
+                          }`
+                        }
+                      >
+                        {t(link.key)}
+                      </NavLink>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </li>
           </ul>
         </nav>
       ) : null}

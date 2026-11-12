@@ -50,8 +50,8 @@ export default function CartConfirmation() {
   return (
     <>
       <PageHeader eyebrow={t("cart.successEyebrow")} title={t("cart.successTitle")} description={t("cart.successBody")} />
-      <section className="pb-24 lg:pb-32">
-        <div className="mx-auto max-w-3xl px-6 pt-12 lg:px-10">
+      <section className="page-end">
+        <div className="page-follow mx-auto max-w-3xl px-6 lg:px-10">
           <p className="text-[11px] uppercase tracking-[0.22em] text-gold">
             {t("cart.reference").replace("{reference}", inquiry.id)}
           </p>

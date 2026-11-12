@@ -53,7 +53,7 @@ export default function GuitarDetail() {
     return (
       <>
         <PageHeader title={t("pages.guitars.title")} description={t("guitars.detail.error")} />
-        <div className="mx-auto max-w-7xl space-y-4 px-6 pb-24 lg:px-10">
+        <div className="page-end mx-auto max-w-7xl space-y-4 px-6 lg:px-10">
           <Button type="button" variant="outline" onClick={retry}>
             {t("guitars.collection.retry")}
           </Button>
@@ -70,7 +70,7 @@ export default function GuitarDetail() {
     return (
       <>
         <PageHeader title={t("pages.guitars.title")} description={t("guitars.detail.notFound")} />
-        <div className="mx-auto max-w-7xl px-6 pb-24 lg:px-10">
+        <div className="page-end mx-auto max-w-7xl px-6 lg:px-10">
           <BackLink to="/guitars" label={t("guitars.detail.back")} />
         </div>
       </>
@@ -78,8 +78,8 @@ export default function GuitarDetail() {
   }
 
   return (
-    <article className="bg-charcoal pb-16">
-      <div className="mx-auto max-w-7xl px-6 pt-8 lg:px-10 lg:pt-10">
+    <article className="page-end bg-charcoal">
+      <div className="page-start mx-auto max-w-7xl px-6 lg:px-10">
         <BackLink to="/guitars" label={t("guitars.detail.back")} />
       </div>
 

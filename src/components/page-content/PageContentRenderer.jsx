@@ -53,9 +53,13 @@ function Paragraphs({ text, quote }) {
   );
 }
 
-function StorySection({ heading, image, reverse = false, children }) {
+function sectionTop(lead, fallback) {
+  return lead ? "page-start" : fallback;
+}
+
+function StorySection({ heading, image, reverse = false, lead = false, children }) {
   return (
-    <section className="mx-auto grid max-w-7xl items-center gap-10 px-6 pt-14 lg:grid-cols-2 lg:gap-16 lg:px-10 lg:pt-20">
+    <section className={`mx-auto grid max-w-7xl items-center gap-10 px-6 lg:grid-cols-2 lg:gap-16 lg:px-10 ${sectionTop(lead, "pt-12 lg:pt-16")}`}>
       <Reveal className={`min-w-0 ${reverse ? "lg:order-2" : ""}`}>{image}</Reveal>
       <Reveal className={`min-w-0 ${reverse ? "lg:order-1" : ""}`} delay={80}>
         {heading ? <SectionHeading title={heading} /> : null}
@@ -67,9 +71,9 @@ function StorySection({ heading, image, reverse = false, children }) {
   );
 }
 
-function ProcessSection({ section, image, reverse, priority = false }) {
+function ProcessSection({ section, image, reverse, priority = false, lead = false }) {
   return (
-    <section className="mx-auto grid max-w-7xl items-start gap-10 px-6 pt-14 lg:grid-cols-2 lg:gap-16 lg:px-10 lg:pt-24">
+    <section className={`mx-auto grid max-w-7xl items-start gap-10 px-6 lg:grid-cols-2 lg:gap-16 lg:px-10 ${sectionTop(lead, "pt-12 lg:pt-16")}`}>
       <Reveal className={`min-w-0 ${reverse ? "lg:order-2" : ""}`}>
         <StoryImage src={image.src} srcSet={image.srcSet} alt={section.imageAlt} wide priority={priority} />
       </Reveal>
@@ -89,7 +93,7 @@ function ProcessSection({ section, image, reverse, priority = false }) {
   );
 }
 
-function SectionView({ section, fallbacks, priority = false }) {
+function SectionView({ section, fallbacks, priority = false, lead = false }) {
   const image = resolveImage(section, fallbacks);
   const reverse = section.layout === "image-right";
 
@@ -98,14 +102,14 @@ function SectionView({ section, fallbacks, priority = false }) {
   }
 
   if (section.type === "process-step") {
-    return <ProcessSection section={section} image={image} reverse={reverse} priority={priority} />;
+    return <ProcessSection section={section} image={image} reverse={reverse} priority={priority} lead={lead} />;
   }
 
   if (section.type === "cta") {
     const to = section.ctaUrl || "/custom-build";
     const internal = to.startsWith("/");
     return (
-      <section className="mx-auto max-w-7xl px-6 pt-16 text-center lg:px-10 lg:pt-24">
+      <section className={`mx-auto max-w-7xl px-6 text-center lg:px-10 ${sectionTop(lead, "pt-12 lg:pt-16")}`}>
         <Reveal className="mx-auto max-w-2xl">
           {section.title ? (
             <h2 className="font-display text-3xl tracking-wide text-ivory sm:text-4xl">{section.title}</h2>
@@ -127,7 +131,7 @@ function SectionView({ section, fallbacks, priority = false }) {
 
   if (section.type === "quote") {
     return (
-      <section className="mx-auto max-w-7xl px-6 pt-14 lg:px-10">
+      <section className={`mx-auto max-w-7xl px-6 lg:px-10 ${sectionTop(lead, "pt-14")}`}>
         <Reveal className="mx-auto max-w-3xl">
           <blockquote className="border-l border-gold/50 pl-5">
             <p className="font-display text-xl italic leading-relaxed text-ivory/90 sm:text-2xl">{section.body || section.quote}</p>
@@ -139,7 +143,7 @@ function SectionView({ section, fallbacks, priority = false }) {
 
   if (section.type === "image") {
     return (
-      <section className="mx-auto max-w-7xl px-6 pt-14 lg:px-10">
+      <section className={`mx-auto max-w-7xl px-6 lg:px-10 ${sectionTop(lead, "pt-14")}`}>
         <Reveal>
           <StoryImage src={image.src} srcSet={image.srcSet} alt={section.imageAlt} wide priority={priority} />
         </Reveal>
@@ -151,7 +155,7 @@ function SectionView({ section, fallbacks, priority = false }) {
     const src = section.videoUrl ? mediaUrl(section.videoUrl) : "";
     if (!src) return null;
     return (
-      <section className="mx-auto max-w-7xl px-6 pt-14 lg:px-10">
+      <section className={`mx-auto max-w-7xl px-6 lg:px-10 ${sectionTop(lead, "pt-14")}`}>
         <Reveal>
           <video src={src} controls playsInline className="mx-auto max-h-[80vh] w-full bg-ink object-contain" />
         </Reveal>
@@ -163,7 +167,7 @@ function SectionView({ section, fallbacks, priority = false }) {
     const items = (section.images || []).filter((item) => item.path);
     if (!items.length) return null;
     return (
-      <section className="mx-auto grid max-w-7xl gap-4 px-6 pt-14 sm:grid-cols-2 lg:grid-cols-3 lg:px-10">
+      <section className={`mx-auto grid max-w-7xl gap-4 px-6 sm:grid-cols-2 lg:grid-cols-3 lg:px-10 ${sectionTop(lead, "pt-14")}`}>
         {items.map((item) => (
           <ContentImage
             key={item.path}
@@ -180,7 +184,7 @@ function SectionView({ section, fallbacks, priority = false }) {
 
   if (section.type === "text") {
     return (
-      <section className="mx-auto max-w-7xl px-6 pt-16 lg:px-10 lg:pt-24">
+      <section className={`mx-auto max-w-7xl px-6 lg:px-10 ${sectionTop(lead, "pt-12 lg:pt-16")}`}>
         <Reveal className="mx-auto max-w-3xl">
           {section.title ? <SectionHeading title={section.title} /> : null}
           <StoryCopy>
@@ -200,6 +204,7 @@ function SectionView({ section, fallbacks, priority = false }) {
     <StorySection
       heading={section.title}
       reverse={reverse}
+      lead={lead}
       image={<StoryImage src={image.src} srcSet={image.srcSet} alt={section.imageAlt} priority={priority} />}
     >
       <Paragraphs text={section.body} quote={section.quote} />
@@ -211,12 +216,14 @@ export default function PageContentRenderer({ locale, fallbacks, wrapSection }) 
   const sections = visibleSections(locale);
   let assignedPriority = false;
   return (
-    <article className="min-w-0 pb-24">
-      {sections.map((section) => {
+    <article className="page-end min-w-0">
+      {sections.map((section, index) => {
         const usesImage = Boolean(section.image || (section.images || []).length || fallbacks?.[section.id]?.src);
         const priority = usesImage && !assignedPriority;
         if (priority) assignedPriority = true;
-        const view = <SectionView section={section} fallbacks={fallbacks} priority={priority} />;
+        const view = (
+          <SectionView section={section} fallbacks={fallbacks} priority={priority} lead={index === 0} />
+        );
         return wrapSection ? wrapSection(section, view) : <div key={section.id}>{view}</div>;
       })}
     </article>

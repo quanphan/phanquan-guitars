@@ -6,7 +6,7 @@ export default function CallToAction() {
   const { t } = useLanguage();
 
   return (
-    <section className="mx-auto max-w-7xl px-6 py-24 text-center lg:px-10 lg:py-32">
+    <section className="section-y mx-auto max-w-7xl px-6 text-center lg:px-10">
       <Reveal className="mx-auto max-w-2xl">
         <p className="max-w-full text-[11px] uppercase tracking-[0.18em] text-gold sm:tracking-[0.32em]">
           {t("home.cta.eyebrow")}

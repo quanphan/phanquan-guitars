@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 import {
   seriesCarouselNeedsNav,
   seriesCarouselTrack,
@@ -72,4 +75,20 @@ test("series carousel controls have English and Vietnamese labels", () => {
   assert.equal(tFor("vi", "guitars.series.previous"), "Series trước");
   assert.equal(tFor("en", "guitars.series.next"), "Next series");
   assert.equal(tFor("vi", "guitars.series.next"), "Series tiếp");
+});
+
+test("home featured series reuse the guitar carousel and hide Session Workshop on mobile", () => {
+  const root = dirname(fileURLToPath(import.meta.url));
+  const featured = readFileSync(join(root, "../src/components/home/FeaturedGuitars.jsx"), "utf8");
+  const intro = readFileSync(join(root, "../src/components/home/Introduction.jsx"), "utf8");
+  const workshop = readFileSync(join(root, "../src/components/home/Workshop.jsx"), "utf8");
+  const card = readFileSync(join(root, "../src/components/home/FeaturedSeriesCard.jsx"), "utf8");
+  assert.match(featured, /from "\.\.\/series\/SeriesCarousel\.jsx"/);
+  assert.match(featured, /items=\{series\}/);
+  assert.match(featured, /FeaturedSeriesCard/);
+  assert.doesNotMatch(featured, /md:grid-cols-2 xl:grid-cols-3/);
+  assert.match(intro, /hidden max-w-7xl gap-16 px-6 md:grid/);
+  assert.match(workshop, /hidden min-h-\[48svh\] md:block/);
+  assert.match(card, /series\.href/);
+  assert.doesNotMatch(card, /Reveal/);
 });

@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
+import CatalogGridRowDividers from "../components/cards/CatalogGridRowDividers.jsx";
 import Button from "../components/Button.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import ServiceItemCard from "../components/services/ServiceItemCard.jsx";
+import { PRODUCT_GRID_BREAKPOINTS } from "../data/catalogGrid.js";
 import { categoryFallbackKey, serviceLocale } from "../data/services.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import { getPublicServiceCategory } from "../services/serviceCatalog.js";
@@ -53,11 +55,7 @@ export default function ServiceCategory() {
 
   return (
     <>
-      <PageHeader
-        eyebrow={t("services.intro.eyebrow")}
-        title={title}
-        description={description || t("services.detail.intro")}
-      >
+      <PageHeader title={title} description={description || t("services.detail.intro")}>
         <div className="mt-8">
           <Link to="/services" className="text-[11px] uppercase tracking-[0.22em] text-gold hover:text-gold-light">
             {t("services.detail.back")}
@@ -65,8 +63,8 @@ export default function ServiceCategory() {
         </div>
       </PageHeader>
 
-      <section className="pb-24 lg:pb-32">
-        <div className="mx-auto max-w-7xl px-6 pt-12 lg:px-10">
+      <section className="page-end">
+        <div className="page-follow mx-auto max-w-7xl px-6 lg:px-10">
           {status === "loading" ? (
             <p className="text-sm text-muted">{t("services.detail.loading")}</p>
           ) : null}
@@ -77,9 +75,12 @@ export default function ServiceCategory() {
             <p className="text-sm text-muted">{t("services.detail.empty")}</p>
           ) : null}
           {status === "ready" && items.length > 0 ? (
-            <div className="grid items-stretch gap-8 md:grid-cols-2 xl:grid-cols-3">
-              {items.map((item) => (
-                <ServiceItemCard key={item.id} item={item} categorySlug={slug} />
+            <div className="grid items-stretch gap-x-8 gap-y-10 overflow-visible md:grid-cols-2 xl:grid-cols-3">
+              {items.map((item, index) => (
+                <Fragment key={item.id}>
+                  <ServiceItemCard item={item} categorySlug={slug} />
+                  <CatalogGridRowDividers index={index} count={items.length} breakpoints={PRODUCT_GRID_BREAKPOINTS} />
+                </Fragment>
               ))}
             </div>
           ) : null}

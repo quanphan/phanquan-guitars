@@ -79,8 +79,8 @@ export default function CartRequest() {
   return (
     <>
       <PageHeader eyebrow={t("cart.eyebrow")} title={t("cart.requestTitle")} description={t("cart.requestDescription")} />
-      <section className="pb-24 lg:pb-32">
-        <div className="mx-auto grid max-w-6xl gap-10 px-6 pt-12 lg:grid-cols-[1.1fr_0.9fr] lg:px-10">
+      <section className="page-end">
+        <div className="page-follow mx-auto grid max-w-6xl gap-10 px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-10">
           <form onSubmit={onSubmit} className="space-y-5">
             <Field
               id="quote-name"

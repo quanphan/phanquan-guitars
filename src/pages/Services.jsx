@@ -115,14 +115,10 @@ export default function Services() {
         const secondary = expertiseImage(session.locale, "imageSecondary", session.ready);
         return (
     <>
-      <PageHeader
-        eyebrow={t("services.intro.eyebrow")}
-        title={t("services.intro.title")}
-        description={t("services.intro.body")}
-      />
+      <PageHeader title={t("services.intro.title")} description={t("services.intro.body")} />
 
-      <section className="pb-24 lg:pb-32">
-        <div className="mx-auto max-w-7xl space-y-16 px-6 pt-16 lg:space-y-24 lg:px-10">
+      <section>
+        <div className="page-follow mx-auto max-w-7xl space-y-12 px-6 lg:space-y-16 lg:px-10">
           {!categoriesReady
             ? [0, 1, 2].map((index) => (
                 <article key={`services-skeleton-${index}`} className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
@@ -190,7 +186,7 @@ export default function Services() {
       </section>
 
       <section className="border-t border-white/5">
-        <div className="mx-auto grid max-w-7xl items-center gap-10 px-6 py-24 lg:grid-cols-2 lg:gap-16 lg:px-10 lg:py-32">
+        <div className="section-y mx-auto grid max-w-7xl items-center gap-10 px-6 lg:grid-cols-2 lg:gap-16 lg:px-10">
           <Reveal>
             <EditableFixedImage
               editing={session.editing}
@@ -235,14 +231,14 @@ export default function Services() {
       </section>
 
       <section className="border-t border-white/5">
-        <div className="mx-auto max-w-7xl px-6 py-24 lg:px-10 lg:py-32">
+        <div className="section-y mx-auto max-w-7xl px-6 lg:px-10">
           <Reveal>
             <SectionHeading
               eyebrow={t("services.howWeWork.eyebrow")}
               title={t("services.howWeWork.title")}
             />
           </Reveal>
-          <ol className="relative mt-16 grid gap-10 lg:grid-cols-4 lg:gap-8">
+          <ol className="relative mt-10 grid gap-10 lg:grid-cols-4 lg:gap-8">
             <span
               className="pointer-events-none absolute left-4 top-3 hidden h-px w-[calc(100%-2rem)] bg-gold/30 lg:block"
               aria-hidden="true"
@@ -265,7 +261,7 @@ export default function Services() {
       </section>
 
       <section className="border-t border-white/5">
-        <div className="mx-auto max-w-7xl px-6 py-24 text-center lg:px-10 lg:py-32">
+        <div className="section-y mx-auto max-w-7xl px-6 text-center lg:px-10">
           <Reveal className="mx-auto max-w-2xl">
             <p className="max-w-full text-[11px] uppercase tracking-[0.18em] text-gold sm:tracking-[0.32em]">
               {t("services.cta.eyebrow")}

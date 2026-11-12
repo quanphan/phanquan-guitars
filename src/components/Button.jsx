@@ -17,7 +17,7 @@ export default function Button({
   ...props
 }) {
   const classes = `inline-flex max-w-full items-center justify-center px-5 py-3.5 text-center text-[11px] font-medium uppercase tracking-[0.16em] break-words transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold sm:px-7 sm:tracking-[0.22em] ${variants[variant]} ${
-    disabled ? "cursor-not-allowed opacity-40" : ""
+    disabled ? "cursor-not-allowed opacity-40" : "cursor-pointer"
   } ${className}`;
 
   if (to && !disabled) {

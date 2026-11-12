@@ -1,15 +1,20 @@
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import CollectionCard from "../components/guitars/CollectionCard.jsx";
 import CustomOptions from "../components/guitars/CustomOptions.jsx";
 import GuitarSeriesSection from "../components/guitars/GuitarSeriesSection.jsx";
 import GuitarsCta from "../components/guitars/GuitarsCta.jsx";
 import GuitarsProcess from "../components/guitars/GuitarsProcess.jsx";
+import CatalogGridRowDividers from "../components/cards/CatalogGridRowDividers.jsx";
 import Button from "../components/Button.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import { usePublicGuitarList } from "../hooks/usePublicGuitarList.js";
+import { PRODUCT_GRID_BREAKPOINTS } from "../data/catalogGrid.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import { publicCatalogSeries } from "../services/guitarSeries.js";
 import { listPublicCatalogTerms } from "../services/publicProductService.js";
+
+/** Set true to show the Guitars page intro heading and description again. */
+const SHOW_GUITARS_INTRO = false;
 
 export default function Guitars() {
   const { t } = useLanguage();
@@ -44,25 +49,21 @@ export default function Guitars() {
 
   return (
     <>
-      <PageHeader
-        eyebrow={t("guitars.hero.eyebrow")}
-        title={t("pages.guitars.title")}
-        description={t("guitars.hero.description")}
-      />
+      {SHOW_GUITARS_INTRO ? (
+        <PageHeader
+          eyebrow={t("guitars.hero.eyebrow")}
+          title={t("pages.guitars.title")}
+          description={t("guitars.hero.description")}
+        />
+      ) : null}
       <GuitarSeriesSection series={series} status={seriesStatus} onRetry={retrySeries} />
-      <section id="collection" className="scroll-mt-24 pb-24 lg:pb-32">
+      <section id="collection" className="scroll-mt-24">
         <div className="mx-auto max-w-7xl px-6 lg:px-10">
-          <header className="mb-10 lg:mb-12">
-            <div className="h-px w-14 bg-gold/25 sm:w-16" aria-hidden="true" />
-            <p className="mt-8 text-[10px] uppercase tracking-[0.2em] text-gold/80 sm:text-[11px]">
-              {t("guitars.collection.eyebrow")}
-            </p>
-            <h2 className="mt-3 font-display text-[1.75rem] font-medium leading-[1.15] tracking-normal text-ivory sm:text-3xl lg:text-[2.125rem]">
+          <header className="mb-8 lg:mb-10">
+            <div className="h-px w-full bg-gold/25" aria-hidden="true" />
+            <h2 className="mt-6 max-w-full font-display text-[clamp(1.5rem,3vw+1rem,2.25rem)] tracking-wide text-ivory break-words lg:mt-8">
               {t("guitars.collection.title")}
             </h2>
-            <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted sm:text-[15px] sm:leading-7">
-              {t("guitars.collection.description")}
-            </p>
           </header>
           {status === "loading" ? (
             <p className="text-sm text-muted">{t("guitars.collection.loading")}</p>
@@ -79,9 +80,12 @@ export default function Guitars() {
             <p className="text-sm text-muted">{collectionEmpty}</p>
           ) : null}
           {items.length > 0 ? (
-            <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
-              {items.map((guitar) => (
-                <CollectionCard key={guitar.id} guitar={guitar} />
+            <div className="grid items-stretch gap-x-8 gap-y-10 overflow-visible md:grid-cols-2 xl:grid-cols-3">
+              {items.map((guitar, index) => (
+                <Fragment key={guitar.id}>
+                  <CollectionCard guitar={guitar} />
+                  <CatalogGridRowDividers index={index} count={items.length} breakpoints={PRODUCT_GRID_BREAKPOINTS} />
+                </Fragment>
               ))}
             </div>
           ) : null}

@@ -1,28 +1,26 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { flushSync } from "react-dom";
-import { Link } from "react-router-dom";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import ConfirmDialog from "../components/admin/ConfirmDialog.jsx";
-import ProductPinToggle from "../components/admin/ProductPinToggle.jsx";
 import GalleryCategoryManager from "../components/gallery/GalleryCategoryManager.jsx";
 import GalleryEditor, { formFromPost, payloadFromForm, todayDateInput } from "../components/gallery/GalleryEditor.jsx";
+import GalleryItem from "../components/gallery/GalleryItem.jsx";
 import PageHeader from "../components/PageHeader.jsx";
+import CatalogGridRowDividers from "../components/cards/CatalogGridRowDividers.jsx";
 import Reveal from "../components/Reveal.jsx";
 import Button from "../components/Button.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
 import GalleryMediaPlayer from "../components/gallery/GalleryMediaPlayer.jsx";
-import GalleryMediaThumb from "../components/gallery/GalleryMediaThumb.jsx";
 import VideoModal from "../components/gallery/VideoModal.jsx";
 import {
   FALLBACK_GALLERY_CATEGORIES,
   emptyGalleryForm,
   galleryCategoryName,
   galleryPostCopy,
-  galleryPostPath,
   orderedGalleryMedia,
   publicGalleryFilters,
   selectIncomingGalleryFiles,
   validateGalleryMedia,
 } from "../data/gallery.js";
+import { JOURNAL_GRID_BREAKPOINTS } from "../data/catalogGrid.js";
 import { useGalleryFeed } from "../hooks/useGalleryFeed.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import { loadFacebookSdk } from "../services/facebookSdk.js";
@@ -34,97 +32,6 @@ import {
   saveGalleryPost,
   uploadGalleryMedia,
 } from "../services/galleryService.js";
-
-function formatDate(iso, language) {
-  if (!iso) return "";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat(language === "vi" ? "vi-VN" : "en-GB", { dateStyle: "medium" }).format(date);
-}
-
-function GalleryItem({ post, isAdmin, language, t, onOpen, onEdit, onDelete, onPin, pinSaving }) {
-  const copy = galleryPostCopy(post, language);
-  const media = orderedGalleryMedia(post);
-  const cover = post.cover || media[0];
-  const [selectedId, setSelectedId] = useState(cover?.id || media[0]?.id || "");
-  const selected = media.find((item) => item.id === selectedId) || media[0] || null;
-
-  function openAt(item) {
-    const index = Math.max(0, media.findIndex((entry) => entry.id === item?.id));
-    flushSync(() => onOpen({ post: { ...post, media }, index }));
-  }
-
-  return (
-    <article className="group">
-      {selected?.kind === "video" ? (
-        <GalleryMediaThumb
-          item={selected}
-          className="h-[18rem] w-full sm:h-[22rem] lg:h-[24rem]"
-          alt={copy.title || ""}
-          onPlay={() => openAt(selected)}
-          playLabel={t("gallery.video.play")}
-        />
-      ) : (
-        <button type="button" className="block w-full text-left" onClick={() => openAt(selected)}>
-          <GalleryMediaThumb item={selected} className="h-[18rem] w-full sm:h-[22rem] lg:h-[24rem]" alt={copy.title || ""} />
-        </button>
-      )}
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-        <p className="text-xs text-muted">{formatDate(post.publishedAt, language)}</p>
-        {media.length > 1 ? (
-          <div
-            className="ml-auto flex justify-end gap-2 overflow-x-auto pb-1 sm:flex-wrap"
-            role="listbox"
-            aria-label={copy.title}
-          >
-            {media.map((item) => {
-              const active = (selected?.id || media[0]?.id) === item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  role="option"
-                  aria-selected={active}
-                  onClick={() => setSelectedId(item.id)}
-                  className={`h-[3.2rem] w-[3.2rem] shrink-0 overflow-hidden border bg-ink sm:h-[2.8rem] sm:w-[2.8rem] ${
-                    active ? "border-gold" : "border-white/15 hover:border-ivory/50"
-                  }`}
-                >
-                  <GalleryMediaThumb item={item} className="h-full w-full" alt="" compact />
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
-      </div>
-      {post.status === "draft" ? (
-        <p className="mt-4 text-[11px] uppercase tracking-[0.18em] text-gold">{t("gallery.draft")}</p>
-      ) : null}
-      <h2 className={`${post.status === "draft" ? "mt-2" : "mt-4"} font-display text-2xl tracking-wide text-ivory`}>
-        <Link to={galleryPostPath(post.id)} className="transition-colors hover:text-gold">
-          {copy.title}
-        </Link>
-      </h2>
-      {copy.excerpt ? <p className="mt-2 text-sm leading-relaxed text-muted">{copy.excerpt}</p> : null}
-      {isAdmin ? (
-        <div className="mt-4 flex flex-wrap items-center gap-4">
-          <ProductPinToggle
-            pinned={post.pin === true}
-            saving={pinSaving}
-            label={post.pin === true ? t("gallery.pinned") : t("gallery.pin")}
-            onToggle={onPin}
-          />
-          <button type="button" className="text-[11px] uppercase tracking-[0.16em] text-gold" onClick={onEdit}>
-            {t("gallery.edit")}
-          </button>
-          <button type="button" className="text-[11px] uppercase tracking-[0.16em] text-ivory/70 hover:text-gold" onClick={onDelete}>
-            {t("gallery.delete")}
-          </button>
-        </div>
-      ) : null}
-    </article>
-  );
-}
 
 function Lightbox({ post, index, onClose, onMove, t, language }) {
   const copy = galleryPostCopy(post, language);
@@ -356,8 +263,8 @@ export default function Gallery() {
   }
 
   return (
-    <section className="pb-24">
-      <PageHeader eyebrow={t("gallery.eyebrow")} title={t("gallery.title")} description={t("gallery.description")}>
+    <section className="page-end">
+      <PageHeader title={t("gallery.title")} description={t("gallery.description")}>
         {isAdmin ? (
           <div className="mt-8">
             <Button type="button" onClick={openCreate}>
@@ -368,7 +275,7 @@ export default function Gallery() {
       </PageHeader>
 
       <div
-        className="mx-auto mt-10 flex max-w-7xl flex-wrap items-center gap-2 px-6 lg:px-10"
+        className="page-follow mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-6 lg:px-10"
         role="tablist"
         aria-label={t("gallery.title")}
       >
@@ -403,27 +310,30 @@ export default function Gallery() {
         />
       ) : null}
 
-      <div className="mx-auto mt-10 max-w-7xl px-6 lg:px-10">
+      <div className="mx-auto mt-8 max-w-7xl px-6 lg:px-10">
         {error ? <p className="text-sm text-gold">{t("gallery.unavailable")}</p> : null}
         {loading ? <p className="text-sm text-muted">{t("gallery.loading")}</p> : null}
         {!loading && !error && items.length === 0 ? (
           <p className="text-sm text-muted">{filter === "all" ? t("gallery.empty") : t("gallery.emptyFilter")}</p>
         ) : null}
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((post) => (
-            <Reveal key={post.id}>
-              <GalleryItem
-                post={post}
-                isAdmin={isAdmin}
-                language={language}
-                t={t}
-                onOpen={setViewer}
-                onEdit={() => openEdit(post)}
-                onDelete={() => setPendingDelete(post)}
-                onPin={() => void togglePin(post)}
-                pinSaving={pinningId === post.id}
-              />
-            </Reveal>
+        <div className="grid items-stretch gap-x-8 gap-y-10 overflow-visible sm:grid-cols-2 lg:grid-cols-3">
+          {items.map((post, index) => (
+            <Fragment key={post.id}>
+              <Reveal className="group h-full [@media(hover:hover)_and_(pointer:fine)]:hover:z-20">
+                <GalleryItem
+                  post={post}
+                  isAdmin={isAdmin}
+                  language={language}
+                  t={t}
+                  onOpen={setViewer}
+                  onEdit={() => openEdit(post)}
+                  onDelete={() => setPendingDelete(post)}
+                  onPin={() => void togglePin(post)}
+                  pinSaving={pinningId === post.id}
+                />
+              </Reveal>
+              <CatalogGridRowDividers index={index} count={items.length} breakpoints={JOURNAL_GRID_BREAKPOINTS} />
+            </Fragment>
           ))}
         </div>
         {!loading && items.length > 0 && hasMore ? (

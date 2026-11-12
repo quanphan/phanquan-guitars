@@ -1,29 +1,48 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { resolveDevelopmentApiTarget } from "./src/config/apiMode.js";
 
-const apiTarget = process.env.VITE_API_BASE_URL || "http://127.0.0.1:5050";
-
-export default defineConfig({
-  plugins: [react(), tailwindcss()],
-  server: {
-    host: "::",
-    port: 5173,
-    strictPort: true,
-    proxy: {
-      "/api": {
-        target: apiTarget,
-        changeOrigin: true,
-      },
-      "/uploads": {
-        target: apiTarget,
-        changeOrigin: true,
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+  const apiTarget = resolveDevelopmentApiTarget(env);
+  const proxy = {
+    "/api": {
+      target: apiTarget,
+      changeOrigin: true,
+      configure(proxyServer) {
+        proxyServer.on("error", (error, _req, res) => {
+          console.error(`[vite] API proxy error → ${apiTarget}: ${error.message}`);
+          if (res && !res.headersSent) {
+            res.writeHead(502, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "api_proxy_unavailable", target: apiTarget }));
+          }
+        });
       },
     },
-  },
-  preview: {
-    host: "::",
-    port: 4173,
-    strictPort: true,
-  },
+    "/uploads": {
+      target: apiTarget,
+      changeOrigin: true,
+    },
+  };
+
+  if (mode === "development") {
+    console.info(`[vite] API proxy → ${apiTarget} (VITE_API_MODE=${env.VITE_API_MODE || "unset"})`);
+  }
+
+  return {
+    plugins: [react(), tailwindcss()],
+    server: {
+      host: "::",
+      port: 5173,
+      strictPort: true,
+      proxy,
+    },
+    preview: {
+      host: "::",
+      port: 4173,
+      strictPort: true,
+      proxy,
+    },
+  };
 });

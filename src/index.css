@@ -37,6 +37,80 @@ body {
   padding-right: env(safe-area-inset-right, 0px);
 }
 
+@layer base {
+  a[href],
+  button:not(:disabled),
+  summary,
+  label,
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]),
+  [role="menuitem"]:not([aria-disabled="true"]),
+  [role="option"]:not([aria-disabled="true"]),
+  [role="radio"]:not([aria-disabled="true"]),
+  [role="switch"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  :disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
+  input:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  textarea,
+  select {
+    cursor: auto;
+  }
+
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  input[type="file"]:not(:disabled),
+  input[type="button"]:not(:disabled),
+  input[type="submit"]:not(:disabled),
+  input[type="reset"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+/* Shared public-page vertical rhythm. Home does not use these. */
+@layer components {
+  .page-start {
+    padding-top: 2.5rem;
+  }
+
+  .page-follow {
+    padding-top: 2rem;
+  }
+
+  .page-end {
+    padding-bottom: 4rem;
+  }
+
+  .section-y {
+    padding-block: 4rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  @layer components {
+    .page-start {
+      padding-top: 3rem;
+    }
+
+    .page-follow {
+      padding-top: 2.5rem;
+    }
+
+    .page-end {
+      padding-bottom: 5rem;
+    }
+
+    .section-y {
+      padding-block: 5rem;
+    }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

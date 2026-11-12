@@ -40,7 +40,7 @@ export default function Register() {
 
   if (!ready) {
     return (
-      <section className="pb-24">
+      <section className="page-end">
         <PageHeader eyebrow={t("auth.eyebrow")} title={t("auth.loadingTitle")} />
       </section>
     );
@@ -86,13 +86,13 @@ export default function Register() {
   }
 
   return (
-    <section className="pb-24">
+    <section className="page-end">
       <PageHeader
         eyebrow={t("auth.eyebrow")}
         title={t("auth.register.title")}
         description={t("auth.register.description")}
       />
-      <div className="mx-auto mt-12 max-w-md px-6 lg:px-10">
+      <div className="page-follow mx-auto max-w-md px-6 lg:px-10">
         <form className="space-y-6 border border-white/10 bg-panel/40 p-6" onSubmit={onSubmit} noValidate>
           {formError ? (
             <div className="border border-gold/40 bg-gold/10 px-4 py-3 text-sm text-ivory" role="alert">

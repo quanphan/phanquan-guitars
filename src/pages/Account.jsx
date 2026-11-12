@@ -81,13 +81,13 @@ export default function Account() {
   }
 
   return (
-    <section className="pb-24">
+    <section className="page-end">
       <PageHeader
         eyebrow={t("auth.eyebrow")}
         title={t("account.title")}
         description={t("account.description")}
       />
-      <div className="mx-auto mt-12 max-w-2xl space-y-10 px-6 lg:px-10">
+      <div className="page-follow mx-auto max-w-2xl space-y-10 px-6 lg:px-10">
         <p className="text-sm text-muted">
           {user.email} · {t(`account.roles.${user.role || "customer"}`)}
           {isAdmin ? ` · ${t("nav.admin")}` : ""}

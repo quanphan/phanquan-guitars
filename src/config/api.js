@@ -1,13 +1,14 @@
+import { isDevelopmentApiEnv, resolveApiBaseUrl, resolveDevelopmentApiTarget, resolveMediaOrigin } from "./apiMode.js";
+
 /**
  * API origin from Vite env. Never hard-code a production host here.
  *
- * Local Vite proxies `/api` to the backend when this is empty.
- * Production builds must set VITE_API_BASE_URL (or an equivalent reverse proxy).
+ * In development JSON still uses relative `/api` (Vite proxy), while media
+ * (`/uploads`) is resolved against the selected local or Railway origin.
+ * Production builds only use VITE_API_BASE_URL (or an equivalent reverse proxy).
  */
 export function getApiBaseUrl() {
-  const value = String(import.meta.env?.VITE_API_BASE_URL ?? "").trim();
-  if (!value) return "";
-  return value.replace(/\/+$/, "");
+  return resolveApiBaseUrl(import.meta.env);
 }
 
 export function isCustomBuildApiConfigured() {
@@ -24,7 +25,22 @@ export function isGoogleSignInConfigured() {
 }
 
 export function getApiOrigin() {
-  return getApiBaseUrl().replace(/\/api\/?$/, "");
+  return resolveMediaOrigin(import.meta.env ?? {});
+}
+
+function rewriteDevAbsoluteMedia(url, env) {
+  if (!isDevelopmentApiEnv(env) || !/^https?:\/\//i.test(url)) return url;
+  try {
+    const parsed = new URL(url);
+    if (!parsed.pathname.startsWith("/uploads/")) return url;
+    const host = parsed.hostname;
+    if (host !== "localhost" && host !== "127.0.0.1" && host !== "timbowebapi.up.railway.app") {
+      return url;
+    }
+    return `${resolveDevelopmentApiTarget(env)}${parsed.pathname}${parsed.search}`;
+  } catch {
+    return url;
+  }
 }
 
 export function apiUrl(path) {
@@ -38,7 +54,7 @@ export function mediaUrl(path) {
   if (typeof path !== "string") return "";
   const trimmed = path.trim();
   if (!trimmed) return "";
-  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (/^https?:\/\//i.test(trimmed)) return rewriteDevAbsoluteMedia(trimmed, import.meta.env ?? {});
   const relative = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
   const origin = getApiOrigin();
   if (!origin) return relative;

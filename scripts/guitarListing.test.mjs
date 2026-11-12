@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 import {
   ADMIN_PRODUCT_PAGE_SIZES,
   compareListingOrder,
@@ -74,6 +77,21 @@ test("load-more labels follow the selected site language", () => {
   );
   assert.equal(tFor("en", "gallery.showMore"), "SHOW MORE");
   assert.equal(tFor("vi", "gallery.showMore"), "THÊM NỘI DUNG");
+});
+
+test("Featured Instruments heading matches Models type and drops eyebrow and description", () => {
+  const root = dirname(fileURLToPath(import.meta.url));
+  const guitars = readFileSync(join(root, "../src/pages/Guitars.jsx"), "utf8");
+  const series = readFileSync(join(root, "../src/components/guitars/GuitarSeriesSection.jsx"), "utf8");
+  const headingClass =
+    /font-display text-\[clamp\(1\.5rem,3vw\+1rem,2\.25rem\)\] tracking-wide text-ivory break-words/;
+  assert.match(series, headingClass);
+  assert.match(guitars, headingClass);
+  assert.match(guitars, /guitars\.collection\.title/);
+  assert.match(guitars, /h-px w-full bg-gold\/25/);
+  assert.doesNotMatch(guitars, /guitars\.collection\.eyebrow/);
+  assert.doesNotMatch(guitars, /guitars\.collection\.description/);
+  assert.doesNotMatch(guitars, /w-14 bg-gold\/25/);
 });
 
 test("SHOW MORE is hidden when every product already fits the first page", () => {

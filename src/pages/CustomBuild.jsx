@@ -254,21 +254,21 @@ export default function CustomBuild() {
   ]);
 
   return (
-    <div className="min-w-0 pb-24 lg:pb-32">
+    <div className="page-end min-w-0">
       <PageHeader
         eyebrow={t("customBuild.header.eyebrow")}
         title={t("customBuild.header.heading")}
         description={t("customBuild.header.description")}
       />
 
-      <div className="mx-auto mt-10 w-full min-w-0 max-w-7xl px-6 lg:px-10">
+      <div className="page-follow mx-auto w-full min-w-0 max-w-7xl px-6 lg:px-10">
         {builder.catalogSource === "loading" ? (
-          <p className="mt-8 text-sm text-muted" role="status">
+          <p className="text-sm text-muted" role="status">
             {t("customBuild.catalogLoading")}
           </p>
         ) : null}
         {builder.catalogSource === "error" ? (
-          <div className="mt-8 border border-gold/40 bg-gold/10 px-4 py-3" role="alert">
+          <div className="border border-gold/40 bg-gold/10 px-4 py-3" role="alert">
             <p className="text-sm text-ivory">{t("customBuild.catalogError")}</p>
             <button
               type="button"

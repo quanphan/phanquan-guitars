@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import {
   filterInstrumentsBySeries,
   findPublicSeries,
@@ -136,10 +139,16 @@ test("guitars series copy exists in English and Vietnamese", () => {
   assert.equal(tFor("vi", "seriesDetail.backGuitars"), "Về trang Guitars");
   assert.equal(tFor("en", "home.featured.viewSeries"), "View series");
   assert.equal(tFor("en", "guitars.series.title"), "Series");
+  assert.equal(tFor("en", "guitars.series.heading"), "Models");
+  assert.equal(tFor("vi", "guitars.series.heading"), "Models");
   assert.equal(tFor("en", "guitars.series.readDescription"), "Read full description");
   assert.equal(tFor("vi", "guitars.series.readDescription"), "Xem mô tả đầy đủ");
   assert.equal(tFor("en", "guitars.series.details"), "Details");
   assert.equal(tFor("vi", "guitars.series.details"), "Chi tiết");
+  assert.equal(tFor("en", "guitars.series.viewDetails"), "View details");
+  assert.equal(tFor("vi", "guitars.series.viewDetails"), "Xem chi tiết");
+  assert.equal(tFor("en", "guitars.series.close"), "Close");
+  assert.equal(tFor("vi", "guitars.series.close"), "Đóng");
   assert.equal(tFor("en", "guitars.series.viewSeries"), "View series");
   assert.equal(tFor("vi", "guitars.series.viewSeries"), "Xem series");
   assert.equal(tFor("en", "guitars.series.next"), "Next series");
@@ -224,6 +233,35 @@ test("series cards use short copy and format configured price ranges only", () =
   assert.match(formatSeriesPriceRange({ maxPrice: 1500, currency: "USD" }, t), /Up to \$1,500 USD/);
   assert.equal(formatSeriesPriceRange({}, t), "");
   assert.equal(formatSeriesPriceRange({ currency: "USD" }, t), "");
+});
+
+test("series cards on Home and Guitars cover a 16:9 frame without stretching", () => {
+  const root = dirname(fileURLToPath(import.meta.url));
+  const cover = readFileSync(join(root, "../src/components/series/SeriesCardCoverImage.jsx"), "utf8");
+  const home = readFileSync(join(root, "../src/components/home/FeaturedSeriesCard.jsx"), "utf8");
+  const guitars = readFileSync(join(root, "../src/components/guitars/GuitarSeriesSection.jsx"), "utf8");
+  const shared = readFileSync(join(root, "../src/components/cards/CatalogCardCoverImage.jsx"), "utf8");
+  assert.match(shared, /aspect-\[16\/9\]/);
+  assert.match(shared, /backgroundSize: "cover"/);
+  assert.match(shared, /backgroundPosition/);
+  assert.match(cover, /CatalogCardCoverImage/);
+  assert.doesNotMatch(cover, /object-contain/);
+  assert.match(home, /SeriesCardCoverImage/);
+  assert.match(guitars, /SeriesCardCoverImage/);
+  assert.doesNotMatch(home, /FitImage/);
+  assert.doesNotMatch(guitars, /FitImage/);
+});
+
+test("series carousel cards keep series href links and delay swipe pointer capture", () => {
+  const root = dirname(fileURLToPath(import.meta.url));
+  const section = readFileSync(join(root, "../src/components/guitars/GuitarSeriesSection.jsx"), "utf8");
+  const carousel = readFileSync(join(root, "../src/components/series/SeriesCarousel.jsx"), "utf8");
+  assert.match(section, /to=\{card\.href\}/);
+  assert.match(section, /onClick=\{onToggleDetails\}/);
+  assert.match(section, /from "\.\.\/series\/SeriesCarousel\.jsx"/);
+  const pointerDown = carousel.slice(carousel.indexOf("function onPointerDown"), carousel.indexOf("function onPointerMove"));
+  assert.equal(pointerDown.includes("setPointerCapture"), false);
+  assert.match(carousel, /function onPointerMove[\s\S]*setPointerCapture/);
 });
 
 test("fine-pointer hover is detected from matchMedia", () => {

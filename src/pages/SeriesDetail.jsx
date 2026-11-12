@@ -53,8 +53,8 @@ export default function SeriesDetail() {
   const image = series?.imagePath ? mediaUrl(series.imagePath) : "";
 
   return (
-    <article className="bg-charcoal pb-24 lg:pb-32">
-      <div className="mx-auto max-w-7xl px-6 pt-10 lg:px-10 lg:pt-14">
+    <article className="page-end bg-charcoal">
+      <div className="page-start mx-auto max-w-7xl px-6 lg:px-10">
         <nav aria-label={t("seriesDetail.breadcrumb")} className="text-[11px] uppercase tracking-[0.22em] text-muted">
           <Link to="/" className="text-gold transition-colors hover:text-gold-light">
             {t("seriesDetail.breadcrumbHome")}
@@ -127,7 +127,7 @@ export default function SeriesDetail() {
             </div>
           </section>
 
-          <section className="mx-auto mt-20 max-w-7xl px-6 lg:mt-28 lg:px-10">
+          <section className="mx-auto mt-12 max-w-7xl px-6 lg:mt-16 lg:px-10">
             <p className="text-[11px] uppercase tracking-[0.32em] text-gold">{t("seriesDetail.productsEyebrow")}</p>
             <h2 className="mt-4 font-display text-3xl tracking-wide text-ivory sm:text-4xl">
               {t("seriesDetail.productsTitle")}
@@ -135,7 +135,7 @@ export default function SeriesDetail() {
             {products.length === 0 ? (
               <p className="mt-10 text-sm text-muted">{t("seriesDetail.productsEmpty")}</p>
             ) : (
-              <div className="mt-12 grid gap-8 md:grid-cols-2 xl:grid-cols-3">
+              <div className="mt-8 grid items-stretch gap-x-8 gap-y-10 overflow-visible md:grid-cols-2 xl:grid-cols-3">
                 {products.map((guitar) => (
                   <CollectionCard key={guitar.id} guitar={guitar} showPrice />
                 ))}

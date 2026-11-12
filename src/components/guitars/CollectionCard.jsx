@@ -1,7 +1,8 @@
-import { Link } from "react-router-dom";
 import { useLanguage } from "../../i18n/LanguageContext.jsx";
 import { publicProductHref } from "../../services/productView.js";
-import FitImage from "../FitImage.jsx";
+import CatalogCardCoverImage, { CATALOG_CARD_COVER_FRAME } from "../cards/CatalogCardCoverImage.jsx";
+import CatalogCardFrame from "../cards/CatalogCardFrame.jsx";
+import { catalogCard } from "../cards/catalogCardChrome.js";
 import ProductPrice from "../ProductPrice.jsx";
 import Reveal from "../Reveal.jsx";
 import CardSpecSummary from "./CardSpecSummary.jsx";
@@ -15,37 +16,25 @@ export default function CollectionCard({ guitar, showPrice = false }) {
   const href = publicProductHref(guitar);
 
   return (
-    <Reveal className="group h-full">
-      <article className="flex h-full flex-col border border-white/8 bg-panel/80 transition-colors duration-300 hover:border-gold/40">
-        <Link to={href} className="relative overflow-hidden">
-          <FitImage
-            src={image?.src}
-            srcSet={image?.srcSet}
-            sizes="(min-width: 1280px) 30vw, (min-width: 768px) 45vw, 100vw"
-            alt={name}
-            width={image?.width}
-            height={image?.height}
-            fit="contain"
-            frameClassName="aspect-[4/5] w-full"
-          />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-charcoal/70 via-transparent to-transparent" />
-        </Link>
-        <div className="flex flex-1 flex-col gap-4 px-6 py-7">
-          {typeLabel ? (
-            <p className="text-[11px] uppercase tracking-[0.22em] text-gold">{typeLabel}</p>
-          ) : null}
-          <h3 className="font-display text-3xl text-ivory break-words">{name}</h3>
-          {description ? <p className="text-sm leading-relaxed text-muted">{description}</p> : null}
-          {showPrice ? <ProductPrice product={guitar} className="text-lg text-ivory" /> : null}
-          <CardSpecSummary guitar={guitar} t={t} className="mt-auto" />
-          <Link
-            to={href}
-            className="mt-2 inline-flex w-fit text-[11px] uppercase tracking-[0.22em] text-gold transition-colors hover:text-gold-light"
-          >
-            {t("guitars.collection.viewDetails")}
-          </Link>
+    <Reveal className="group h-full [@media(hover:hover)_and_(pointer:fine)]:hover:z-20">
+      <CatalogCardFrame href={href}>
+        {image?.src ? (
+          <CatalogCardCoverImage src={image.src} alt={name} />
+        ) : (
+          <div className={`${CATALOG_CARD_COVER_FRAME} px-6 py-5`}>
+            <p className="text-[11px] uppercase tracking-[0.22em] text-gold">{t("guitars.collection.title")}</p>
+          </div>
+        )}
+        <div className={`${catalogCard.copy} pb-6`}>
+          <p className="min-h-[1rem] text-[11px] uppercase tracking-[0.22em] text-gold">{typeLabel || "\u00a0"}</p>
+          <h3 className={`${catalogCard.title} mt-5 min-h-[1.25em]`}>{name}</h3>
+          <p className="mt-2 line-clamp-2 min-h-[2.5em] text-sm leading-relaxed text-muted">
+            {description || "\u00a0"}
+          </p>
+          {showPrice ? <ProductPrice product={guitar} className="mt-3 min-h-7 text-lg text-ivory" /> : null}
+          <CardSpecSummary guitar={guitar} t={t} layout="product" className="mt-4" />
         </div>
-      </article>
+      </CatalogCardFrame>
     </Reveal>
   );
 }

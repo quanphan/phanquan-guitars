@@ -170,7 +170,7 @@ export default function ArtOfMaking() {
   const rest = posts.slice(3);
 
   return (
-    <section className="border-y border-gold/20 bg-charcoal py-24 lg:py-32">
+    <section className="section-y border-y border-gold/20 bg-charcoal">
       <div className="mx-auto max-w-7xl px-6 lg:px-10">
         <div className="mx-auto max-w-3xl text-center">
           <p className="max-w-full text-[11px] font-medium uppercase tracking-[0.18em] text-gold sm:tracking-[0.32em]">
@@ -184,10 +184,10 @@ export default function ArtOfMaking() {
           </p>
         </div>
         {status === "loading" ? (
-          <p className="mt-16 text-center text-sm text-muted">{t("home.artOfMaking.loading")}</p>
+          <p className="mt-10 text-center text-sm text-muted">{t("home.artOfMaking.loading")}</p>
         ) : null}
         {status === "error" ? (
-          <div className="mt-16 space-y-4 text-center">
+          <div className="mt-10 space-y-4 text-center">
             <p className="text-sm text-muted">{t("home.artOfMaking.error")}</p>
             <Button type="button" variant="outline" onClick={retry}>
               {t("home.artOfMaking.retry")}
@@ -195,7 +195,7 @@ export default function ArtOfMaking() {
           </div>
         ) : null}
         {status === "ready" && featured ? (
-          <div className="mt-16">
+          <div className="mt-10">
             <div className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-8 lg:items-start">
               <div className={supporting.length ? "lg:col-span-7" : "lg:col-span-12"}>
                 <StoryCard post={featured} featured wide={supporting.length < 2} priority onPlayVideo={setPlaying} />

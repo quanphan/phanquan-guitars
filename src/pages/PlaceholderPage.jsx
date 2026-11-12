@@ -6,7 +6,7 @@ export default function PlaceholderPage({ page }) {
   const { t } = useLanguage();
 
   return (
-    <section className="pb-24">
+    <section className="page-end">
       <PageHeader
         eyebrow="PhanQuan Guitars"
         title={t(`pages.${page}.title`)}

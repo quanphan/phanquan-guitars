@@ -37,8 +37,8 @@ export default function Cart() {
           <p className="mt-2 text-sm leading-relaxed text-muted">{t("cart.repairPricing")}</p>
         </div>
       </PageHeader>
-      <section className="pb-24 lg:pb-32">
-        <div className="mx-auto max-w-5xl min-w-0 px-6 pt-8 lg:px-10 lg:pt-10">
+      <section className="page-end">
+        <div className="page-follow mx-auto max-w-5xl min-w-0 px-6 lg:px-10">
           {hasUnavailable ? (
             <p className="mb-4 text-sm text-gold" role="alert">
               {t("cart.unavailableItems")}

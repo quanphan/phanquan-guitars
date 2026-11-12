@@ -21,6 +21,8 @@ export const GALLERY_IMAGE_MAX = 5;
 export const GALLERY_VIDEO_MAX = 5;
 export const PUBLIC_GALLERY_PAGE_SIZE = 12;
 
+export { catalogGridRowDividerAfter as galleryGridRowDividerAfter } from "./catalogGrid.js";
+
 export function galleryPostHasVideo(post) {
   const media = Array.isArray(post?.media) ? post.media : [];
   const cover = post?.cover;

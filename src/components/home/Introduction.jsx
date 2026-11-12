@@ -7,7 +7,7 @@ export default function Introduction() {
   const specs = t("home.intro.specs");
 
   return (
-    <section className="mx-auto grid max-w-7xl gap-16 px-6 py-24 lg:grid-cols-2 lg:items-center lg:px-10 lg:py-32">
+    <section className="section-y mx-auto hidden max-w-7xl gap-16 px-6 md:grid lg:grid-cols-2 lg:items-center lg:px-10">
       <Reveal>
         <SectionHeading
           eyebrow={t("home.intro.eyebrow")}

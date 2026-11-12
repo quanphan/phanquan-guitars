@@ -38,7 +38,7 @@ export default function GalleryDetail() {
 
   if (status === "loading") {
     return (
-      <section className="mx-auto max-w-5xl px-6 py-24 lg:px-10">
+      <section className="page-start page-end mx-auto max-w-5xl px-6 lg:px-10">
         <p className="text-sm text-muted">{t("gallery.loading")}</p>
       </section>
     );
@@ -46,7 +46,7 @@ export default function GalleryDetail() {
 
   if (status === "error") {
     return (
-      <section className="mx-auto max-w-5xl px-6 py-24 lg:px-10">
+      <section className="page-start page-end mx-auto max-w-5xl px-6 lg:px-10">
         <p className="text-sm text-muted">{t("gallery.unavailable")}</p>
         <Button type="button" variant="outline" className="mt-6" onClick={retry}>
           {t("home.artOfMaking.retry")}
@@ -57,7 +57,7 @@ export default function GalleryDetail() {
 
   if (status === "notFound" || !post) {
     return (
-      <section className="mx-auto max-w-5xl px-6 py-24 lg:px-10">
+      <section className="page-start page-end mx-auto max-w-5xl px-6 lg:px-10">
         <p className="text-sm text-muted">{t("gallery.errors.NOT_FOUND")}</p>
         <Link to="/gallery" className="mt-6 inline-block text-[11px] uppercase tracking-[0.22em] text-gold">
           {t("gallery.title")}
@@ -70,13 +70,13 @@ export default function GalleryDetail() {
   const copy = galleryPostCopy(post, language);
 
   return (
-    <section className="pb-24">
+    <section className="page-end">
       <PageHeader eyebrow={t("gallery.eyebrow")} title={copy.title} description={copy.excerpt || undefined}>
         <div className="mt-8">
           <BackLink to="/gallery" label={t("gallery.title")} />
         </div>
       </PageHeader>
-      <div className="mx-auto mt-10 max-w-5xl px-6 lg:px-10">
+      <div className="page-follow mx-auto max-w-5xl px-6 lg:px-10">
         {media[0] ? <GalleryMediaPlayer item={media[0]} title={copy.title} /> : null}
         {copy.content ? (
           <p className="mt-8 max-w-3xl text-sm leading-relaxed text-muted sm:text-base">{copy.content}</p>

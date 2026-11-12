@@ -10,7 +10,7 @@ export default function CustomerRoute() {
 
   if (!ready) {
     return (
-      <section className="pb-24">
+      <section className="page-end">
         <PageHeader eyebrow={t("auth.eyebrow")} title={t("auth.loadingTitle")} />
       </section>
     );

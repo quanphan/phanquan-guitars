@@ -10,14 +10,14 @@ export default function GuitarsProcess() {
   const { t } = useLanguage();
 
   return (
-    <section className="mx-auto max-w-7xl px-6 py-24 lg:px-10 lg:py-32">
+    <section className="section-y mx-auto max-w-7xl px-6 lg:px-10">
       <Reveal>
         <SectionHeading
           eyebrow={t("guitars.process.eyebrow")}
           title={t("guitars.process.title")}
         />
       </Reveal>
-      <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
         {buildSteps.map((step, index) => {
           const copyId = stepCopyIds[index] ?? step.id;
           return (

@@ -16,6 +16,8 @@ test("Services sits immediately after In Stock in the primary nav", () => {
   assert.equal(paths.indexOf("/services"), paths.indexOf("/in-stock") + 1);
   assert.equal(tFor("en", "nav.services"), "Services");
   assert.equal(tFor("vi", "nav.services"), "Dịch vụ");
+  assert.equal(tFor("en", "services.intro.title"), "Workshop Services");
+  assert.equal(tFor("vi", "services.intro.title"), "Dịch vụ xưởng");
 });
 
 test("Services listing has three bilingual categories and Details/Contact labels", () => {

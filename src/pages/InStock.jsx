@@ -12,13 +12,13 @@ export default function InStock() {
   return (
     <>
       <PageHeader title={t("stock.title")} description={t("stock.description")} />
-      <section className="pb-24 lg:pb-32">
-        <div className="mx-auto max-w-7xl px-6 lg:px-10">
+      <section className="page-end">
+        <div className="page-follow mx-auto max-w-7xl px-6 lg:px-10">
           {status === "loading" ? (
-            <p className="mt-8 text-sm text-muted">{t("stock.loading")}</p>
+            <p className="text-sm text-muted">{t("stock.loading")}</p>
           ) : null}
           {status === "error" ? (
-            <div className="mt-8 space-y-4">
+            <div className="space-y-4">
               <p className="text-sm text-muted">{t("stock.error")}</p>
               <Button type="button" variant="outline" onClick={retry}>
                 {t("stock.retry")}
@@ -26,10 +26,10 @@ export default function InStock() {
             </div>
           ) : null}
           {status === "ready" && items.length === 0 ? (
-            <p className="mt-8 text-sm text-muted">{t("stock.empty")}</p>
+            <p className="text-sm text-muted">{t("stock.empty")}</p>
           ) : null}
           {status === "ready" && items.length > 0 ? (
-            <div className="mt-8 grid gap-8 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid items-stretch gap-x-8 gap-y-10 overflow-visible md:grid-cols-2 xl:grid-cols-3">
               {items.map((item) => (
                 <StockCard key={item.id} item={item} />
               ))}

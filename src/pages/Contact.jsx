@@ -163,8 +163,8 @@ export default function Contact() {
       {(session) => {
         const hero = contactHeroImage(session.locale, session.ready);
         return (
-    <section className="min-w-0 pb-20">
-      <header className="mx-auto grid max-w-7xl items-end gap-8 px-6 pt-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-12 lg:px-10 lg:pt-16">
+    <section className="page-end min-w-0">
+      <header className="page-start mx-auto grid max-w-7xl items-end gap-8 px-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-12 lg:px-10">
         <div className="min-w-0">
           <p className="max-w-full text-[11px] uppercase tracking-[0.18em] text-gold sm:tracking-[0.32em]">{t("contact.eyebrow")}</p>
           <h1 className="mt-4 max-w-full font-display text-[clamp(1.75rem,4vw+1rem,3rem)] font-medium tracking-wide text-ivory break-words">
@@ -190,7 +190,7 @@ export default function Contact() {
         </div>
       </header>
 
-      <div className="mx-auto mt-12 max-w-7xl px-6 lg:mt-16 lg:px-10">
+      <div className="page-follow mx-auto max-w-7xl px-6 lg:px-10">
         <fieldset id="contact-inquiryType" tabIndex={-1} className="min-w-0 outline-none">
           <legend className="text-[11px] uppercase tracking-[0.22em] text-gold">
             {t("contact.inquiryType")}
@@ -234,7 +234,7 @@ export default function Contact() {
         </fieldset>
       </div>
 
-      <div className="mx-auto mt-12 grid max-w-7xl gap-10 px-6 lg:mt-16 lg:grid-cols-[minmax(0,1.2fr)_minmax(16rem,0.8fr)] lg:items-start lg:gap-14 lg:px-10">
+      <div className="mx-auto mt-10 grid max-w-7xl gap-10 px-6 lg:mt-12 lg:grid-cols-[minmax(0,1.2fr)_minmax(16rem,0.8fr)] lg:items-start lg:gap-14 lg:px-10">
         <div className="min-w-0">
           {status === "success" ? (
             <div className="border border-white/10 bg-panel/40 px-6 py-8" role="status">

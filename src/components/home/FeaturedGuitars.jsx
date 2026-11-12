@@ -5,6 +5,7 @@ import { listFeaturedHomeSeries } from "../../services/publicProductService.js";
 import Button from "../Button.jsx";
 import Reveal from "../Reveal.jsx";
 import SectionHeading from "../SectionHeading.jsx";
+import SeriesCarousel from "../series/SeriesCarousel.jsx";
 import FeaturedSeriesCard from "./FeaturedSeriesCard.jsx";
 
 export default function FeaturedGuitars() {
@@ -39,7 +40,7 @@ export default function FeaturedGuitars() {
   }
 
   return (
-    <section className="bg-ink/60 py-24 lg:py-32">
+    <section className="section-y bg-ink/60">
       <div className="mx-auto max-w-7xl px-6 lg:px-10">
         <Reveal>
           <SectionHeading
@@ -48,10 +49,10 @@ export default function FeaturedGuitars() {
           />
         </Reveal>
         {status === "loading" ? (
-          <p className="mt-16 text-sm text-muted">{t("home.featured.loading")}</p>
+          <p className="mt-10 text-sm text-muted">{t("home.featured.loading")}</p>
         ) : null}
         {status === "error" ? (
-          <div className="mt-16 space-y-4">
+          <div className="mt-10 space-y-4">
             <p className="text-sm text-muted">{t("home.featured.error")}</p>
             <Button type="button" variant="outline" onClick={retry}>
               {t("home.featured.retry")}
@@ -59,10 +60,23 @@ export default function FeaturedGuitars() {
           </div>
         ) : null}
         {status === "ready" ? (
-          <div className="mt-16 grid gap-8 md:grid-cols-2 xl:grid-cols-3">
-            {series.map((item) => (
-              <FeaturedSeriesCard key={item.id} series={item} />
-            ))}
+          <div className="mt-10 overflow-visible">
+            <SeriesCarousel
+              items={series}
+              previousLabel={t("guitars.series.previous")}
+              nextLabel={t("guitars.series.next")}
+            >
+              {({ item, offscreen, style }) => (
+                <li
+                  className="relative z-0 flex h-full min-w-0 shrink-0 flex-col [@media(hover:hover)_and_(pointer:fine)]:hover:z-20"
+                  style={style}
+                  aria-hidden={offscreen || undefined}
+                  inert={offscreen ? true : undefined}
+                >
+                  <FeaturedSeriesCard series={item} />
+                </li>
+              )}
+            </SeriesCarousel>
           </div>
         ) : null}
       </div>
