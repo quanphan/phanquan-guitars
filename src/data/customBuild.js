@@ -66,8 +66,7 @@ import { LIST_CATEGORY_IDS } from "./wizardCatalog.js";
 import { pickDefaultOption } from "./wizardDefaults.js";
 import {
   DEFAULT_FRET_COUNT,
-  isCustomScale,
-  isValidCustomScaleValue,
+  normalizeFretCountSelection,
   parsePositiveFretCount,
   shouldKeepCustomScaleValue,
 } from "./wizardScaleAttributes.js";
@@ -954,9 +953,7 @@ export function pruneSelections(selections) {
   if (!shouldKeepCustomScaleValue(getScaleById(next.scaleId), next.scaleId)) {
     next.customScaleValue = "";
   }
-  if (next.fretCount == null || next.fretCount === "") {
-    next.fretCount = DEFAULT_FRET_COUNT;
-  }
+  next.fretCount = normalizeFretCountSelection(next.fretCount);
   return clampSelectionNotes(next);
 }
 
@@ -964,16 +961,6 @@ export function isStepOneComplete(selections) {
   if (getAvailableInstrumentTypes().length > 0 && !selections.instrumentTypeId) return false;
   if (getAvailableSeries(selections).length > 0 && !selections.seriesId) return false;
   if (getAvailableShapes(selections).length > 0 && !selections.shapeId) return false;
-  const scales = getAvailableScales(selections);
-  if (scales.length > 0) {
-    if (!selections.scaleId) return false;
-    const scale = getScaleById(selections.scaleId);
-    if (isCustomScale(scale) && !isValidCustomScaleValue(selections.customScaleValue)) {
-      return false;
-    }
-  }
-  if (getAvailableStringCounts(selections).length > 0 && selections.stringCount == null) return false;
-  if (getAvailableRadii(selections).length > 0 && !selections.radiusId) return false;
   return true;
 }
 
@@ -1004,6 +991,9 @@ function requiredIfOptions(options, selectedId) {
 
 export function stepThreeAvailability(selections) {
   return {
+    scales: getAvailableScales(selections),
+    stringCounts: getAvailableStringCounts(selections),
+    radii: getAvailableRadii(selections),
     neckPieces: getAvailableNeckPieces(selections),
     neckWoods: getAvailableNeckWoods(selections),
     usesSecondary: usesSecondaryNeckWoodSelection(selections),

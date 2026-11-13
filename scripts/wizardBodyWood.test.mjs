@@ -167,6 +167,29 @@ test("visible dropdown defaults fill empty body construction and wood without a 
   assert.equal(laminated.secondaryBodyWoodId, "alder");
 });
 
+test("admin default body wood is stored instead of the first compatible option", () => {
+  const filled = pruneSelections({
+    instrumentTypeId: "electric-guitar",
+    seriesId: "solid-body",
+    shapeId: "offset",
+    bodyWoodId: null,
+  }, {
+    ...lists,
+    bodyWoods: [
+      { id: "alder", optionId: "body-wood.alder", active: true },
+      {
+        id: "mahogany",
+        optionId: "body-wood.mahogany",
+        active: true,
+        isDefault: true,
+        defaultForInstrumentTypeIds: ["electric-guitar"],
+      },
+    ],
+  });
+  assert.equal(filled.bodyWoodId, "mahogany");
+  assert.equal(filled.scaleId, "25.5");
+});
+
 function bodyWoodStepReady(selections, series) {
   const constructions = seriesBodyConstructionOptions(series);
   if (constructions.length > 0 && !selections.bodyConstructionId) return false;

@@ -29,20 +29,6 @@ export function customBuildReviewGroups({ t, builder, optionName, language }) {
         { key: "instrument", label: t("customBuild.summary.instrument"), value: optionName(builder.instrumentType, "types") },
         { key: "series", label: t("customBuild.summary.series"), value: optionName(builder.series, "series") },
         { key: "shape", label: t("customBuild.summary.shape"), value: optionName(builder.shape, "shapes") },
-        { key: "scale", label: t("customBuild.summary.scale"), value: scaleDisplay(builder, t) },
-        {
-          key: "strings",
-          label: t("customBuild.summary.strings"),
-          value:
-            selections.stringCount != null
-              ? t("customBuild.strings.count").replace("{count}", String(selections.stringCount))
-              : null,
-        },
-        {
-          key: "radius",
-          label: t("customBuild.summary.radius"),
-          value: builder.radius ? (optionLabel(builder.radius, language, t) || builder.radius.display || null) : null,
-        },
       ],
     },
     {
@@ -70,6 +56,20 @@ export function customBuildReviewGroups({ t, builder, optionName, language }) {
     {
       title: t("customBuild.steps.neckFingerboard"),
       rows: [
+        { key: "scale", label: t("customBuild.summary.scale"), value: scaleDisplay(builder, t) },
+        {
+          key: "strings",
+          label: t("customBuild.summary.strings"),
+          value:
+            selections.stringCount != null
+              ? t("customBuild.strings.count").replace("{count}", String(selections.stringCount))
+              : null,
+        },
+        {
+          key: "radius",
+          label: t("customBuild.summary.radius"),
+          value: builder.radius ? (optionLabel(builder.radius, language, t) || builder.radius.display || null) : null,
+        },
         {
           key: "neckPieces",
           label: t("customBuild.summary.neckPieces"),

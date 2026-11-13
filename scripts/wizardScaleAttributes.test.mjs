@@ -7,7 +7,10 @@ import {
   isCustomScale,
   isValidCustomScaleValue,
   isValidFretCountSelection,
+  MAX_FRET_COUNT,
+  MIN_FRET_COUNT,
   mergeScaleAttributes,
+  normalizeFretCountSelection,
   shouldKeepCustomScaleValue,
   parsePositiveFretCount,
   scaleDisplayValue,
@@ -57,6 +60,16 @@ test("admin custom scale option does not store a workshop-entered length", () =>
   assert.equal(shouldKeepCustomScaleValue({ type: "single", display: "25.5″" }, "25.5"), false);
   assert.equal(isValidFretCountSelection(24), true);
   assert.equal(isValidFretCountSelection(""), false);
+  assert.equal(MIN_FRET_COUNT, 20);
+  assert.equal(MAX_FRET_COUNT, 26);
+  assert.equal(isValidFretCountSelection(20), true);
+  assert.equal(isValidFretCountSelection(26), true);
+  assert.equal(isValidFretCountSelection(19), false);
+  assert.equal(isValidFretCountSelection(27), false);
+  assert.equal(isValidFretCountSelection("2"), false);
+  assert.equal(normalizeFretCountSelection(""), "");
+  assert.equal(normalizeFretCountSelection("22"), "22");
+  assert.equal(normalizeFretCountSelection(null), DEFAULT_FRET_COUNT);
 });
 
 test("customer custom scale value is what the wizard displays", () => {
@@ -168,7 +181,9 @@ test("admin custom scale copy exists in English and Vietnamese", () => {
   assert.equal(tFor("vi", "admin.wizardSetup.customScaleCustomerHelp").includes("Khách"), true);
   assert.equal(tFor("en", "customBuild.step1.customScaleInputLabel"), "Your scale length");
   assert.equal(tFor("vi", "customBuild.step1.customScaleError").includes("scale"), true);
-  assert.equal(tFor("en", "customBuild.step3.fretCountInputHelp").includes("24"), true);
+  assert.equal(tFor("en", "customBuild.step3.fretCountInputHelp").includes("20"), true);
+  assert.equal(tFor("en", "customBuild.step3.fretCountInputHelp").includes("26"), true);
+  assert.equal(tFor("en", "customBuild.step3.fretCountError").includes("20"), true);
   assert.equal(tFor("en", "customBuild.step3.fretCountLabel"), "Number of frets");
   assert.equal(tFor("vi", "customBuild.step3.fretCountLabel"), "Số fret");
 });

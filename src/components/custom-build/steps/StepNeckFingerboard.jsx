@@ -1,12 +1,21 @@
 import { mediaUrl } from "../../../config/api.js";
 import FitImage from "../../FitImage.jsx";
 import { Select, fieldClass } from "../../auth/Field.jsx";
-import { choiceImageSrc, optionDescription, optionLabel } from "../../../data/wizardCatalog.js";
-import { DEFAULT_FRET_COUNT, parsePositiveFretCount } from "../../../data/wizardScaleAttributes.js";
+import { choiceImageSrc, optionDescription, optionLabel, wizardChoiceKey } from "../../../data/wizardCatalog.js";
+import {
+  isCustomScale,
+  isMultiscale,
+  isValidCustomScaleValue,
+  isValidFretCountSelection,
+  scaleDisplayValue,
+} from "../../../data/wizardScaleAttributes.js";
 import { optionIdEquals } from "../../../data/wizardSelection.js";
 import { usesSecondaryNeckWood } from "../../../data/wizardSeriesConstruction.js";
 import { useLanguage } from "../../../i18n/LanguageContext.jsx";
 import ChoiceButton from "../ChoiceButton.jsx";
+
+const chipClass =
+  "min-w-[5.5rem] px-4 py-3 text-[11px] uppercase tracking-[0.16em]";
 
 function constructionLabel(option, language) {
   return option?.translations?.[language]?.name || option?.translations?.en?.name || option?.name || option?.id || "";
@@ -79,12 +88,19 @@ function ChipGroup({ id, label, options, selectedId, onSelect, nameKey, t, langu
 
 export default function StepNeckFingerboard({
   selections,
+  availableScales = [],
+  availableStringCounts = [],
+  availableRadii = [],
   availableNeckWoods,
   availableNeckPieces = [],
   availableNeckConstructions,
   availableFingerboardWoods,
   availableNeckProfiles,
   availableFretSpecs,
+  selectScale,
+  setCustomScaleValue,
+  selectStringCount,
+  selectRadius,
   selectNeckPieces,
   selectNeckWood,
   selectSecondaryNeckWood,
@@ -112,6 +128,8 @@ export default function StepNeckFingerboard({
   const showPieces = pieceChoices.length > 0;
   const showWoods = availableNeckWoods.length > 0;
   const showNeckWoodSection = showPieces || showWoods;
+  const selectedScale = availableScales.find((scale) => scale.id === selections.scaleId);
+  const customScaleSelected = isCustomScale(selectedScale);
 
   return (
     <div>
@@ -131,6 +149,143 @@ export default function StepNeckFingerboard({
             {missingFields.map((item) => t(item.labelKey)).join(" · ")}
           </span>
         </p>
+      ) : null}
+
+      {availableScales.length > 0 ? (
+        <section className="mt-10">
+          <h3 className="text-[11px] uppercase tracking-[0.22em] text-gold">
+            {t("customBuild.step1.scaleLabel")}
+          </h3>
+          <div className="mt-4">
+            <div
+              id="scale-length"
+              role="radiogroup"
+              aria-label={t("customBuild.step1.scaleLabel")}
+              aria-invalid={missingKeys.has("scaleId") || undefined}
+              className={`flex flex-wrap gap-3${missingKeys.has("scaleId") ? " rounded-sm ring-1 ring-gold/70 p-1" : ""}`}
+            >
+              {availableScales.map((scale) => {
+                const custom = isCustomScale(scale);
+                const label = custom
+                  ? optionLabel(scale, language, t, `customBuild.scales.${scale.id}`) || t("customBuild.step1.customScaleLabel")
+                  : scaleDisplayValue(scale) || optionLabel(scale, language, t, `customBuild.scales.${scale.id}`);
+                const multi = isMultiscale(scale);
+                return (
+                  <ChoiceButton
+                    key={wizardChoiceKey(scale)}
+                    selected={selections.scaleId === scale.id}
+                    onSelect={() => selectScale(scale.id)}
+                    label={label}
+                    description={optionDescription(scale, language)}
+                    className={chipClass}
+                  >
+                    {label}
+                    {multi && !custom ? (
+                      <span className="mt-1 block text-[10px] font-normal normal-case tracking-normal text-muted">
+                        {t("customBuild.step1.multiscaleHint")
+                          .replace("{bass}", scale.bass)
+                          .replace("{treble}", scale.treble)}
+                      </span>
+                    ) : null}
+                  </ChoiceButton>
+                );
+              })}
+            </div>
+            {customScaleSelected ? (
+              <label className="mt-4 block text-[11px] uppercase tracking-[0.18em] text-gold">
+                {t("customBuild.step1.customScaleInputLabel")}
+                <input
+                  value={selections.customScaleValue || ""}
+                  onChange={(event) => setCustomScaleValue?.(event.target.value)}
+                  placeholder={t("customBuild.step1.customScalePlaceholder")}
+                  className={fieldClass}
+                  aria-invalid={!isValidCustomScaleValue(selections.customScaleValue)}
+                />
+                <span className="mt-2 block text-[10px] font-normal normal-case tracking-normal text-muted">
+                  {t("customBuild.step1.customScaleInputHelp")}
+                </span>
+                {!isValidCustomScaleValue(selections.customScaleValue) ? (
+                  <span className="mt-2 block text-xs font-normal normal-case tracking-normal text-gold" role="alert">
+                    {t("customBuild.step1.customScaleError")}
+                  </span>
+                ) : null}
+              </label>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
+      {availableStringCounts.length > 0 ? (
+        <section className="mt-10">
+          <h3 className="text-[11px] uppercase tracking-[0.22em] text-gold">
+            {t("customBuild.step1.stringsLabel")}
+          </h3>
+          <div className="mt-4">
+            <div
+              id="string-count"
+              role="radiogroup"
+              aria-label={t("customBuild.step1.stringsLabel")}
+              aria-invalid={missingKeys.has("stringCount") || undefined}
+              className={`flex flex-wrap gap-3${missingKeys.has("stringCount") ? " rounded-sm ring-1 ring-gold/70 p-1" : ""}`}
+            >
+              {availableStringCounts.map((option) => {
+                const countTemplate = t("customBuild.strings.count");
+                const fromOption = optionLabel(option, language, t);
+                const label =
+                  fromOption && !fromOption.includes("{count}")
+                    ? fromOption
+                    : countTemplate.includes("{count}")
+                      ? countTemplate.replace("{count}", String(option.value))
+                      : fromOption || String(option.value);
+                return (
+                  <ChoiceButton
+                    key={wizardChoiceKey(option)}
+                    selected={selections.stringCount === option.value}
+                    onSelect={() => selectStringCount(option.value)}
+                    label={label}
+                    description={optionDescription(option, language)}
+                    className={chipClass}
+                  >
+                    {label}
+                  </ChoiceButton>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {availableRadii.length > 0 ? (
+        <section className="mt-10">
+          <h3 className="text-[11px] uppercase tracking-[0.22em] text-gold">
+            {t("customBuild.step1.radiusLabel")}
+          </h3>
+          <div className="mt-4">
+            <div
+              id="fretboard-radius"
+              role="radiogroup"
+              aria-label={t("customBuild.step1.radiusLabel")}
+              aria-invalid={missingKeys.has("radiusId") || undefined}
+              className={`flex flex-wrap gap-3${missingKeys.has("radiusId") ? " rounded-sm ring-1 ring-gold/70 p-1" : ""}`}
+            >
+              {availableRadii.map((radius) => {
+                const label = optionLabel(radius, language, t) || radius.display;
+                return (
+                  <ChoiceButton
+                    key={wizardChoiceKey(radius)}
+                    selected={selections.radiusId === radius.id}
+                    onSelect={() => selectRadius(radius.id)}
+                    label={label}
+                    description={optionDescription(radius, language)}
+                    className={chipClass}
+                  >
+                    {label}
+                  </ChoiceButton>
+                );
+              })}
+            </div>
+          </div>
+        </section>
       ) : null}
 
       {showNeckWoodSection ? (
@@ -277,23 +432,23 @@ export default function StepNeckFingerboard({
           <label className="block">
             <input
               id="fret-count"
-              type="number"
-              min="1"
-              step="1"
-              value={selections.fretCount ?? DEFAULT_FRET_COUNT}
-              onChange={(event) => selectFretCount?.(event.target.value === "" ? "" : event.target.value)}
-              className={missingKeys.has("fretCount") ? fieldClass.replace("border-white/10", "border-gold") : fieldClass}
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              value={selections.fretCount ?? ""}
+              onChange={(event) => selectFretCount?.(event.target.value)}
+              className={missingKeys.has("fretCount") || !isValidFretCountSelection(selections.fretCount) ? fieldClass.replace("border-white/10", "border-gold") : fieldClass}
               aria-label={t("customBuild.step3.fretCountLabel")}
-              aria-invalid={parsePositiveFretCount(selections.fretCount) == null}
+              aria-invalid={!isValidFretCountSelection(selections.fretCount)}
             />
             <span className="mt-2 block text-[10px] font-normal normal-case tracking-normal text-muted">
               {t("customBuild.step3.fretCountInputHelp")}
             </span>
-            {parsePositiveFretCount(selections.fretCount) == null ? (
+            {isValidFretCountSelection(selections.fretCount) ? null : (
               <span className="mt-2 block text-xs text-gold" role="alert">
                 {t("customBuild.step3.fretCountError")}
               </span>
-            ) : null}
+            )}
           </label>
         </div>
       </section>

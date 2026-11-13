@@ -1,4 +1,6 @@
 export const DEFAULT_FRET_COUNT = 24;
+export const MIN_FRET_COUNT = 20;
+export const MAX_FRET_COUNT = 26;
 export const SCALE_TYPES = ["single", "multiscale", "custom"];
 
 const INCH_MARK = "″";
@@ -56,7 +58,13 @@ export function isValidCustomScaleValue(value) {
 }
 
 export function isValidFretCountSelection(value) {
-  return parsePositiveFretCount(value) != null;
+  const count = parsePositiveFretCount(value);
+  return count != null && count >= MIN_FRET_COUNT && count <= MAX_FRET_COUNT;
+}
+
+export function normalizeFretCountSelection(value) {
+  if (value == null) return DEFAULT_FRET_COUNT;
+  return value;
 }
 
 export function scaleDisplayValue(scale, customValue = "") {

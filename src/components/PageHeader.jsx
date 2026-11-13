@@ -4,12 +4,13 @@ export default function PageHeader({
   description,
   align = "left",
   children,
+  className,
 }) {
   const alignment =
     align === "center" ? "mx-auto max-w-3xl text-center" : "max-w-3xl text-left";
 
   return (
-    <header className="page-start mx-auto max-w-7xl px-6 lg:px-10">
+    <header className={className ?? "page-start mx-auto max-w-7xl px-6 lg:px-10"}>
       <div className={alignment}>
         {eyebrow ? (
           <p className="max-w-full text-[11px] uppercase tracking-[0.18em] text-gold sm:tracking-[0.32em]">

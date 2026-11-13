@@ -299,7 +299,7 @@ test("step three missing fields follow neck pieces, woods, and fret count rules"
   );
   assert.equal(
     collectStepThreeMissing({ ...filled, fretCount: 27 }, available).some((item) => item.key === "fretCount"),
-    false,
+    true,
   );
   assert.equal(
     collectStepThreeMissing(filled, { ...available, constructions: [], profiles: [], fretSpecs: [] })
@@ -315,6 +315,36 @@ test("step three missing fields follow neck pieces, woods, and fret count rules"
   );
   assert.equal(tFor("en", "customBuild.step3.incomplete").includes("highlighted"), true);
   assert.equal(tFor("vi", "customBuild.step3.incomplete").includes("đánh dấu"), true);
+});
+
+test("step three requires scale, strings, and radius before existing neck fields", () => {
+  const available = {
+    scales: [{ id: "25.5" }, { id: "custom-scale", attributes: { custom: true } }],
+    stringCounts: [{ id: "6", value: 6 }],
+    radii: [{ id: "16" }],
+    neckPieces: [],
+    neckWoods: [],
+    constructions: [],
+    fingerboards: [],
+    profiles: [],
+    fretSpecs: [],
+  };
+  const missing = collectStepThreeMissing({ fretCount: 24 }, available).map((item) => item.key);
+  assert.deepEqual(missing, ["scaleId", "stringCount", "radiusId"]);
+  assert.deepEqual(
+    collectStepThreeMissing(
+      { scaleId: "25.5", stringCount: 6, radiusId: "16", fretCount: 24 },
+      available,
+    ).map((item) => item.key),
+    [],
+  );
+  assert.equal(
+    collectStepThreeMissing(
+      { scaleId: "custom-scale", customScaleValue: "", stringCount: 6, radiusId: "16", fretCount: 24 },
+      available,
+    ).some((item) => item.key === "scaleId"),
+    true,
+  );
 });
 
 test("fingerboard options stay visible without main neck wood and ignore stale body/top lists", () => {

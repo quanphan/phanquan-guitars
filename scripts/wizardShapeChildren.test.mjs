@@ -163,9 +163,9 @@ test("Test C — changing body shape reloads lists and clears only unavailable s
 
   const nextShape = pruneSelections({ ...pruned, shapeId: "compact-modern" }, lists);
   assert.equal(nextShape.shapeId, "compact-modern");
-  assert.equal(nextShape.scaleId, null);
-  assert.equal(nextShape.stringCount, null);
-  assert.equal(nextShape.radiusId, null);
+  assert.equal(nextShape.scaleId, "25.5");
+  assert.equal(nextShape.stringCount, 6);
+  assert.equal(nextShape.radiusId, "16");
 
   const keepScale = pruneSelections(selected("compact-modern", {
     scaleId: "25.5",
@@ -173,7 +173,7 @@ test("Test C — changing body shape reloads lists and clears only unavailable s
     radiusId: "16",
   }), lists);
   assert.equal(keepScale.scaleId, "25.5");
-  assert.equal(keepScale.stringCount, null);
+  assert.equal(keepScale.stringCount, 6);
   assert.equal(keepScale.radiusId, "16");
 });
 

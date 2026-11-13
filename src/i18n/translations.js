@@ -1372,8 +1372,6 @@ export const translations = {
       header: {
         eyebrow: "PhanQuan Guitars / Custom Shop",
         heading: "Build Your Guitar",
-        description:
-          "Design a guitar around your playing style, sound, and aesthetic. Share your configuration with our workshop to discuss your custom build.",
       },
       progress: {
         label: "Step {current} of {total}",
@@ -1390,7 +1388,7 @@ export const translations = {
       step1: {
         heading: "Choose Your Instrument",
         description:
-          "Start with the instrument type, then refine series, shape, scale, strings, radius, and number of frets.",
+          "Start with the instrument type, then refine series and body shape.",
         instrumentLabel: "Instrument type",
         instrumentContact:
           "No active instrument types are available. Retry after the workshop updates Custom Build Setup.",
@@ -1465,6 +1463,31 @@ export const translations = {
         specialRequests: "Special requests",
         step: "Current step",
         empty: "Not selected yet",
+        tabs: {
+          configuration: "Your configuration",
+          preview: "Guitar preview",
+        },
+        expand: "Show options",
+        collapse: "Hide options",
+        closePanel: "Close",
+        viewSummary: "View summary",
+        previewAlt: "Reference guitar for this configuration",
+        previewHint:
+          "Body shape drawing, with uploaded wood grain and a finish swatch when those assets exist. Missing images keep this nearest valid guitar drawing.",
+        previewEmptyTitle: "No matching photo yet",
+        previewEmpty:
+          "A workshop photo for this type, series, and body shape is not available yet. Option images stay on each choice in the steps.",
+        previewBackEmptyTitle: "No back view yet",
+        previewBackEmpty:
+          "A back drawing for this body shape is not available yet. The front view stays on Flip to front.",
+        flipToBack: "Flip to back",
+        flipToFront: "Flip to front",
+      },
+      continuous: {
+        heading: "Configure the instrument",
+        description:
+          "Every group from body through finish is here. Expand a group to change it. The summary and guitar preview update as you go.",
+        incomplete: "Some required groups still need a choice before you can review and send the inquiry.",
       },
       nav: {
         back: "Back",
@@ -1589,7 +1612,7 @@ export const translations = {
       step3: {
         heading: "Neck & Fingerboard",
         description:
-          "Choose the neck construction, fingerboard, and playing feel for your instrument.",
+          "Choose scale length, string count, fretboard radius, neck construction, fingerboard, and playing feel.",
         neckWoodLabel: "Neck wood",
         neckPiecesLabel: "Neck pieces",
         mainWoodLabel: "Main wood",
@@ -1607,8 +1630,8 @@ export const translations = {
           "{count} frets — inherited from the selected instrument type and not changed here.",
         fretCountValue: "{count} frets",
         fretCountInputLabel: "Fret count",
-        fretCountInputHelp: "Default is 24. You can enter 22, 27, 30, or any positive whole number.",
-        fretCountError: "Enter a positive whole number of frets.",
+        fretCountInputHelp: "Default is 24. Enter a whole number from 20 to 26.",
+        fretCountError: "Enter a whole number of frets from 20 to 26.",
         fretCountUnknown:
           "No confirmed fret count is listed for this instrument type. Confirm with the workshop.",
         incomplete: "Select the highlighted fields before continuing.",
@@ -3869,8 +3892,6 @@ export const translations = {
       header: {
         eyebrow: "PhanQuan Guitars / Custom Shop",
         heading: "Thiết kế cây đàn của bạn",
-        description:
-          "Thiết kế cây đàn theo phong cách chơi, âm thanh và thẩm mỹ của bạn. Gửi cấu hình cho xưởng để trao đổi về custom build.",
       },
       progress: {
         label: "Bước {current} / {total}",
@@ -3887,7 +3908,7 @@ export const translations = {
       step1: {
         heading: "Chọn nhạc cụ",
         description:
-          "Bắt đầu với loại nhạc cụ, rồi chọn series, dáng thân, scale, số dây, radius và số phím.",
+          "Bắt đầu với loại nhạc cụ, rồi chọn series và dáng thân.",
         instrumentLabel: "Loại nhạc cụ",
         instrumentContact:
           "Không có loại nhạc cụ đang bật. Thử lại sau khi xưởng cập nhật Custom Build Setup.",
@@ -3962,6 +3983,31 @@ export const translations = {
         specialRequests: "Yêu cầu thêm",
         step: "Bước hiện tại",
         empty: "Chưa chọn",
+        tabs: {
+          configuration: "Cấu hình của bạn",
+          preview: "Xem trước đàn",
+        },
+        expand: "Hiện lựa chọn",
+        collapse: "Ẩn lựa chọn",
+        closePanel: "Đóng",
+        viewSummary: "Xem tóm tắt",
+        previewAlt: "Ảnh tham khảo cho cấu hình này",
+        previewHint:
+          "Hình dáng thân đàn, kết hợp vân gỗ đã tải lên và swatch finish khi có dữ liệu. Nếu thiếu ảnh, giữ hình đàn hợp lệ gần nhất.",
+        previewEmptyTitle: "Chưa có ảnh phù hợp",
+        previewEmpty:
+          "Chưa có ảnh xưởng cho loại nhạc cụ, series và dáng thân này. Ảnh từng option vẫn nằm ở các bước chọn.",
+        previewBackEmptyTitle: "Chưa có mặt sau",
+        previewBackEmpty:
+          "Chưa có bản vẽ mặt sau cho dáng thân này. Bấm Flip to front để xem mặt trước.",
+        flipToBack: "Flip to back",
+        flipToFront: "Flip to front",
+      },
+      continuous: {
+        heading: "Cấu hình cây đàn",
+        description:
+          "Toàn bộ nhóm từ thân đàn đến finish nằm ở đây. Mở nhóm để chọn. Tóm tắt và ảnh xem trước bên phải cập nhật theo lựa chọn.",
+        incomplete: "Một số nhóm bắt buộc chưa được chọn. Hãy hoàn tất trước khi xem lại và gửi inquiry.",
       },
       nav: {
         back: "Quay lại",
@@ -4087,7 +4133,7 @@ export const translations = {
       step3: {
         heading: "Cần đàn & fingerboard",
         description:
-          "Chọn cách dựng cần, fingerboard và cảm giác chơi cho nhạc cụ của bạn.",
+          "Chọn scale length, số dây, radius fretboard, cách dựng cần, fingerboard và cảm giác chơi.",
         neckWoodLabel: "Gỗ cần",
         neckPiecesLabel: "Neck pieces",
         mainWoodLabel: "Main wood",
@@ -4105,8 +4151,8 @@ export const translations = {
           "{count} fret — lấy từ loại nhạc cụ đã chọn và không đổi ở bước này.",
         fretCountValue: "{count} fret",
         fretCountInputLabel: "Số fret",
-        fretCountInputHelp: "Mặc định 24. Có thể nhập 22, 27, 30, hoặc bất kỳ số nguyên dương nào.",
-        fretCountError: "Nhập số fret nguyên dương.",
+        fretCountInputHelp: "Mặc định 24. Nhập số nguyên từ 20 đến 26.",
+        fretCountError: "Nhập số phím nguyên dương từ 20 đến 26.",
         fretCountUnknown:
           "Chưa có số fret đã xác nhận cho loại nhạc cụ này. Hãy xác nhận với xưởng.",
         incomplete: "Hãy chọn các mục được đánh dấu trước khi tiếp tục.",

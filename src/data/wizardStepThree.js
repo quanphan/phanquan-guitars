@@ -1,6 +1,9 @@
-import { isValidFretCountSelection } from "./wizardScaleAttributes.js";
+import { isCustomScale, isValidCustomScaleValue, isValidFretCountSelection } from "./wizardScaleAttributes.js";
 
 export const STEP_THREE_FIELDS = [
+  { key: "scaleId", targetId: "scale-length", labelKey: "customBuild.step1.scaleLabel" },
+  { key: "stringCount", targetId: "string-count", labelKey: "customBuild.step1.stringsLabel" },
+  { key: "radiusId", targetId: "fretboard-radius", labelKey: "customBuild.step1.radiusLabel" },
   { key: "neckPiecesId", targetId: "neck-pieces", labelKey: "customBuild.step3.neckPiecesLabel" },
   { key: "neckWoodId", targetId: "main-neck-wood", labelKey: "customBuild.step3.mainWoodLabel" },
   { key: "secondaryNeckWoodId", targetId: "secondary-neck-wood", labelKey: "customBuild.step3.secondaryWoodLabel" },
@@ -25,6 +28,16 @@ export function collectStepThreeMissing(selections, available = {}) {
     const field = STEP_THREE_FIELDS.find((item) => item.key === key);
     if (field) missing.push(field);
   }
+  const scales = available.scales || [];
+  if (scales.length > 0) {
+    if (!selections?.scaleId) add("scaleId");
+    else {
+      const scale = scales.find((item) => item.id === selections.scaleId);
+      if (isCustomScale(scale) && !isValidCustomScaleValue(selections.customScaleValue)) add("scaleId");
+    }
+  }
+  if ((available.stringCounts || []).length > 0 && selections?.stringCount == null) add("stringCount");
+  if ((available.radii || []).length > 0 && !selections?.radiusId) add("radiusId");
   if ((available.neckPieces || []).length > 0 && !selections?.neckPiecesId) add("neckPiecesId");
   if ((available.neckWoods || []).length > 0 && !selections?.neckWoodId) add("neckWoodId");
   if (available.usesSecondary && !selections?.secondaryNeckWoodId) add("secondaryNeckWoodId");

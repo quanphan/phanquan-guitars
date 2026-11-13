@@ -1,4 +1,5 @@
 import { LIST_CATEGORY_IDS } from "./wizardCatalog.js";
+import { pickConfiguredOption } from "./wizardDefaults.js";
 import { isCustomScale } from "./wizardScaleAttributes.js";
 import {
   findSeriesConstructionOption,
@@ -198,9 +199,18 @@ export function optionIdEquals(option, selected) {
   return selectionAliases(option, option.id).has(String(selected));
 }
 
-function firstOptionId(options) {
-  const item = (options || []).find((option) => option && option.id != null && String(option.id) !== "");
-  return item ? item.id : null;
+function firstOptionId(options, instrumentTypeId, extra) {
+  return pickConfiguredOption(options, instrumentTypeId, extra)?.id || null;
+}
+
+function assignedStringCount(option) {
+  if (!option) return null;
+  if (option.value != null && option.value !== "" && Number.isFinite(Number(option.value))) {
+    return Number(option.value);
+  }
+  const asNumber = Number(option.id);
+  if (Number.isFinite(asNumber) && String(option.id).trim() !== "") return asNumber;
+  return option.id ?? null;
 }
 
 function otherOptionId(options, selectedId) {
@@ -208,39 +218,84 @@ function otherOptionId(options, selectedId) {
   return other?.id || firstOptionId(options);
 }
 
-export function applyVisibleSelectDefaults(selections, lists = {}) {
-  const next = { ...(selections || {}) };
-  if (!next.seriesId || !next.shapeId) return next;
+function fillEmptyId(next, key, options, instrumentTypeId, extra) {
+  if (next[key]) return;
+  const id = firstOptionId(options, instrumentTypeId, extra);
+  if (id) next[key] = id;
+}
+
+function fillDownstreamDefaults(next, lists) {
+  const typeId = next.instrumentTypeId;
   const series = findSelectedOption(lists.series, next.seriesId);
+  const available = (listKey, categoryId) => filterOptions(lists[listKey] || [], next, lists, categoryId);
+
   const constructions = seriesBodyConstructionOptions(series);
-  if (!next.bodyConstructionId) {
-    const id = firstOptionId(constructions);
-    if (id) next.bodyConstructionId = id;
-  }
-  const bodyWoods = filterOptions(lists.bodyWoods || [], next, lists, "body-wood");
-  if (!next.bodyWoodId) {
-    const id = firstOptionId(bodyWoods);
-    if (id) next.bodyWoodId = id;
-  }
+  fillEmptyId(next, "bodyConstructionId", constructions, typeId);
+  const bodyWoods = available("bodyWoods", "body-wood");
+  fillEmptyId(next, "bodyWoodId", bodyWoods, typeId);
   const bodyConstruction = findSeriesConstructionOption(series, next.bodyConstructionId);
   if (usesSecondaryBodyWood(bodyConstruction) && !next.secondaryBodyWoodId) {
     const id = otherOptionId(bodyWoods, next.bodyWoodId);
     if (id) next.secondaryBodyWoodId = id;
   }
+
+  const body = findSelectedOption(lists.bodyWoods, next.bodyWoodId);
+  const topApplicable = Boolean(body) && body.allowsTop !== false;
+  if (topApplicable) {
+    const tops = filterOptions(
+      (lists.topWoods || []).filter((item) => !isNoneTopOption(item) || body?.noneTopAllowed),
+      next,
+      lists,
+      "top-wood",
+    );
+    fillEmptyId(next, "topWoodId", tops, typeId);
+  }
+
+  fillEmptyId(next, "scaleId", available("scales", "scale"), typeId, { skipCustomScale: true });
+  if (next.stringCount == null) {
+    const picked = pickConfiguredOption(available("stringCounts", "string-count"), typeId);
+    const count = assignedStringCount(picked);
+    if (count != null) next.stringCount = count;
+  }
+  fillEmptyId(next, "radiusId", available("radii", "radius"), typeId);
+
   const neckPieces = seriesNeckConstructionOptions(series);
-  if (!next.neckPiecesId) {
-    const id = firstOptionId(neckPieces);
-    if (id) next.neckPiecesId = id;
-  }
-  const neckWoods = filterOptions(lists.neckWoods || [], next, lists, "neck-wood");
-  if (!next.neckWoodId) {
-    const id = firstOptionId(neckWoods);
-    if (id) next.neckWoodId = id;
-  }
+  fillEmptyId(next, "neckPiecesId", neckPieces, typeId);
+  const neckWoods = available("neckWoods", "neck-wood");
+  fillEmptyId(next, "neckWoodId", neckWoods, typeId);
   const neckPiece = findSeriesNeckConstructionOption(series, next.neckPiecesId);
   if (usesSecondaryNeckWood(neckPiece) && !next.secondaryNeckWoodId) {
     const id = otherOptionId(neckWoods, next.neckWoodId);
     if (id) next.secondaryNeckWoodId = id;
+  }
+
+  fillEmptyId(next, "neckConstructionId", available("neckConstructions", "neck-construction"), typeId);
+  fillEmptyId(next, "fingerboardWoodId", available("fingerboardWoods", "fingerboard"), typeId);
+  fillEmptyId(next, "neckProfileId", available("neckProfiles", "neck-profile"), typeId);
+  fillEmptyId(next, "fretSpecId", available("fretSpecs", "fret-spec"), typeId);
+
+  if (!isCustomerSuppliedParts(next)) {
+    fillEmptyId(next, "pickupConfigId", available("pickupConfigs", "pickup-config"), typeId);
+    fillEmptyId(next, "pickupTypeId", available("pickupTypes", "pickups"), typeId);
+    fillEmptyId(next, "bridgeId", available("bridges", "bridge"), typeId);
+    if (!isHeadlessOption(series)) {
+      fillEmptyId(next, "tunerId", listedTuners(lists, next), typeId);
+    }
+    fillEmptyId(next, "hardwareFinishId", available("hardwareFinishes", "hardware"), typeId);
+    fillEmptyId(next, "controlLayoutId", available("controlLayouts", "electronics"), typeId);
+  }
+
+  fillEmptyId(next, "finishTypeId", available("finishTypes", "finish-type"), typeId);
+  fillEmptyId(next, "finishColorId", available("finishColors", "finish-color"), typeId);
+  fillEmptyId(next, "inlayId", available("inlays", "inlay"), typeId);
+  fillEmptyId(next, "engravingId", available("engravings", "engraving"), typeId);
+}
+
+export function applyVisibleSelectDefaults(selections, lists = {}) {
+  const next = { ...(selections || {}) };
+  if (!next.seriesId || !next.shapeId) return next;
+  for (let pass = 0; pass < 4; pass += 1) {
+    fillDownstreamDefaults(next, lists);
   }
   return next;
 }

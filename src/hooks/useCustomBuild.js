@@ -98,6 +98,13 @@ import {
   clearSubmittedDraftSnapshot,
 } from "../data/customBuildDraft.js";
 import { storedDraftShouldStartFresh } from "../data/customBuildDraftResume.js";
+import {
+  firstIncompleteGroupKey,
+  isContinuousConfigStep,
+  nextWizardStep,
+  previousWizardStep,
+  scrollToConfigGroup,
+} from "../data/wizardContinuous.js";
 
 function getInitialBuilderState() {
   const submitted = readSubmittedDraftSnapshot();
@@ -401,42 +408,42 @@ export function useCustomBuild() {
   const canContinue =
     currentStep === 1
       ? stepOneComplete
-      : currentStep === 2
-        ? stepTwoComplete
-        : currentStep === 3
-          ? stepThreeComplete
-          : currentStep === 4
-            ? stepFourComplete
-            : currentStep === 5
-              ? stepFiveComplete
-              : currentStep < totalSteps;
+      : isContinuousConfigStep(currentStep)
+        ? stepFiveComplete
+        : currentStep < totalSteps;
 
   const goNext = () => {
-    const attemptedMissing = currentStep === 2
-      ? stepTwoMissing
-      : currentStep === 3
-        ? stepThreeMissing
-        : [];
-    if ((currentStep === 2 && !stepTwoComplete) || (currentStep === 3 && !stepThreeComplete)) {
-      if (currentStep === 2) setStepTwoAttempted(true);
-      if (currentStep === 3) setStepThreeAttempted(true);
-      const targetId = attemptedMissing[0]?.targetId;
-      if (targetId && typeof document !== "undefined") {
-        const node = document.getElementById(targetId);
-        node?.scrollIntoView({ behavior: "smooth", block: "center" });
-        if (typeof node?.focus === "function") node.focus({ preventScroll: true });
+    if (currentStep === 1) {
+      if (!stepOneComplete) return;
+      setCurrentStep(nextWizardStep(1, { stepOneComplete, configComplete: stepFiveComplete }));
+      return;
+    }
+    if (isContinuousConfigStep(currentStep)) {
+      if (!stepFiveComplete) {
+        setStepTwoAttempted(true);
+        setStepThreeAttempted(true);
+        const groupKey = firstIncompleteGroupKey({
+          stepTwoMissing,
+          stepThreeMissing,
+          stepFourComplete,
+          stepFiveComplete,
+          selections,
+        });
+        scrollToConfigGroup(groupKey);
+        return;
       }
+      setStepTwoAttempted(false);
+      setStepThreeAttempted(false);
+      setCurrentStep(nextWizardStep(currentStep, { stepOneComplete, configComplete: true }));
       return;
     }
     if (!canContinue) return;
-    if (currentStep === 2) setStepTwoAttempted(false);
-    if (currentStep === 3) setStepThreeAttempted(false);
     setCurrentStep((step) => Math.min(step + 1, totalSteps));
   };
 
   const goBack = () => {
     if (submitStatus === "success" || submitStatus === "submitting") return;
-    setCurrentStep((step) => Math.max(step - 1, 1));
+    setCurrentStep((step) => previousWizardStep(step));
   };
 
   const goToStep = (step) => {
