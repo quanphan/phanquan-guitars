@@ -11,7 +11,6 @@ import {
   TextureLoader,
   Vector3,
 } from "three";
-import { SkeletonUtils } from "three/addons/utils/SkeletonUtils.js";
 import {
   DEFAULT_3D_CAMERA,
   GUITAR_3D_SLOTS,
@@ -153,7 +152,7 @@ function GuitarModel({ model, materials }) {
   const gltf = useGLTF(model.url);
   const textures = useTextureMap(collectMapUrls(materials));
   const signature = guitar3dMaterialSignature(materials);
-  const clone = useMemo(() => SkeletonUtils.clone(gltf.scene), [gltf.scene]);
+  const clone = useMemo(() => gltf.scene.clone(true), [gltf.scene]);
 
   useLayoutEffect(() => {
     const box = new Box3().setFromObject(clone);
