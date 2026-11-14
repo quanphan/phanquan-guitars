@@ -120,7 +120,7 @@ function toWizardOption(option) {
     defaultForInstrumentTypeIds: Array.isArray(option.defaultForInstrumentTypeIds)
       ? option.defaultForInstrumentTypeIds
       : [],
-    sortOrder: option.sortOrder || 0,
+    sortOrder: normalizeWizardSortOrder(option.sortOrder),
     kind: attributes.kind,
     value: attributes.value,
     display: attributes.display,
@@ -156,6 +156,40 @@ export function wizardChoiceKey(option) {
   return [option?.optionId, option?.code, option?.id].filter((part) => part != null && String(part) !== "").join(":");
 }
 
+export function normalizeWizardSortOrder(value, fallback = 0) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric < 0) return fallback;
+  return Math.trunc(numeric);
+}
+
+export function compareWizardOptions(left, right, leftIndex = 0, rightIndex = 0) {
+  const order = normalizeWizardSortOrder(left?.sortOrder) - normalizeWizardSortOrder(right?.sortOrder);
+  if (order !== 0) return order;
+  if (leftIndex !== rightIndex) return leftIndex - rightIndex;
+  return String(left?.code || left?.id || "").localeCompare(String(right?.code || right?.id || ""), "en");
+}
+
+export function sortWizardOptions(options) {
+  return (options || [])
+    .map((option, index) => ({ option, index }))
+    .sort((left, right) => compareWizardOptions(left.option, right.option, left.index, right.index))
+    .map((item) => item.option);
+}
+
+export function withSortedWizardCategoryOptions(categories) {
+  return (categories || []).map((category) => ({
+    ...category,
+    options: sortWizardOptions(category.options),
+  }));
+}
+
+export function nextWizardSortOrder(options) {
+  return (options || []).reduce((max, option) => {
+    const value = normalizeWizardSortOrder(option?.sortOrder);
+    return value > max ? value : max;
+  }, -1) + 1;
+}
+
 export function uniqueCatalogOptions(options) {
   const byId = new Map();
   const unique = [];
@@ -182,10 +216,11 @@ export function listsFromPublicCatalog(catalog) {
   for (const category of catalog.categories) {
     const key = CATEGORY_LIST_KEYS[category.id];
     if (!key) continue;
-    lists[key] = uniqueCatalogOptions(category.options || [])
-      .filter((option) => option && option.active !== false)
-      .map(toWizardOption)
-      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    lists[key] = sortWizardOptions(
+      uniqueCatalogOptions(category.options || [])
+        .filter((option) => option && option.active !== false)
+        .map(toWizardOption),
+    );
   }
   return Object.keys(lists).length ? lists : null;
 }

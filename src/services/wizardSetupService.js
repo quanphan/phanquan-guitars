@@ -1,4 +1,5 @@
 import { isCustomBuildApiConfigured } from "../config/api.js";
+import { withSortedWizardCategoryOptions } from "../data/wizardCatalog.js";
 import { requestJson } from "./apiClient.js";
 
 function failure(result, fallback = "failure") {
@@ -46,7 +47,7 @@ function logSetup(event, detail) {
 export async function listWizardSetup(request) {
   const result = await request("/api/admin/custom-build/setup");
   if (!result.ok || result.payload?.success !== true) return { ...failure(result), categories: [] };
-  return { ok: true, categories: result.payload.data?.categories || [] };
+  return { ok: true, categories: withSortedWizardCategoryOptions(result.payload.data?.categories || []) };
 }
 
 export async function getWizardCategory(request, categoryId) {

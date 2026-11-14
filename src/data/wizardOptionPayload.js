@@ -1,4 +1,4 @@
-import { COMPATIBILITY_FIELDS, optionMatchesAlias } from "./wizardCatalog.js";
+import { COMPATIBILITY_FIELDS, normalizeWizardSortOrder, optionMatchesAlias } from "./wizardCatalog.js";
 import { allowedCompatibilityFields, keepAllowedCompatibility } from "./wizardSetupLayout.js";
 import {
   BODY_CONSTRUCTION_ATTR,
@@ -74,6 +74,7 @@ export function formFromWizardOption(option, categoryId, categories) {
     bodyConstruction: constructionListFromAttributes(option.attributes, BODY_CONSTRUCTION_ATTR),
     neckConstruction: constructionListFromAttributes(option.attributes, NECK_CONSTRUCTION_ATTR),
     compatibility: storedCompatibility(option.compatibility, categoryId, categories),
+    sortOrder: normalizeWizardSortOrder(option.sortOrder),
   };
 }
 
@@ -108,6 +109,7 @@ function sharedBody(form, { canScopeDefault, instrumentTypes, categories }) {
     },
     compatibility: compatibilityPayload(form.compatibility, form.categoryId, categories),
     attributes: attributesForForm(form),
+    sortOrder: normalizeWizardSortOrder(form.sortOrder),
   };
 }
 

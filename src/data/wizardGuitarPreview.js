@@ -93,6 +93,72 @@ export function isLinePixel(r, g, b, a = 255) {
   return lum < 72 && sat < 42;
 }
 
+/** True gold/ink stroke — not khaki body wash or leftover gray paper. */
+export function isGoldStrokePixel(r, g, b, a = 255) {
+  if (a < 24) return false;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const sat = max - min;
+  const lum = (r + g + b) / 3;
+  if (lum < 72 && sat < 42) return true;
+  return r >= 160 && sat >= 70 && b < r * 0.55 && g > r * 0.35 && g < r * 0.88 && max < 240;
+}
+
+const BODY_CREAM = [239, 230, 214];
+
+/**
+ * Rebuild a clean line-art PNG: keep gold strokes, punch true exterior to
+ * alpha 0, fill interior holes / gray paper / khaki wash with opaque cream.
+ */
+export function repairLineArtImageData(data, width, height) {
+  const count = width * height;
+  const opaque = new Uint8Array(count);
+  const keep = new Uint8Array(count);
+  for (let i = 0; i < count; i += 1) {
+    const offset = i * 4;
+    const r = data[offset];
+    const g = data[offset + 1];
+    const b = data[offset + 2];
+    const a = data[offset + 3];
+    if (a >= 40) opaque[i] = 1;
+    const sat = Math.max(r, g, b) - Math.min(r, g, b);
+    if (isGoldStrokePixel(r, g, b, a) || (isLinePixel(r, g, b, a) && sat >= 80)) {
+      keep[i] = 1;
+    }
+  }
+  const openAir = floodExterior(opaque, width, height);
+  let interiorCount = 0;
+  for (let i = 0; i < count; i += 1) {
+    if (!openAir[i]) interiorCount += 1;
+  }
+  const ratio = interiorCount / count;
+  if (ratio < 0.04 || ratio > 0.88) {
+    return { data: new Uint8ClampedArray(data), width, height, repaired: false };
+  }
+  const out = new Uint8ClampedArray(data);
+  for (let p = 0, i = 0; p < count; p += 1, i += 4) {
+    if (keep[p]) {
+      out[i] = data[i];
+      out[i + 1] = data[i + 1];
+      out[i + 2] = data[i + 2];
+      out[i + 3] = 255;
+      continue;
+    }
+    if (openAir[p]) {
+      out[i] = 0;
+      out[i + 1] = 0;
+      out[i + 2] = 0;
+      out[i + 3] = 0;
+      continue;
+    }
+    out[i] = BODY_CREAM[0];
+    out[i + 1] = BODY_CREAM[1];
+    out[i + 2] = BODY_CREAM[2];
+    out[i + 3] = 255;
+  }
+  return { data: out, width, height, repaired: true };
+}
+
 function dilateBinary(src, width, height) {
   const out = new Uint8Array(src.length);
   for (let y = 0; y < height; y += 1) {

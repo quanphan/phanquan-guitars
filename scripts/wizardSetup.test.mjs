@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
-import { interpretPublicCatalog, listsFromPublicCatalog, optionDescription, optionLabel, optionMatchesAlias, uniqueCatalogOptions, wizardChoiceKey, wizardOptionLabel } from "../src/data/wizardCatalog.js";
+import { interpretPublicCatalog, listsFromPublicCatalog, nextWizardSortOrder, optionDescription, optionLabel, optionMatchesAlias, sortWizardOptions, uniqueCatalogOptions, wizardChoiceKey, wizardOptionLabel } from "../src/data/wizardCatalog.js";
 import { hasConfiguredOptions, visibleSummaryRows } from "../src/data/wizardDisplay.js";
 import {
   addTargetCategoryId,
@@ -36,6 +36,8 @@ test("wizard setup copy exists in English and Vietnamese", () => {
   assert.equal(tFor("vi", "admin.wizardSetup.allGroups"), "Tất cả Group");
   assert.equal(tFor("en", "admin.wizardSetup.fields.wizardStep"), "Wizard step");
   assert.equal(tFor("en", "admin.wizardSetup.scaleTypes.custom"), "Custom Scale");
+  assert.equal(tFor("en", "admin.wizardSetup.columns.sortOrder"), "Sort Order");
+  assert.equal(tFor("vi", "admin.wizardSetup.fields.sortOrder"), "Thứ tự");
   assert.equal(tFor("vi", "admin.wizardSetup.selectAll"), "Tất cả");
   assert.equal(tFor("en", "admin.wizardSetup.selectAll"), "All");
   assert.equal(tFor("vi", "admin.wizardSetup.compatNone"), "Không có nhóm đứng trước.");
@@ -46,6 +48,18 @@ test("wizard setup copy exists in English and Vietnamese", () => {
   assert.equal(tFor("en", "customBuild.summary.customerSuppliedParts"), "Customer-supplied parts");
   assert.equal(tFor("en", "admin.wizardSetup.noImage"), "No image");
   assert.equal(tFor("vi", "admin.wizardSetup.noImage"), "Không có ảnh");
+});
+
+test("wizard options sort by sortOrder and keep the original order when values tie", () => {
+  const sorted = sortWizardOptions([
+    { id: "z", sortOrder: 0 },
+    { id: "a", sortOrder: null },
+    { id: "m", sortOrder: 4 },
+    { id: "b", sortOrder: 1 },
+  ]);
+  assert.deepEqual(sorted.map((item) => item.id), ["z", "a", "b", "m"]);
+  assert.equal(nextWizardSortOrder(sorted), 5);
+  assert.equal(nextWizardSortOrder([]), 0);
 });
 
 test("public catalog keeps one radius per database option id and does not clone by series", () => {
@@ -82,6 +96,21 @@ test("public catalog keeps one radius per database option id and does not clone 
     filterOptions(lists.radii, selected, seriesLists, "radius").map((item) => item.id),
     ["16", "16-2", "12"],
   );
+});
+
+test("public catalog lists follow stored sortOrder after compatibility filtering", () => {
+  const lists = listsFromPublicCatalog({
+    categories: [{
+      id: "body-wood",
+      options: [
+        { id: "body-wood.teak", code: "teak", name: "Teak", active: true, sortOrder: 5 },
+        { id: "body-wood.alder", code: "alder", name: "Alder", active: true, sortOrder: 1 },
+        { id: "body-wood.hidden", code: "hidden", name: "Hidden", active: false, sortOrder: 0 },
+        { id: "body-wood.maple", code: "maple", name: "Maple", active: true, sortOrder: 1 },
+      ],
+    }],
+  });
+  assert.deepEqual(lists.bodyWoods.map((item) => item.id), ["alder", "maple", "teak"]);
 });
 
 test("uniqueCatalogOptions does not merge different database ids that share a name", () => {
@@ -609,6 +638,23 @@ test("wizard setup tabs and group filters follow API category steps", () => {
 
   const inactive = filterWizardSetupRows({ categories, stepId: "1", groupId: "", status: "inactive", search: "" });
   assert.deepEqual(inactive.map((row) => row.option.id), ["series.headless"]);
+
+  const sortedRows = filterWizardSetupRows({
+    categories: [{
+      id: "body-shape",
+      step: 1,
+      options: [
+        { id: "body-shape.b", code: "b", name: "B", sortOrder: 2 },
+        { id: "body-shape.a", code: "a", name: "A", sortOrder: 0 },
+        { id: "body-shape.c", code: "c", name: "C" },
+      ],
+    }],
+    stepId: "1",
+    groupId: "body-shape",
+    status: "",
+    search: "",
+  });
+  assert.deepEqual(sortedRows.map((row) => row.option.id), ["body-shape.a", "body-shape.c", "body-shape.b"]);
 
   assert.equal(
     addTargetCategoryId("series", steps.find((item) => item.id === "1").categories, groupsWithOptions(steps[0].categories)),

@@ -19,6 +19,8 @@ import {
 import { scaleListSummary } from "../../data/wizardScaleAttributes.js";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue.js";
 import { useLanguage } from "../../i18n/LanguageContext.jsx";
+import ProductSttCell from "../../components/admin/ProductSttCell.jsx";
+import { normalizeWizardSortOrder } from "../../data/wizardCatalog.js";
 import {
   blockedDeleteBody,
   canStartExclusiveAction,
@@ -59,6 +61,7 @@ export default function AdminCustomBuildSetup() {
   const [pendingDelete, setPendingDelete] = useState(null);
   const [deleteError, setDeleteError] = useState(null);
   const [busyId, setBusyId] = useState(null);
+  const [rowState, setRowState] = useState({});
   const [deleting, setDeleting] = useState(false);
   const canRead = hasPermission("catalog.read");
   const canWrite = hasPermission("catalog.write");
@@ -144,6 +147,34 @@ export default function AdminCustomBuildSetup() {
       return;
     }
     setNotice("saved");
+    await load({ silent: true });
+  }
+
+  function patchRow(key, patch) {
+    setRowState((current) => ({ ...current, [key]: { ...current[key], ...patch } }));
+  }
+
+  async function saveSortOrder(category, option, result) {
+    if (!canWrite || !canStartExclusiveAction(busyId || deleting)) return;
+    const key = wizardSetupRowKey(category.id, option);
+    if (!result.ok) {
+      patchRow(key, { sttStatus: "error", sttMessage: t("admin.catalog.sttInvalid") });
+      return;
+    }
+    setBusyId(key);
+    patchRow(key, { sttSaving: true, sttStatus: "saving", sttMessage: t("admin.catalog.saving") });
+    const saved = await updateWizardOption(authorizedRequest, category.id, option.id, {
+      sortOrder: normalizeWizardSortOrder(result.value),
+    }, option);
+    setBusyId(null);
+    if (!saved.ok) {
+      patchRow(key, { sttSaving: false, sttStatus: "error", sttMessage: errorText(t, "admin.wizardSetup", saved.code) });
+      setError(saved.code);
+      await load({ silent: true });
+      return;
+    }
+    patchRow(key, { sttSaving: false, sttStatus: "saved", sttMessage: t("admin.wizardSetup.notices.sortOrderUpdated") });
+    setNotice("sortOrderUpdated");
     await load({ silent: true });
   }
 
@@ -343,6 +374,7 @@ export default function AdminCustomBuildSetup() {
                   <th className="px-4 py-3 font-medium">{t("admin.catalog.columns.image")}</th>
                   <th className="px-4 py-3 font-medium">{t("admin.catalog.columns.status")}</th>
                   <th className="px-4 py-3 font-medium">{t("admin.wizardSetup.columns.default")}</th>
+                  <th className="px-4 py-3 font-medium">{t("admin.wizardSetup.columns.sortOrder")}</th>
                   <th className="px-4 py-3 font-medium">
                     <span className="sr-only">{t("admin.catalog.columns.actions")}</span>
                   </th>
@@ -351,8 +383,10 @@ export default function AdminCustomBuildSetup() {
               <tbody>
                 {rows.map(({ category, option }) => {
                   const label = language === "vi" ? option.translations?.vi?.name || option.name : option.translations?.en?.name || option.name;
+                  const rowKey = wizardSetupRowKey(category.id, option);
+                  const row = rowState[rowKey] || {};
                   return (
-                    <tr key={wizardSetupRowKey(category.id, option)} className="border-t border-white/8">
+                    <tr key={rowKey} className="border-t border-white/8">
                       <td className="px-4 py-3 text-muted">{groupLabel(t, category)}</td>
                       <td className="px-4 py-3">
                         <Link to={`/admin/custom-build-setup/${category.id}/${encodeURIComponent(option.id)}${listQuery}${listQuery ? "&" : "?"}optionCode=${encodeURIComponent(option.code || "")}`} className="text-gold hover:text-gold-light">
@@ -377,13 +411,23 @@ export default function AdminCustomBuildSetup() {
                         ) : null}
                       </td>
                       <td className="px-4 py-3">
+                        <ProductSttCell
+                          value={normalizeWizardSortOrder(option.sortOrder)}
+                          disabled={!canWrite}
+                          saving={row.sttSaving}
+                          status={row.sttMessage}
+                          message={row.sttStatus === "saved" || row.sttStatus === "error" ? row.sttMessage : null}
+                          onSave={(result) => void saveSortOrder(category, option, result)}
+                        />
+                      </td>
+                      <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-3">
                           {canWrite ? (
                             <>
-                              <button type="button" disabled={busyId === wizardSetupRowKey(category.id, option)} className="text-[11px] uppercase tracking-[0.16em] text-gold" onClick={() => void toggleActive(category, option)}>
+                              <button type="button" disabled={busyId === rowKey} className="text-[11px] uppercase tracking-[0.16em] text-gold" onClick={() => void toggleActive(category, option)}>
                                 {option.active === false ? t("admin.catalog.activate") : t("admin.catalog.deactivate")}
                               </button>
-                              <button type="button" disabled={busyId === wizardSetupRowKey(category.id, option)} className="text-[11px] uppercase tracking-[0.16em] text-ivory/70 hover:text-gold" onClick={() => void duplicate(category, option)}>
+                              <button type="button" disabled={busyId === rowKey} className="text-[11px] uppercase tracking-[0.16em] text-ivory/70 hover:text-gold" onClick={() => void duplicate(category, option)}>
                                 {t("admin.catalog.copy")}
                               </button>
                             </>

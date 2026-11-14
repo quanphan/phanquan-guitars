@@ -1,6 +1,7 @@
 import { humanizeOptionId, optionDescription, optionLabel, translatedLabel } from "../../../data/wizardCatalog.js";
 import { useLanguage } from "../../../i18n/LanguageContext.jsx";
 import ChoiceButton from "../ChoiceButton.jsx";
+import ChoiceSwatch from "../ChoiceSwatch.jsx";
 import OptionChips from "../OptionChips.jsx";
 
 function Section({ title, children }) {
@@ -117,10 +118,9 @@ export default function StepFinishDetails({
                     description={optionDescription(color, language)}
                     className="flex min-w-0 max-w-full items-center gap-3 px-3 py-3 text-[11px] uppercase tracking-[0.16em]"
                   >
-                    <span
+                    <ChoiceSwatch
+                      option={{ id: color.id, label: name, swatch: color.swatch }}
                       className="size-7 shrink-0 border border-white/20"
-                      style={{ backgroundColor: color.swatch }}
-                      aria-hidden="true"
                     />
                     {name}
                   </ChoiceButton>

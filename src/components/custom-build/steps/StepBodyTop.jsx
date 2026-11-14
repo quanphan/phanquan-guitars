@@ -17,7 +17,7 @@ function WoodCard({ wood, selected, onSelect, t, language }) {
       selected={selected}
       onSelect={onSelect}
       label={name}
-      className="flex h-full flex-col overflow-hidden p-0"
+      className="flex h-full flex-col overflow-visible p-0"
     >
       {wood.image ? (
         <FitImage

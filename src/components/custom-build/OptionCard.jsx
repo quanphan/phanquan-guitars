@@ -14,10 +14,10 @@ export default function OptionCard({
       aria-checked={selected}
       aria-label={name ?? title}
       onClick={onSelect}
-      className={`flex h-full flex-col overflow-hidden border text-left transition-colors duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
+      className={`flex h-full flex-col overflow-visible border text-left transition-[border-color,box-shadow,color] duration-75 ease-out focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${
         selected
           ? "border-gold bg-gold/10"
-          : "border-white/10 bg-panel/70 hover:border-gold/40"
+          : "border-white/10 bg-panel/70 hover:border-gold hover:text-gold hover:shadow-[0_0_0_2px_rgba(198,161,91,0.9),0_6px_20px_rgba(198,161,91,0.35)]"
       }`}
     >
       <div className="relative overflow-hidden">{visual}</div>

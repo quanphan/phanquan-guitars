@@ -4,8 +4,10 @@ import {
   buildLineArtInteriorMask,
   fillPreviewFromImageData,
   guitarPreviewLayerSrcs,
+  isGoldStrokePixel,
   isLinePixel,
   previewCanvasSrc,
+  repairLineArtImageData,
   resolveGuitarPreview,
 } from "../src/data/wizardGuitarPreview.js";
 import { buildLiveConfigGroups } from "../src/data/wizardLiveConfig.js";
@@ -126,6 +128,56 @@ test("line-art interior mask fills white body and keeps gold outline", () => {
 test("pale cream body fill is not treated as a gold outline", () => {
   assert.equal(isLinePixel(196, 148, 48), true);
   assert.equal(isLinePixel(234, 223, 198), false);
+  assert.equal(isGoldStrokePixel(196, 148, 48), true);
+  assert.equal(isGoldStrokePixel(187, 170, 126), false);
+});
+
+test("repair fills interior holes and leftover gray paper, keeps gold strokes", () => {
+  const width = 40;
+  const height = 40;
+  const drawing = goldRectDrawing(width, height);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const inside = x >= 8 && x <= 31 && y >= 6 && y <= 33;
+      if (inside) continue;
+      const i = (y * width + x) * 4;
+      drawing[i] = 0;
+      drawing[i + 1] = 0;
+      drawing[i + 2] = 0;
+      drawing[i + 3] = 0;
+    }
+  }
+  for (let y = 18; y <= 22; y += 1) {
+    for (let x = 18; x <= 22; x += 1) {
+      const i = (y * width + x) * 4;
+      drawing[i] = 0;
+      drawing[i + 1] = 0;
+      drawing[i + 2] = 0;
+      drawing[i + 3] = 0;
+    }
+  }
+  const paper = (16 * width + 16) * 4;
+  drawing[paper] = 153;
+  drawing[paper + 1] = 152;
+  drawing[paper + 2] = 149;
+  drawing[paper + 3] = 255;
+  const khaki = (20 * width + 14) * 4;
+  drawing[khaki] = 187;
+  drawing[khaki + 1] = 170;
+  drawing[khaki + 2] = 126;
+  drawing[khaki + 3] = 255;
+
+  const repaired = repairLineArtImageData(drawing, width, height);
+  assert.equal(repaired.repaired, true);
+  const gap = (20 * width + 20) * 4;
+  assert.equal(repaired.data[gap + 3], 255);
+  assert.equal(repaired.data[gap], 239);
+  assert.equal(repaired.data[paper + 3], 255);
+  assert.equal(repaired.data[paper], 239);
+  assert.equal(repaired.data[khaki], 239);
+  const line = (8 * width + 8) * 4;
+  assert.equal(repaired.data[line], 196);
+  assert.equal(repaired.data[3], 0);
 });
 
 test("wood and finish color apply inside the drawing and leave the background", () => {

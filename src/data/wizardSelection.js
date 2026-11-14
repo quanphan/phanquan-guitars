@@ -1,4 +1,4 @@
-import { LIST_CATEGORY_IDS } from "./wizardCatalog.js";
+import { LIST_CATEGORY_IDS, sortWizardOptions } from "./wizardCatalog.js";
 import { pickConfiguredOption } from "./wizardDefaults.js";
 import { isCustomScale } from "./wizardScaleAttributes.js";
 import {
@@ -184,7 +184,9 @@ export function clearStepFourOptions(next) {
 export function filterOptions(options, selections, lists = {}, categoryId) {
   if (!Array.isArray(options)) return [];
   const resolved = categoryId || inferCategoryId(options);
-  return options.filter((option) => isActiveOption(option) && optionMatches(option, selections, lists, resolved));
+  return sortWizardOptions(
+    options.filter((option) => isActiveOption(option) && optionMatches(option, selections, lists, resolved)),
+  );
 }
 
 export function listedTuners(lists, selections) {

@@ -271,6 +271,7 @@ test("create payloads still include a code and sanitize newly selected compatibi
     categories,
   });
   assert.equal(body.code, "new-line");
+  assert.equal(body.sortOrder, 0);
   assert.deepEqual(body.compatibility.instrumentTypeIds, ["electric-guitar"]);
 });
 

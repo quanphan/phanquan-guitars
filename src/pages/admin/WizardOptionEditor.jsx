@@ -11,7 +11,7 @@ import SeriesNameAutocomplete from "../../components/admin/SeriesNameAutocomplet
 import Field from "../../components/auth/Field.jsx";
 import Button from "../../components/Button.jsx";
 import PageHeader from "../../components/PageHeader.jsx";
-import { COMPATIBILITY_FIELDS } from "../../data/wizardCatalog.js";
+import { COMPATIBILITY_FIELDS, nextWizardSortOrder, normalizeWizardSortOrder } from "../../data/wizardCatalog.js";
 import {
   categoryStepId,
   compatibilityEditorOptions,
@@ -69,6 +69,7 @@ const emptyForm = {
   bodyConstruction: [],
   neckConstruction: [],
   compatibility: emptyCompatibility(),
+  sortOrder: 0,
 };
 
 export default function WizardOptionEditor() {
@@ -105,6 +106,13 @@ export default function WizardOptionEditor() {
     }
     setCategories(listed.categories);
     if (isNew) {
+      const siblings = listed.categories.find((item) => item.id === (categoryId || "instrument-type"))?.options || [];
+      setForm({
+        ...emptyForm,
+        categoryId: categoryId || "instrument-type",
+        sortOrder: nextWizardSortOrder(siblings),
+        compatibility: emptyCompatibility(),
+      });
       setScaleForm(emptyScaleForm((categoryId || "instrument-type") === "scale" ? "custom" : "single"));
       setLoading(false);
       return;
@@ -174,9 +182,11 @@ export default function WizardOptionEditor() {
   }, [authorizedRequest, seriesNameAutocomplete]);
 
   function setCategory(nextId) {
+    const siblings = categories.find((item) => item.id === nextId)?.options || [];
     setForm((current) => ({
       ...current,
       categoryId: nextId,
+      sortOrder: nextWizardSortOrder(siblings),
       compatibility: keepAllowedCompatibility(current.compatibility, nextId, categories),
       defaultForInstrumentTypeIds: nextId === "instrument-type" ? [] : current.defaultForInstrumentTypeIds,
     }));
@@ -317,6 +327,14 @@ export default function WizardOptionEditor() {
             {isIdentifierLocked(isNew) ? (
               <p className="-mt-3 text-xs text-muted">{t("admin.wizardSetup.codeLocked")}</p>
             ) : null}
+            <Field
+              id="wizard-sort-order"
+              label={t("admin.wizardSetup.fields.sortOrder")}
+              type="number"
+              value={String(form.sortOrder ?? 0)}
+              onChange={(value) => setField("sortOrder", normalizeWizardSortOrder(value))}
+              error={fieldErrors.sortOrder}
+            />
             <Field
               id="wizard-desc-en"
               label={t("admin.catalog.fields.description")}

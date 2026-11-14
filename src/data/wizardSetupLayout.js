@@ -1,4 +1,11 @@
-import { COMPATIBILITY_FIELDS, WIZARD_SETUP_GROUPS, optionAlias, optionMatchesAlias } from "./wizardCatalog.js";
+import {
+  COMPATIBILITY_FIELDS,
+  WIZARD_SETUP_GROUPS,
+  compareWizardOptions,
+  optionAlias,
+  optionMatchesAlias,
+  sortWizardOptions,
+} from "./wizardCatalog.js";
 
 export const UNASSIGNED_STEP_ID = "unassigned";
 
@@ -73,7 +80,7 @@ export function filterWizardSetupRows({ categories, stepId, groupId, status, sea
     .flatMap((category) => {
       if (stepId && categoryStepId(category) !== String(stepId)) return [];
       if (groupId && category.id !== groupId) return [];
-      return (category.options || []).map((option) => ({ category, option }));
+      return sortWizardOptions(category.options).map((option) => ({ category, option }));
     })
     .filter(({ option }) => {
       if (status === "active" && option.active === false) return false;
@@ -99,7 +106,7 @@ export function orderedGroupIds(categories) {
     const knownA = Number.isFinite(stepA) ? stepA : Number.MAX_SAFE_INTEGER;
     const knownB = Number.isFinite(stepB) ? stepB : Number.MAX_SAFE_INTEGER;
     if (knownA !== knownB) return knownA - knownB;
-    return (a.sortOrder || 0) - (b.sortOrder || 0) || String(a.id).localeCompare(String(b.id));
+    return compareWizardOptions(a, b);
   });
   return [...known, ...extra.map((item) => item.id)];
 }
@@ -174,7 +181,7 @@ export function isActiveSetupOption(option) {
 }
 
 export function compatibilityEditorOptions(options) {
-  return (options || []).filter(isActiveSetupOption);
+  return sortWizardOptions((options || []).filter(isActiveSetupOption));
 }
 
 export function keepAllowedCompatibility(compatibility, categoryId, categories) {

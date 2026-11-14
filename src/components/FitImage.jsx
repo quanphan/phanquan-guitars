@@ -36,5 +36,10 @@ export default function FitImage({
   );
 
   if (!frameClassName) return image;
-  return <div className={`overflow-hidden bg-ink ${frameClassName}`}>{image}</div>;
+  const hasBg = /\bbg-/.test(frameClassName);
+  return (
+    <div className={`overflow-hidden ${hasBg ? "" : "bg-ink"} ${frameClassName}`.trim()}>
+      {image}
+    </div>
+  );
 }

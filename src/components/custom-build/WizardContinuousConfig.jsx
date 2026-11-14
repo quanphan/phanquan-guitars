@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { mediaUrl } from "../../config/api.js";
 import { fieldClass } from "../auth/Field.jsx";
 import FitImage from "../FitImage.jsx";
+import { choiceSwatchCss } from "../../data/choiceSwatch.js";
 import { choiceImageSrc } from "../../data/wizardCatalog.js";
 import {
   CONFIG_GROUP_TARGET_ID,
@@ -15,6 +16,7 @@ import {
   isValidFretCountSelection,
 } from "../../data/wizardScaleAttributes.js";
 import ChoiceButton from "./ChoiceButton.jsx";
+import ChoiceSwatch from "./ChoiceSwatch.jsx";
 
 function Chevron({ open }) {
   return (
@@ -30,9 +32,11 @@ function Chevron({ open }) {
 
 function OptionGrid({ group, onSelect, t }) {
   const hasImage = group.items?.some((item) => item.image);
-  const hasSwatch = group.items?.some((item) => item.swatch);
+  const inferNameSwatch = group.key === "finishColor" || group.key === "hardwareFinish";
+  const swatchOf = (item) => (inferNameSwatch ? choiceSwatchCss(item) : choiceSwatchCss({ swatch: item.swatch }));
+  const hasSwatch = group.items?.some((item) => swatchOf(item));
   return (
-    <div className={hasImage ? "grid gap-2 sm:grid-cols-2" : "flex flex-wrap gap-2"}>
+    <div className={hasImage ? "flex flex-wrap gap-3" : "flex flex-wrap gap-2"}>
       {group.items.map((item) => (
         <ChoiceButton
           key={item.id}
@@ -43,8 +47,10 @@ function OptionGrid({ group, onSelect, t }) {
             onSelect(group.selectKey, item.value);
           }}
           label={item.label}
-          className={`flex min-w-0 max-w-full flex-col overflow-hidden p-0 text-[11px] uppercase tracking-[0.12em] ${
-            hasImage ? "" : "px-3 py-2"
+          selectedFill={!hasImage}
+          quietBorder={hasImage}
+          className={`flex min-w-0 max-w-full flex-col p-0 text-[11px] uppercase tracking-[0.12em] ${
+            hasImage ? "group w-[300px] overflow-visible rounded-sm" : "overflow-visible px-3 py-2"
           }`}
         >
           {hasImage ? (
@@ -54,25 +60,24 @@ function OptionGrid({ group, onSelect, t }) {
                   src={choiceImageSrc(item.image, mediaUrl)}
                   alt=""
                   fit="cover"
-                  frameClassName="aspect-[4/3] w-full"
+                  frameClassName="h-[200px] w-[300px] rounded-sm transition-[filter] duration-75 group-hover:brightness-110"
                   className="max-h-none max-w-none"
                 />
               ) : (
                 <div
-                  className="flex aspect-[4/3] w-full items-center justify-center bg-ink text-[10px] uppercase tracking-[0.18em] text-muted"
+                  className="flex h-[200px] w-[300px] items-center justify-center rounded-sm bg-ink text-[10px] uppercase tracking-[0.18em] text-muted"
                   aria-hidden="true"
                 >
                   {t("customBuild.step2.noImage")}
                 </div>
               )}
-              <span className="px-3 py-2 text-current">{item.label}</span>
+              <span className="px-1 py-2 text-current">{item.label}</span>
             </>
           ) : hasSwatch ? (
             <span className="flex items-center gap-2 px-3 py-2">
-              <span
-                className="size-6 shrink-0 border border-white/20"
-                style={item.swatch ? { backgroundColor: item.swatch } : undefined}
-                aria-hidden="true"
+              <ChoiceSwatch
+                option={inferNameSwatch ? item : { swatch: item.swatch }}
+                className="size-7 shrink-0 border border-white/20"
               />
               {item.label}
             </span>
@@ -184,7 +189,7 @@ function ConfigAccordion({ group, expanded, invalid, onToggle, onCollapse, build
         id={panelId}
         className={`grid transition-[grid-template-rows] duration-200 ease-out ${expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
       >
-        <div className={`min-h-0 overflow-hidden ${expanded ? "" : "pointer-events-none"}`} aria-hidden={!expanded}>
+        <div className={`min-h-0 ${expanded ? "overflow-visible" : "overflow-hidden pointer-events-none"}`} aria-hidden={!expanded}>
           <div className="pb-4">
             {group.items?.length && group.selectable ? (
               <OptionGrid
