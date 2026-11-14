@@ -2,54 +2,37 @@ import { useState } from "react";
 import GuitarPreviewFrame from "./GuitarPreviewFrame.jsx";
 import WizardConfigSummaryModal from "./WizardConfigSummaryModal.jsx";
 
-const controlClass =
-  "min-w-[7.5rem] flex-1 px-2 py-2 text-center text-[10px] uppercase tracking-[0.16em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold sm:text-[11px] sm:tracking-[0.18em]";
+const captionClass =
+  "px-1 py-1 text-[10px] uppercase tracking-[0.2em] sm:text-[11px] sm:tracking-[0.22em]";
 
 export default function WizardLivePanel({
   builder,
   t,
   language,
-  onReset,
-  resetDisabled,
-  side,
-  onSideChange,
   className = "",
+  slot = "any",
 }) {
-  const [uncontrolledSide, setUncontrolledSide] = useState("front");
   const [summaryOpen, setSummaryOpen] = useState(false);
-  const currentSide = side ?? uncontrolledSide;
-  const setSide = onSideChange ?? setUncontrolledSide;
-  const showingBack = currentSide === "back";
 
   return (
     <>
       <aside className={className} aria-live="polite">
-        <GuitarPreviewFrame builder={builder} t={t} side={currentSide} />
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={onReset}
-            disabled={resetDisabled}
-            className={`${controlClass} ${
-              resetDisabled ? "cursor-not-allowed text-muted/40" : "text-muted hover:text-gold"
-            }`}
-          >
-            {t("customBuild.reset")}
-          </button>
+        <GuitarPreviewFrame builder={builder} t={t} side="front" slot={slot} />
+        <div className="mt-4 flex items-center justify-between gap-4 border-t border-gold/15 pt-3">
           <button
             type="button"
             onClick={() => setSummaryOpen(true)}
-            className={`${controlClass} text-gold hover:text-ivory`}
+            className={`${captionClass} text-gold transition-colors hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold`}
           >
             {t("customBuild.summary.viewSummary")}
           </button>
           <button
             type="button"
-            onClick={() => setSide(showingBack ? "front" : "back")}
-            className={`${controlClass} text-muted hover:text-gold`}
-            aria-pressed={showingBack}
+            disabled
+            aria-disabled="true"
+            className={`${captionClass} cursor-not-allowed text-muted/35`}
           >
-            {showingBack ? t("customBuild.summary.flipToFront") : t("customBuild.summary.flipToBack")}
+            {t("customBuild.summary.flipToBack")}
           </button>
         </div>
       </aside>

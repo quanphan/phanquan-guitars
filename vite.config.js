@@ -44,5 +44,9 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       proxy,
     },
+    assetsInclude: ["**/*.glb", "**/*.gltf"],
+    optimizeDeps: {
+      include: ["three", "@react-three/fiber", "@react-three/drei"],
+    },
   };
 });

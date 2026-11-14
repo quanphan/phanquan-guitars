@@ -1482,6 +1482,11 @@ export const translations = {
           "A back drawing for this body shape is not available yet. The front view stays on Flip to front.",
         flipToBack: "Flip to back",
         flipToFront: "Flip to front",
+        preview3dLoading: "Loading 3D model",
+        preview3dReset: "Reset view",
+        preview3dErrorTitle: "3D preview unavailable",
+        preview3dError:
+          "The 3D viewer could not start. The existing guitar drawing stays in this panel.",
       },
       continuous: {
         heading: "Configure the instrument",
@@ -4002,6 +4007,11 @@ export const translations = {
           "Chưa có bản vẽ mặt sau cho dáng thân này. Bấm Flip to front để xem mặt trước.",
         flipToBack: "Flip to back",
         flipToFront: "Flip to front",
+        preview3dLoading: "Đang tải mô hình 3D",
+        preview3dReset: "Đặt lại góc nhìn",
+        preview3dErrorTitle: "Không xem được 3D",
+        preview3dError:
+          "Trình xem 3D không khởi động được. Panel này giữ bản vẽ đàn hiện có.",
       },
       continuous: {
         heading: "Cấu hình cây đàn",

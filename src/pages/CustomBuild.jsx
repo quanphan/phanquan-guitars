@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import WizardLivePanel from "../components/custom-build/WizardLivePanel.jsx";
 import StepInstrumentShape from "../components/custom-build/steps/StepInstrumentShape.jsx";
 import StepReviewSubmit from "../components/custom-build/steps/StepReviewSubmit.jsx";
@@ -44,7 +44,6 @@ export default function CustomBuild() {
   }, [builder.submitStatus, builder.submitAttempt, builder.currentStep]);
 
   const showLivePanel = builder.currentStep > 1;
-  const [previewSide, setPreviewSide] = useState("front");
   function stepNav() {
     if (builder.catalogSource !== "live") return null;
     return (
@@ -52,6 +51,7 @@ export default function CustomBuild() {
         backTo={isFirstStep ? "/guitars" : undefined}
         onBack={isFirstStep ? undefined : builder.goBack}
         onContinue={builder.goNext}
+        onReset={builder.reset}
         continueDisabled={
           builder.currentStep > 1 && builder.currentStep < builder.totalSteps
             ? false
@@ -61,29 +61,28 @@ export default function CustomBuild() {
         backDisabled={
           builder.submitStatus === "submitting" || builder.submitStatus === "success"
         }
+        resetDisabled={builder.submitStatus === "submitting"}
         backLabel={t("customBuild.nav.back")}
         continueLabel={t("customBuild.nav.continue")}
+        resetLabel={t("customBuild.reset")}
       />
     );
   }
-  function livePanel(className) {
+  function livePanel(className, slot = "any") {
     if (!showLivePanel) return null;
     return (
       <WizardLivePanel
         builder={builder}
         t={t}
         language={language}
-        onReset={builder.reset}
-        resetDisabled={builder.submitStatus === "submitting"}
-        side={previewSide}
-        onSideChange={setPreviewSide}
         className={className}
+        slot={slot}
       />
     );
   }
 
   const configHeading = (
-    <p className="pt-5 pb-6 text-[13px] uppercase tracking-[0.2em] text-gold">
+    <p className="pt-4 pb-3 text-[13px] uppercase tracking-[0.2em] text-gold">
       {t("customBuild.summary.title")}
     </p>
   );
@@ -130,74 +129,73 @@ export default function CustomBuild() {
         ) : null}
 
         <div
-          className={`grid gap-8 pb-16 lg:gap-10 lg:pb-0 ${
+          className={`grid gap-8 lg:gap-10 ${
             showLivePanel ? "lg:grid-cols-[minmax(0,1.55fr)_minmax(16rem,0.85fr)]" : ""
           }`}
         >
           <div className="min-w-0">
-            <div className="sticky z-40 bg-charcoal pb-px max-lg:top-[9.25rem] lg:top-20">
-              <PageHeader
-                className="page-start"
-                eyebrow={t("customBuild.header.eyebrow")}
-                title={t("customBuild.header.heading")}
-              />
-              {livePanel("mt-6 lg:hidden")}
-              {builder.catalogSource === "live" ? (
-                <div className="page-follow">
-                  {stepNav()}
-                  {configHeading}
-                </div>
-              ) : null}
-            </div>
-
+            <PageHeader
+              className="page-start"
+              eyebrow={t("customBuild.header.eyebrow")}
+              title={t("customBuild.header.heading")}
+            />
+            {livePanel("mt-6 lg:hidden", "mobile")}
             {builder.catalogSource === "live" ? (
-              <div className="relative z-0">
-              {builder.currentStep === 1 ? (
-                  <StepInstrumentShape
-                    selections={builder.selections}
-                    instrumentTypes={builder.instrumentTypes}
-                    availableSeries={builder.availableSeries}
-                    availableShapes={builder.availableShapes}
-                    selectInstrumentType={builder.selectInstrumentType}
-                    selectSeries={builder.selectSeries}
-                    selectShape={builder.selectShape}
-                  />
-                ) : builder.currentStep > 1 && builder.currentStep < builder.totalSteps ? (
-                  <WizardContinuousConfig
-                    builder={builder}
-                    t={t}
-                    language={language}
-                  />
-                ) : (
-                  <StepReviewSubmit
-                    builder={builder}
-                    contactErrors={builder.contactErrors}
-                    submitIssues={builder.submitIssues}
-                    configIssueStep={builder.configIssueStep}
-                    submitStatus={builder.submitStatus}
-                    inquiryReference={builder.inquiryReference}
-                    inquiryConfigured={builder.inquiryConfigured}
-                    onEditSection={builder.goToStep}
-                    onSubmit={() => {
-                      void builder.submitInquiry(language);
-                    }}
-                    submitAttempt={builder.submitAttempt}
-                    setContactName={builder.setContactName}
-                    setContactEmail={builder.setContactEmail}
-                    setContactCountry={builder.setContactCountry}
-                    setContactPhone={builder.setContactPhone}
-                    setContactMessage={builder.setContactMessage}
-                    setAcknowledgement={builder.setAcknowledgement}
-                    setReferenceImages={builder.setReferenceImages}
-                  />
-                )}
-              </div>
+              <>
+                <div className="sticky z-40 bg-charcoal max-lg:top-[9.25rem] lg:top-20">
+                  <div className="pt-5 lg:pt-6">{stepNav()}</div>
+                </div>
+                {configHeading}
+                <div className="relative z-0">
+                  {builder.currentStep === 1 ? (
+                    <StepInstrumentShape
+                      selections={builder.selections}
+                      instrumentTypes={builder.instrumentTypes}
+                      availableSeries={builder.availableSeries}
+                      availableShapes={builder.availableShapes}
+                      selectInstrumentType={builder.selectInstrumentType}
+                      selectSeries={builder.selectSeries}
+                      selectShape={builder.selectShape}
+                    />
+                  ) : builder.currentStep > 1 && builder.currentStep < builder.totalSteps ? (
+                    <WizardContinuousConfig
+                      builder={builder}
+                      t={t}
+                      language={language}
+                    />
+                  ) : (
+                    <StepReviewSubmit
+                      builder={builder}
+                      contactErrors={builder.contactErrors}
+                      submitIssues={builder.submitIssues}
+                      configIssueStep={builder.configIssueStep}
+                      submitStatus={builder.submitStatus}
+                      inquiryReference={builder.inquiryReference}
+                      inquiryConfigured={builder.inquiryConfigured}
+                      onEditSection={builder.goToStep}
+                      onSubmit={() => {
+                        void builder.submitInquiry(language);
+                      }}
+                      submitAttempt={builder.submitAttempt}
+                      setContactName={builder.setContactName}
+                      setContactEmail={builder.setContactEmail}
+                      setContactCountry={builder.setContactCountry}
+                      setContactPhone={builder.setContactPhone}
+                      setContactMessage={builder.setContactMessage}
+                      setAcknowledgement={builder.setAcknowledgement}
+                      setReferenceImages={builder.setReferenceImages}
+                    />
+                  )}
+                </div>
+              </>
             ) : null}
           </div>
 
           {showLivePanel ? (
-            <div className="hidden min-h-0 lg:block">
-              <div className="sticky top-20">{livePanel("lg:pt-12")}</div>
+            <div className="hidden lg:block">
+              <aside className="fixed top-20 right-[max(2.5rem,calc((100vw-80rem)/2+2.5rem))] z-30 w-[calc((min(80rem,100vw)-7.5rem)*0.35417)] max-w-[26rem] bg-charcoal pt-5">
+                {livePanel("", "desktop")}
+              </aside>
             </div>
           ) : null}
         </div>

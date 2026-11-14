@@ -1,4 +1,51 @@
 import { choiceImageSrc } from "./wizardCatalog.js";
+import { isNoneTopOption, selectionAliases } from "./wizardSelection.js";
+
+/** Fallback tones when an option has no photo/swatch. Not used as shared grain. */
+const WOOD_TONES = {
+  alder: "#c4a06a",
+  mahogany: "#703c28",
+  "swamp-ash": "#d2c09a",
+  walnut: "#5a3a28",
+  "hard-maple": "#e6d3a8",
+  maple: "#ead8b0",
+  teak: "#9c6a38",
+  "flamed-maple": "#e2c48a",
+  "quilted-maple": "#e0c49a",
+  "exotic-figured": "#c48a4a",
+  exotic: "#b57a40",
+  "stabilized-burl": "#a45c32",
+  sapele: "#8a4a2e",
+  "flame-maple": "#e2c48a",
+};
+
+const FINISH_TONES = {
+  black: "#1a1a1a",
+  white: "#f3efe6",
+  vintage: "#e8dcc8",
+  "vintage-white": "#e8dcc8",
+  "natural-wood": "#8b5a2b",
+  "natural-amber-burst": "#c48a3a",
+};
+
+function optionLeafKeys(option) {
+  const keys = [];
+  for (const value of selectionAliases(option, option?.id)) {
+    const text = String(value);
+    keys.push(text.toLowerCase());
+    const dot = text.lastIndexOf(".");
+    if (dot >= 0) keys.push(text.slice(dot + 1).toLowerCase());
+  }
+  return keys;
+}
+
+function toneFromTable(option, table) {
+  if (!option) return "";
+  for (const key of optionLeafKeys(option)) {
+    if (table[key]) return table[key];
+  }
+  return "";
+}
 
 function optionImage(option) {
   if (!option || typeof option.image !== "string") return "";
@@ -36,10 +83,103 @@ function near(a, b, tolerance) {
   return Math.abs(a - b) <= tolerance;
 }
 
-function isLinePixel(r, g, b) {
+export function isLinePixel(r, g, b, a = 255) {
+  if (a < 12) return false;
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
-  return r > 130 && g > 90 && b < r * 0.88 && max - min > 22 && max < 250;
+  const sat = max - min;
+  if (r > 150 && g > 88 && g < r * 0.95 && b < r * 0.72 && sat > 40 && max < 230) return true;
+  const lum = (r + g + b) / 3;
+  return lum < 72 && sat < 42;
+}
+
+function dilateBinary(src, width, height) {
+  const out = new Uint8Array(src.length);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      let hit = 0;
+      for (let dy = -1; dy <= 1 && !hit; dy += 1) {
+        const ny = y + dy;
+        if (ny < 0 || ny >= height) continue;
+        for (let dx = -1; dx <= 1; dx += 1) {
+          const nx = x + dx;
+          if (nx < 0 || nx >= width) continue;
+          if (src[ny * width + nx]) {
+            hit = 1;
+            break;
+          }
+        }
+      }
+      out[y * width + x] = hit;
+    }
+  }
+  return out;
+}
+
+function floodExterior(blocked, width, height) {
+  const exterior = new Uint8Array(blocked.length);
+  const stack = [];
+  function seed(x, y) {
+    if (x < 0 || y < 0 || x >= width || y >= height) return;
+    const index = y * width + x;
+    if (blocked[index] || exterior[index]) return;
+    exterior[index] = 1;
+    stack.push(index);
+  }
+  for (let x = 0; x < width; x += 1) {
+    seed(x, 0);
+    seed(x, height - 1);
+  }
+  for (let y = 0; y < height; y += 1) {
+    seed(0, y);
+    seed(width - 1, y);
+  }
+  while (stack.length) {
+    const index = stack.pop();
+    const x = index % width;
+    const y = (index - x) / width;
+    seed(x - 1, y);
+    seed(x + 1, y);
+    seed(x, y - 1);
+    seed(x, y + 1);
+  }
+  return exterior;
+}
+
+/**
+ * Closed (or nearly closed) gold/ink outlines: interior is the region that
+ * edge flood-fill cannot reach. White body fill is included. Returns ok=false
+ * when the outline is too open so filling would paint the whole canvas.
+ */
+export function buildLineArtInteriorMask(data, width, height) {
+  const count = width * height;
+  const line = new Uint8Array(count);
+  for (let i = 0; i < count; i += 1) {
+    const offset = i * 4;
+    if (isLinePixel(data[offset], data[offset + 1], data[offset + 2], data[offset + 3])) {
+      line[i] = 1;
+    }
+  }
+
+  let dilated = line;
+  for (let pass = 0; pass < 3; pass += 1) dilated = dilateBinary(dilated, width, height);
+
+  const exterior = floodExterior(dilated, width, height);
+  const mask = new Uint8Array(count);
+  let interiorCount = 0;
+  for (let i = 0; i < count; i += 1) {
+    if (!exterior[i] && !line[i]) {
+      mask[i] = 1;
+      interiorCount += 1;
+    }
+  }
+  const ratio = interiorCount / count;
+  return {
+    mask,
+    line,
+    count: interiorCount,
+    ok: ratio >= 0.04 && ratio <= 0.88,
+  };
 }
 
 /**
@@ -73,16 +213,30 @@ export function resolveGuitarPreview(source = {}) {
     }
   }
   if (!guitar) return null;
+  const topWoodImage = isNoneTopOption(source.topWood) ? null : optionImage(source.topWood) || null;
+  const fillWoodOption = !isNoneTopOption(source.topWood) && (topWoodImage || toneFromTable(source.topWood, WOOD_TONES))
+    ? source.topWood
+    : source.bodyWood;
   return {
     ...guitar,
     imageBack: guitarBack?.imageBack || null,
     backSource: guitarBack?.backSource || null,
     layers: {
       bodyWoodImage: optionImage(source.bodyWood) || null,
-      topWoodImage: optionImage(source.topWood) || null,
-      finishSwatch: optionSwatch(source.finishColor) || null,
+      topWoodImage,
+      woodTone: toneFromTable(fillWoodOption, WOOD_TONES) || null,
+      finishSwatch: optionSwatch(source.finishColor) || toneFromTable(source.finishColor, FINISH_TONES) || null,
     },
   };
+}
+
+/** Keep /uploads on the page origin so canvas reads are not CORS-tainted. */
+export function previewCanvasSrc(url) {
+  if (!url || typeof url !== "string") return "";
+  const trimmed = url.trim();
+  if (trimmed.startsWith("/uploads/")) return trimmed;
+  const match = trimmed.match(/\/uploads\/[^\s?#]+/);
+  return match ? match[0] : trimmed;
 }
 
 export function guitarPreviewSrc(preview, resolveUpload, side = "front") {
@@ -98,40 +252,108 @@ export function guitarPreviewPath(preview, side = "front") {
 
 export function guitarPreviewLayerSrcs(preview, resolveUpload) {
   const layers = preview?.layers || {};
+  const topWood = layers.topWoodImage ? choiceImageSrc(layers.topWoodImage, resolveUpload) : "";
+  const bodyWood = layers.bodyWoodImage ? choiceImageSrc(layers.bodyWoodImage, resolveUpload) : "";
   return {
-    bodyWood: layers.bodyWoodImage ? choiceImageSrc(layers.bodyWoodImage, resolveUpload) : "",
-    topWood: layers.topWoodImage ? choiceImageSrc(layers.topWoodImage, resolveUpload) : "",
+    bodyWood,
+    topWood,
+    fillWood: topWood || bodyWood,
+    woodTone: layers.woodTone || "",
     finishSwatch: layers.finishSwatch || "",
   };
 }
 
-export function fillPreviewFromImageData(guitarData, fillData, tint, width, height) {
-  const out = new Uint8ClampedArray(guitarData);
-  const bg = { r: out[0], g: out[1], b: out[2] };
-  const color = parseHex(tint);
-  for (let i = 0; i < out.length; i += 4) {
-    const r = out[i];
-    const g = out[i + 1];
-    const b = out[i + 2];
-    if (near(r, bg.r, 26) && near(g, bg.g, 26) && near(b, bg.b, 26)) continue;
-    if (isLinePixel(r, g, b)) continue;
-    let nr = r;
-    let ng = g;
-    let nb = b;
-    const shade = 0.42 + (r + g + b) / (255 * 3) * 0.58;
-    if (fillData) {
-      nr = fillData[i] * shade;
-      ng = fillData[i + 1] * shade;
-      nb = fillData[i + 2] * shade;
+function tintChannel(value, tint, amount) {
+  return value * (1 - amount) + (value * tint) / 255 * amount;
+}
+
+function downsampleRgba(data, width, height, mw, mh) {
+  const out = new Uint8ClampedArray(mw * mh * 4);
+  for (let y = 0; y < mh; y += 1) {
+    const sy = Math.min(height - 1, Math.floor((y * height) / mh));
+    for (let x = 0; x < mw; x += 1) {
+      const sx = Math.min(width - 1, Math.floor((x * width) / mw));
+      const si = (sy * width + sx) * 4;
+      const di = (y * mw + x) * 4;
+      out[di] = data[si];
+      out[di + 1] = data[si + 1];
+      out[di + 2] = data[si + 2];
+      out[di + 3] = data[si + 3];
     }
-    if (color && !fillData) {
-      nr = (nr * color.r) / 255;
-      ng = (ng * color.g) / 255;
-      nb = (nb * color.b) / 255;
-    }
-    out[i] = nr;
-    out[i + 1] = ng;
-    out[i + 2] = nb;
   }
-  return { data: out, width, height };
+  return out;
+}
+
+export function fillPreviewFromImageData(guitarData, fillData, tint, width, height, woodTone) {
+  const out = new Uint8ClampedArray(guitarData);
+  const color = parseHex(tint);
+  const tone = parseHex(woodTone);
+  const longest = Math.max(width, height);
+  const maxEdge = 800;
+  const mw = longest > maxEdge ? Math.max(1, Math.round((width * maxEdge) / longest)) : width;
+  const mh = longest > maxEdge ? Math.max(1, Math.round((height * maxEdge) / longest)) : height;
+  const maskSource = mw === width && mh === height
+    ? guitarData
+    : downsampleRgba(guitarData, width, height, mw, mh);
+  const interior = buildLineArtInteriorMask(maskSource, mw, mh);
+  const useMask = interior.ok;
+  const bg = { r: out[0], g: out[1], b: out[2] };
+
+  for (let y = 0, p = 0, i = 0; y < height; y += 1) {
+    const my = Math.min(mh - 1, Math.round((y * mh) / height));
+    for (let x = 0; x < width; x += 1, p += 1, i += 4) {
+      const r = out[i];
+      const g = out[i + 1];
+      const b = out[i + 2];
+      const a = out[i + 3];
+      const mx = Math.min(mw - 1, Math.round((x * mw) / width));
+      const mp = my * mw + mx;
+      if (interior.line[mp] || isLinePixel(r, g, b, a)) continue;
+      const inside = useMask
+        ? interior.mask[mp]
+        : !(near(r, bg.r, 26) && near(g, bg.g, 26) && near(b, bg.b, 26));
+      if (!inside) continue;
+
+      let nr;
+      let ng;
+      let nb;
+      if (fillData) {
+        let fr = fillData[i];
+        let fg = fillData[i + 1];
+        let fb = fillData[i + 2];
+        const grain = (fr + fg + fb) / 3;
+        const contrast = 1.55;
+        fr = grain + (fr - grain) * contrast;
+        fg = grain + (fg - grain) * contrast;
+        fb = grain + (fb - grain) * contrast;
+        if (tone) {
+          const mix = 0.42;
+          fr = fr * (1 - mix) + tone.r * mix;
+          fg = fg * (1 - mix) + tone.g * mix;
+          fb = fb * (1 - mix) + tone.b * mix;
+        }
+        nr = fr;
+        ng = fg;
+        nb = fb;
+      } else if (tone) {
+        nr = tone.r;
+        ng = tone.g;
+        nb = tone.b;
+      } else {
+        nr = r;
+        ng = g;
+        nb = b;
+      }
+      if (color) {
+        const amount = fillData || tone ? 0.62 : 1;
+        nr = tintChannel(nr, color.r, amount);
+        ng = tintChannel(ng, color.g, amount);
+        nb = tintChannel(nb, color.b, amount);
+      }
+      out[i] = nr;
+      out[i + 1] = ng;
+      out[i + 2] = nb;
+    }
+  }
+  return { data: out, width, height, usedInteriorMask: useMask };
 }

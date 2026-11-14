@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { wizardSummarySections } from "../../data/wizardContinuous.js";
 import { buildLiveConfigGroups } from "../../data/wizardLiveConfig.js";
 
@@ -7,17 +8,37 @@ export default function WizardConfigSummaryModal({ open, builder, t, language, o
     () => (open ? buildLiveConfigGroups(builder, t, language) : []),
     [open, builder, t, language],
   );
-  const sections = useMemo(
-    () => wizardSummarySections(groups, builder.steps || []),
-    [groups, builder.steps],
-  );
+  const emptyLabel = t("customBuild.summary.empty");
+  const sections = useMemo(() => {
+    const all = wizardSummarySections(groups, builder.steps || []);
+    const visible = [];
+    let pendingHeading = null;
+    for (const section of all) {
+      if (section.type === "heading") {
+        pendingHeading = section;
+        continue;
+      }
+      const group = section.group;
+      const value = String(group?.value || "").trim();
+      if (!group?.filled || !value || value === emptyLabel) continue;
+      if (pendingHeading) {
+        visible.push(pendingHeading);
+        pendingHeading = null;
+      }
+      visible.push(section);
+    }
+    return visible;
+  }, [groups, builder.steps, emptyLabel]);
 
   useEffect(() => {
     if (!open) return undefined;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     function onKey(event) {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
     }
     document.addEventListener("keydown", onKey);
     return () => {
@@ -26,20 +47,16 @@ export default function WizardConfigSummaryModal({ open, builder, t, language, o
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-6"
-      role="presentation"
-      onClick={onClose}
-    >
+  return createPortal(
+    <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 sm:p-8" role="presentation">
+      <div className="absolute inset-0 bg-charcoal/80" aria-hidden="true" />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="wizard-config-summary-title"
-        className="flex max-h-[92vh] w-full max-w-lg flex-col border border-white/10 bg-panel sm:max-h-[85vh]"
-        onClick={(event) => event.stopPropagation()}
+        className="relative z-10 flex max-h-[min(88vh,40rem)] w-full max-w-lg flex-col border border-gold/40 bg-charcoal shadow-[0_18px_40px_rgba(0,0,0,0.45)]"
       >
         <div className="flex items-start justify-between gap-4 border-b border-white/10 px-5 py-4">
           <h2
@@ -50,19 +67,18 @@ export default function WizardConfigSummaryModal({ open, builder, t, language, o
           </h2>
           <button
             type="button"
-            className="shrink-0 px-2 py-1 text-sm text-muted transition-colors hover:text-gold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+            className="shrink-0 border border-gold/70 px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-gold transition-colors hover:bg-gold/10 hover:text-ivory focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
             onClick={onClose}
-            aria-label={t("customBuild.summary.closePanel")}
           >
-            ×
+            {t("customBuild.summary.closePanel")}
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-2">
-          <dl>
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-3">
+          <dl className="space-y-0">
             {sections.map((section) => {
               if (section.type === "heading") {
                 return (
-                  <div key={`heading-${section.step}`} className="pt-5 first:pt-3">
+                  <div key={`heading-${section.step}`} className="pt-4 pb-1 first:pt-1">
                     <p className="text-[11px] uppercase tracking-[0.22em] text-gold">
                       {t(`customBuild.steps.${section.key}`)}
                     </p>
@@ -73,12 +89,12 @@ export default function WizardConfigSummaryModal({ open, builder, t, language, o
               return (
                 <div
                   key={group.key}
-                  className="border-b border-white/8 py-3 last:border-b-0"
+                  className="flex items-baseline gap-2 border-b border-white/8 py-1.5 last:border-b-0"
                 >
-                  <dt className="text-[11px] uppercase tracking-[0.16em] text-muted">
-                    {group.label}
+                  <dt className="shrink-0 text-[12px] text-muted">
+                    {group.label}:
                   </dt>
-                  <dd className={`mt-1.5 text-sm ${group.filled ? "text-ivory" : "text-muted"}`}>
+                  <dd className={`min-w-0 text-sm ${group.filled ? "text-ivory" : "text-muted"}`}>
                     {group.value}
                   </dd>
                 </div>
@@ -87,6 +103,7 @@ export default function WizardConfigSummaryModal({ open, builder, t, language, o
           </dl>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

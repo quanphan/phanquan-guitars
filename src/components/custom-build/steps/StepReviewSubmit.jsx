@@ -16,6 +16,7 @@ import {
 import SocialChatShare from "../../social/SocialChatShare.jsx";
 import ReferenceImageField from "../ReferenceImageField.jsx";
 import { firstContactFieldId } from "../../../utils/customBuildSubmitFlow.js";
+import { applyScrollAction } from "../../../utils/scrollRestoration.js";
 import { debugSubmit } from "../../../utils/submitDebug.js";
 import {
   formatSelectionIssueLabel,
@@ -222,6 +223,13 @@ export default function StepReviewSubmit({
       : null;
 
   useEffect(() => {
+    if (!submitted) return;
+    applyScrollAction({ type: "top" });
+    const heading = document.getElementById("custom-build-submit-success");
+    heading?.focus?.({ preventScroll: true });
+  }, [submitted]);
+
+  useEffect(() => {
     if (submitted || submitting || submitAttempt < 1) return;
     const actionable =
       submitStatus === "invalid" ||
@@ -247,7 +255,11 @@ export default function StepReviewSubmit({
     <div>
       {submitted ? (
         <>
-          <h2 className="font-display text-3xl tracking-wide text-ivory sm:text-4xl">
+          <h2
+            id="custom-build-submit-success"
+            tabIndex={-1}
+            className="font-display text-3xl tracking-wide text-ivory sm:text-4xl"
+          >
             {t("customBuild.step6.successHeading")}
           </h2>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted sm:text-base">
@@ -261,14 +273,8 @@ export default function StepReviewSubmit({
         </>
       ) : (
         <>
-          <h2 className="font-display text-3xl tracking-wide text-ivory sm:text-4xl">
-            {t("customBuild.step6.heading")}
-          </h2>
-          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted sm:text-base">
+          <p className="max-w-2xl text-sm leading-relaxed text-muted sm:text-base">
             {t("customBuild.step6.description")}
-          </p>
-          <p className="mt-4 max-w-2xl text-xs leading-relaxed text-muted">
-            {t("customBuild.provisional")}
           </p>
         </>
       )}
