@@ -79,19 +79,19 @@ test("registry maps a body shape to its own GLB and never another shape", () => 
   assert.equal(resolved.mode, "fallback-2d");
 });
 
-test("embedded option modelPath is used only when it is a glTF file", () => {
+test("embedded option model3DUrl is stored for later 3D use without switching the 2D preview", () => {
   assert.equal(optionModelUrl({ attributes: { modelPath: "/uploads/shape.jpg" } }), "");
   assert.equal(
-    optionModelUrl({ attributes: { modelPath: "/uploads/shapes/mdc.glb" } }),
+    optionModelUrl({ attributes: { model3DUrl: "/uploads/shapes/mdc.glb" } }),
     "/uploads/shapes/mdc.glb",
   );
   const resolved = resolveGuitar3d(
-    { shape: { id: "mdc", attributes: { modelPath: "/uploads/shapes/mdc.glb" } } },
+    { shape: { id: "mdc", attributes: { model3DUrl: "/uploads/shapes/mdc.glb" } } },
     { resolveUpload: (path) => `https://media.test${path}` },
   );
-  assert.equal(resolved.mode, "model");
-  assert.equal(resolved.model.source, "option");
-  assert.equal(resolved.model.url, "https://media.test/uploads/shapes/mdc.glb");
+  assert.equal(resolved.mode, "fallback-2d");
+  assert.equal(resolved.reason, "no-model");
+  assert.equal(resolved.model, null);
 });
 
 test("wood and hardware without PBR assets do not invent materials", () => {

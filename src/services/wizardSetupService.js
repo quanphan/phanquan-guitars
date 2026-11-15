@@ -1,5 +1,8 @@
 import { isCustomBuildApiConfigured } from "../config/api.js";
+import { addToAllConfigUpdates } from "../data/wizardAddToAllConfig.js";
 import { withSortedWizardCategoryOptions } from "../data/wizardCatalog.js";
+import { buildWizardOptionUpdatePayload, formFromWizardOption } from "../data/wizardOptionPayload.js";
+import { compatibilityEditorOptions, precedingGroupIds } from "../data/wizardSetupLayout.js";
 import { requestJson } from "./apiClient.js";
 
 function failure(result, fallback = "failure") {
@@ -121,6 +124,39 @@ export function blockedDeleteBody(localize, error) {
     .slice(0, 6);
   if (!names.length) return text;
   return `${text} ${names.join(", ")}`;
+}
+
+export async function applyBodyShapeToAllConfig(request, categories, shape) {
+  const updates = addToAllConfigUpdates(categories, shape);
+  const failed = [];
+  let updated = 0;
+  const instrumentTypes = compatibilityEditorOptions(
+    (categories || []).find((item) => item.id === "instrument-type")?.options || [],
+  );
+  for (const item of updates) {
+    if (!item.option?.id) continue;
+    const form = formFromWizardOption(item.option, item.categoryId, categories);
+    form.compatibility = {
+      ...form.compatibility,
+      shapeIds: item.shapeIds,
+    };
+    const body = buildWizardOptionUpdatePayload(form, {
+      canScopeDefault: precedingGroupIds(item.categoryId, categories).includes("instrument-type"),
+      instrumentTypes,
+      categories,
+    });
+    const result = await updateWizardOption(request, item.categoryId, item.option.id, body, item.option);
+    if (!result.ok) {
+      failed.push({
+        categoryId: item.categoryId,
+        optionId: item.option.id,
+        code: result.code,
+      });
+      continue;
+    }
+    updated += 1;
+  }
+  return { ok: failed.length === 0, updated, failed, attempted: updates.length };
 }
 
 export async function fetchPublicWizardCatalog() {

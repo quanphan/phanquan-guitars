@@ -110,36 +110,65 @@ export function previousWizardStep(currentStep) {
   return 1;
 }
 
+export function isConfiguredConfigGroup(group) {
+  if (!group) return false;
+  if ((group.items || []).length > 0) return true;
+  return group.configured === true;
+}
+
 export function continuousConfigGroups(groups) {
   return (groups || []).filter(
-    (group) => group && !STEP_ONE_LIVE_KEYS.has(group.key) && group.key !== "customerSuppliedParts",
+    (group) => (
+      group
+      && !STEP_ONE_LIVE_KEYS.has(group.key)
+      && group.key !== "customerSuppliedParts"
+      && isConfiguredConfigGroup(group)
+    ),
   );
 }
 
-function sectionsFromGroups(list, steps = []) {
+function headingForStep(step, steps = []) {
+  const meta = (steps || []).find((item) => item.id === step);
+  return { type: "heading", step, key: meta?.key || `step-${step}` };
+}
+
+function sectionsFromGroups(list, steps = [], { fillSkippedSteps = false, keepSteps = [] } = {}) {
   const sections = [];
   let currentStep = 0;
+  const emitHeading = (step) => {
+    if (sections.some((item) => item.type === "heading" && item.step === step)) return;
+    sections.push(headingForStep(step, steps));
+  };
   (list || []).forEach((group) => {
     const step = CONFIG_GROUP_STEP[group.key] || currentStep;
     if (step !== currentStep) {
-      const from = currentStep === 0 ? step : currentStep + 1;
-      for (let s = from; s <= step; s += 1) {
-        const meta = steps.find((item) => item.id === s);
-        sections.push({ type: "heading", step: s, key: meta?.key || `step-${s}` });
+      if (fillSkippedSteps) {
+        const from = currentStep === 0 ? step : currentStep + 1;
+        for (let s = from; s <= step; s += 1) emitHeading(s);
+      } else {
+        for (const extra of keepSteps) {
+          if (extra > currentStep && extra <= step) emitHeading(extra);
+        }
+        emitHeading(step);
       }
       currentStep = step;
     }
     sections.push({ type: "group", group });
   });
+  if (!fillSkippedSteps) {
+    for (const extra of keepSteps) {
+      if (extra > currentStep) emitHeading(extra);
+    }
+  }
   return sections;
 }
 
 export function continuousConfigSections(groups, steps = []) {
-  return sectionsFromGroups(continuousConfigGroups(groups), steps);
+  return sectionsFromGroups(continuousConfigGroups(groups), steps, { keepSteps: [4] });
 }
 
 export function wizardSummarySections(groups, steps = []) {
-  return sectionsFromGroups((groups || []).filter(Boolean), steps);
+  return sectionsFromGroups((groups || []).filter(Boolean), steps, { fillSkippedSteps: true });
 }
 
 export function firstIncompleteGroupKey({

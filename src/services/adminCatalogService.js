@@ -169,3 +169,20 @@ export async function uploadAdminImage(formRequest, { file, scope }) {
   }
   return { ok: true, code: null, path };
 }
+
+export async function uploadAdminGlb(formRequest, { file, scope = "models" }) {
+  if (!(file instanceof File)) {
+    return { ok: false, code: "BAD_REQUEST", path: null };
+  }
+  const formData = new FormData();
+  formData.append("file", file);
+  const result = await formRequest(`/api/admin/uploads?scope=${encodeURIComponent(scope)}`, {
+    method: "POST",
+    formData,
+  });
+  const path = result.payload?.data?.path || result.payload?.data?.url;
+  if (!result.ok || result.payload?.success !== true || typeof path !== "string") {
+    return { ...failure(result), path: null };
+  }
+  return { ok: true, code: null, path };
+}

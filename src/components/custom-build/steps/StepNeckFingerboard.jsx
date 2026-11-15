@@ -1,11 +1,8 @@
-import { mediaUrl } from "../../../config/api.js";
-import FitImage from "../../FitImage.jsx";
 import { Select, fieldClass } from "../../auth/Field.jsx";
-import { choiceImageSrc, optionDescription, optionLabel, wizardChoiceKey } from "../../../data/wizardCatalog.js";
+import { optionDescription, optionLabel, wizardChoiceKey } from "../../../data/wizardCatalog.js";
 import {
   isCustomScale,
   isMultiscale,
-  isValidCustomScaleValue,
   isValidFretCountSelection,
   scaleDisplayValue,
 } from "../../../data/wizardScaleAttributes.js";
@@ -13,52 +10,14 @@ import { optionIdEquals } from "../../../data/wizardSelection.js";
 import { usesSecondaryNeckWood } from "../../../data/wizardSeriesConstruction.js";
 import { useLanguage } from "../../../i18n/LanguageContext.jsx";
 import ChoiceButton from "../ChoiceButton.jsx";
+import CustomScaleLengthField from "../CustomScaleLengthField.jsx";
+import { CHOICE_IMAGE_GRID, ChoiceImageCard } from "../ChoiceImageGrid.jsx";
 
 const chipClass =
   "min-w-[5.5rem] px-4 py-3 text-[11px] uppercase tracking-[0.16em]";
 
 function constructionLabel(option, language) {
   return option?.translations?.[language]?.name || option?.translations?.en?.name || option?.name || option?.id || "";
-}
-
-function WoodCard({ option, selected, onSelect, nameKey, t, language, imageFit = "contain" }) {
-  const name = optionLabel(option, language, t, `${nameKey}.${option.id}.name`);
-  const description = optionDescription(option, language);
-  const hasDescription = Boolean(description);
-
-  return (
-    <ChoiceButton
-      selected={selected}
-      onSelect={onSelect}
-      label={name}
-      className="flex h-full flex-col overflow-visible p-0"
-    >
-      {option.image ? (
-        <FitImage
-          src={choiceImageSrc(option.image, mediaUrl)}
-          alt=""
-          fit={imageFit}
-          frameClassName="aspect-[4/3] w-full"
-          className={imageFit === "cover" ? "max-h-none max-w-none" : ""}
-        />
-      ) : (
-        <div
-          className="flex aspect-[4/3] w-full items-center justify-center bg-ink text-[10px] uppercase tracking-[0.18em] text-muted"
-          aria-hidden="true"
-        >
-          {t("customBuild.step2.noImage")}
-        </div>
-      )}
-      <span className="px-4 py-3 text-[11px] uppercase tracking-[0.16em] text-current">
-        {name}
-      </span>
-      {hasDescription ? (
-        <span className="whitespace-pre-wrap px-4 pb-4 text-[11px] font-normal normal-case tracking-normal text-muted">
-          {description}
-        </span>
-      ) : null}
-    </ChoiceButton>
-  );
 }
 
 function ChipGroup({ id, label, options, selectedId, onSelect, nameKey, t, language, invalid }) {
@@ -192,24 +151,12 @@ export default function StepNeckFingerboard({
               })}
             </div>
             {customScaleSelected ? (
-              <label className="mt-4 block text-[11px] uppercase tracking-[0.18em] text-gold">
-                {t("customBuild.step1.customScaleInputLabel")}
-                <input
-                  value={selections.customScaleValue || ""}
-                  onChange={(event) => setCustomScaleValue?.(event.target.value)}
-                  placeholder={t("customBuild.step1.customScalePlaceholder")}
-                  className={fieldClass}
-                  aria-invalid={!isValidCustomScaleValue(selections.customScaleValue)}
-                />
-                <span className="mt-2 block text-[10px] font-normal normal-case tracking-normal text-muted">
-                  {t("customBuild.step1.customScaleInputHelp")}
-                </span>
-                {!isValidCustomScaleValue(selections.customScaleValue) ? (
-                  <span className="mt-2 block text-xs font-normal normal-case tracking-normal text-gold" role="alert">
-                    {t("customBuild.step1.customScaleError")}
-                  </span>
-                ) : null}
-              </label>
+              <CustomScaleLengthField
+                value={selections.customScaleValue || ""}
+                onChange={(next) => setCustomScaleValue?.(next)}
+                t={t}
+                forceError={missingKeys.has("scaleId")}
+              />
             ) : null}
           </div>
         </section>
@@ -363,18 +310,17 @@ export default function StepNeckFingerboard({
                 role="radiogroup"
                 aria-label={t("customBuild.step3.fingerboardLabel")}
                 aria-invalid={missingKeys.has("fingerboardWoodId") || undefined}
-                className={`grid gap-3 sm:grid-cols-2 xl:grid-cols-3${missingKeys.has("fingerboardWoodId") ? " rounded-sm ring-1 ring-gold/70 p-1" : ""}`}
+                className={`${CHOICE_IMAGE_GRID}${missingKeys.has("fingerboardWoodId") ? " rounded-sm ring-1 ring-gold/70 p-1" : ""}`}
               >
                 {availableFingerboardWoods.map((wood) => (
-                  <WoodCard
+                  <ChoiceImageCard
                     key={wood.optionId || wood.id}
-                    option={wood}
                     selected={optionIdEquals(wood, selections.fingerboardWoodId)}
                     onSelect={() => selectFingerboardWood(wood.id)}
-                    nameKey="customBuild.fingerboards"
-                    t={t}
-                    language={language}
-                    imageFit="cover"
+                    label={optionLabel(wood, language, t, `customBuild.fingerboards.${wood.id}.name`)}
+                    description={optionDescription(wood, language)}
+                    image={wood.image}
+                    emptyLabel={t("customBuild.step2.noImage")}
                   />
                 ))}
               </div>

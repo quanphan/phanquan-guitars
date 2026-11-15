@@ -1,7 +1,12 @@
 import { sanitizeReferenceImages } from "../data/referenceImages.js";
 import { optionMatchesAlias, WIZARD_SETUP_GROUPS } from "../data/wizardCatalog.js";
 import { allowedCompatibilityFields, isShapeChildGroup, knownGroupStep, usesTypeSeriesShapeCompatibility } from "../data/wizardSetupLayout.js";
-import { DEFAULT_FRET_COUNT, parsePositiveFretCount } from "../data/wizardScaleAttributes.js";
+import {
+  customScaleSelectionIssue,
+  DEFAULT_FRET_COUNT,
+  isCustomScale,
+  parsePositiveFretCount,
+} from "../data/wizardScaleAttributes.js";
 import { isCustomerSuppliedParts, STEP4_OPTION_KEYS } from "../data/wizardSelection.js";
 import {
   findSeriesConstructionOption,
@@ -220,6 +225,12 @@ function wizardLines(selections, catalog) {
       if (binding) {
         const category = findCategory(catalog, binding.categoryId);
         if (!categoryHasApplicableOptions(category, context, catalog)) return null;
+      }
+      if (key === "customScaleValue") {
+        const scale = resolveCatalogOption(catalog, "scale", selections?.scaleId, selections?.scaleId);
+        if (!isCustomScale(scale) && !isCustomScale({ id: selections?.scaleId, code: selections?.scaleId })) {
+          return null;
+        }
       }
       const value = selections[key];
       if (value == null || value === false) return null;
@@ -521,6 +532,9 @@ export function evaluateWizardNotesSelections(selections, catalog) {
     }
   }
   const selectedNeck = selectedNeckPieces(catalog, selections);
+  const scale = resolveCatalogOption(catalog, "scale", selections?.scaleId, selections?.scaleId);
+  const customScaleIssue = customScaleSelectionIssue(selections, scale);
+  if (customScaleIssue) issues.push(customScaleIssue);
   if (usesSecondaryNeckWood(selectedNeck)) {
     if (!selections?.secondaryNeckWoodId) {
       issues.push({ field: "selections.secondary-neck-wood", code: "REQUIRED" });

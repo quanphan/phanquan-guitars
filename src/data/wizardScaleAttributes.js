@@ -1,6 +1,8 @@
 export const DEFAULT_FRET_COUNT = 24;
 export const MIN_FRET_COUNT = 20;
 export const MAX_FRET_COUNT = 26;
+export const MIN_CUSTOM_SCALE_INCHES = 24;
+export const MAX_CUSTOM_SCALE_INCHES = 38;
 export const SCALE_TYPES = ["single", "multiscale", "custom"];
 
 const INCH_MARK = "″";
@@ -53,8 +55,52 @@ export function formatScaleLength(raw) {
   return formatOneLength(text);
 }
 
+function parseInchNumber(raw) {
+  const cleaned = String(raw ?? "").trim().replace(/["″”]+/gu, "").trim();
+  if (!cleaned) return null;
+  if (!/^\d+(\.\d+)?$/.test(cleaned)) return null;
+  const inches = Number(cleaned);
+  if (!Number.isFinite(inches)) return null;
+  return inches;
+}
+
+function inchInAllowedRange(inches) {
+  return inches >= MIN_CUSTOM_SCALE_INCHES && inches <= MAX_CUSTOM_SCALE_INCHES;
+}
+
+export function parseCustomScaleInput(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return { ok: false, kind: "empty", raw };
+  const parts = raw.split(/\s*[–—-]\s*/);
+  if (parts.length === 1) {
+    const inches = parseInchNumber(parts[0]);
+    if (inches == null) return { ok: false, kind: "invalid", raw };
+    if (!inchInAllowedRange(inches)) return { ok: false, kind: "bounds", raw, values: [inches] };
+    return { ok: true, kind: "single", raw, values: [inches] };
+  }
+  if (parts.length === 2) {
+    const start = parseInchNumber(parts[0]);
+    const end = parseInchNumber(parts[1]);
+    if (start == null || end == null) return { ok: false, kind: "invalid", raw };
+    if (!inchInAllowedRange(start) || !inchInAllowedRange(end)) {
+      return { ok: false, kind: "bounds", raw, values: [start, end] };
+    }
+    if (start >= end) return { ok: false, kind: "order", raw, values: [start, end] };
+    return { ok: true, kind: "range", raw, values: [start, end] };
+  }
+  return { ok: false, kind: "invalid", raw };
+}
+
 export function isValidCustomScaleValue(value) {
-  return Boolean(String(value || "").trim());
+  return parseCustomScaleInput(value).ok;
+}
+
+export function customScaleSelectionIssue(selections, scale) {
+  if (!isCustomScale(scale) && !isCustomScale({ id: selections?.scaleId, code: selections?.scaleId })) {
+    return null;
+  }
+  if (isValidCustomScaleValue(selections?.customScaleValue)) return null;
+  return { field: "selections.scale", code: "INVALID" };
 }
 
 export function isValidFretCountSelection(value) {

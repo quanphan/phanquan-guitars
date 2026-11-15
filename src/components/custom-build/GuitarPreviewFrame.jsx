@@ -8,8 +8,6 @@ import {
 import FitImage from "../FitImage.jsx";
 import Guitar3dPreview from "./Guitar3dPreview.jsx";
 
-const PAPER = "rgb(150, 150, 150)";
-
 function useDesktopViewport() {
   const [desktop, setDesktop] = useState(() => (
     typeof window !== "undefined" ? window.matchMedia("(min-width: 1024px)").matches : true
@@ -47,7 +45,7 @@ function GuitarPreview2d({ builder, t, side = "front" }) {
       {empty ? (
         <div className="flex h-full w-full flex-col items-center justify-center px-6 text-center">
           <p className="text-[11px] uppercase tracking-[0.2em] text-gold">{emptyTitle}</p>
-          <p className="mt-3 max-w-xs text-sm leading-relaxed text-ink/70">{emptyBody}</p>
+          <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted">{emptyBody}</p>
         </div>
       ) : (
         <FitImage
@@ -70,20 +68,20 @@ export default function GuitarPreviewFrame({ builder, t, side = "front", slot = 
   const scene = resolveGuitar3d(builder, { resolveUpload: mediaUrl });
 
   if (inactive) {
-    return <div className={frameClass} style={{ backgroundColor: PAPER }} aria-hidden="true" />;
+    return <div className={frameClass} aria-hidden="true" />;
   }
 
   const twoD = <GuitarPreview2d builder={builder} t={t} side={side} />;
   if (scene.mode === "model") {
     return (
-      <div className={frameClass} style={{ backgroundColor: PAPER }}>
+      <div className={frameClass}>
         <Guitar3dPreview scene={scene} side={side} t={t} fallback={twoD} />
       </div>
     );
   }
 
   return (
-    <div className={frameClass} style={{ backgroundColor: PAPER }}>
+    <div className={frameClass}>
       {twoD}
     </div>
   );

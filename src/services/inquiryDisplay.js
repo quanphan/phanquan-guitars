@@ -5,7 +5,7 @@ import {
   optionMatchesAlias,
   translatedLabel,
 } from "../data/wizardCatalog.js";
-import { inquiryFretCount, scaleDisplayValue } from "../data/wizardScaleAttributes.js";
+import { inquiryFretCount, isCustomScale, scaleDisplayValue } from "../data/wizardScaleAttributes.js";
 import {
   findSeriesConstructionOption,
   findSeriesNeckConstructionOption,
@@ -350,8 +350,9 @@ export function buildInquiryDisplay(inquiry, t, { catalog, language } = {}) {
         row(
           t,
           "customBuild.summary.scale",
-          wizard.customScaleValue
-            || resolveChoiceLabel(t, "scaleId", wizard.scaleId, choiceOpts),
+          (isCustomScale(findCatalogOption(catalog, wizard.scaleId)) || isCustomScale({ id: wizard.scaleId, code: wizard.scaleId }))
+            ? (wizard.customScaleValue || resolveChoiceLabel(t, "scaleId", wizard.scaleId, choiceOpts))
+            : resolveChoiceLabel(t, "scaleId", wizard.scaleId, choiceOpts),
         ),
         row(t, "customBuild.summary.strings", resolveChoiceLabel(t, "stringCount", wizard.stringCount, choiceOpts)),
         row(t, "customBuild.summary.radius", resolveChoiceLabel(t, "radiusId", wizard.radiusId, choiceOpts)),

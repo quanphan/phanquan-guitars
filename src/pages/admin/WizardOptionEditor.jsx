@@ -4,6 +4,7 @@ import { useAuth } from "../../auth/AuthContext.jsx";
 import { slugifyName } from "../../auth/catalog.js";
 import { errorText } from "../../auth/errorText.js";
 import CompatibilityPicker, { DefaultForTypesPicker } from "../../components/admin/CompatibilityPicker.jsx";
+import GlbUploadField from "../../components/admin/GlbUploadField.jsx";
 import ImageUploadField from "../../components/admin/ImageUploadField.jsx";
 import ScaleLengthFields from "../../components/admin/ScaleLengthFields.jsx";
 import SeriesConstructionFields from "../../components/admin/SeriesConstructionFields.jsx";
@@ -40,8 +41,9 @@ import {
   usesSeriesNameAutocomplete,
 } from "../../data/wizardSeriesSuggestions.js";
 import { useLanguage } from "../../i18n/LanguageContext.jsx";
-import { listCatalogTerms, uploadAdminImage } from "../../services/adminCatalogService.js";
+import { listCatalogTerms, uploadAdminGlb, uploadAdminImage } from "../../services/adminCatalogService.js";
 import {
+  applyBodyShapeToAllConfig,
   createWizardOption,
   getWizardCategory,
   listWizardSetup,
@@ -62,6 +64,8 @@ const emptyForm = {
   enName: "",
   icon: "",
   imagePath: "",
+  model3DUrl: "",
+  addToAllConfig: false,
   active: true,
   isDefault: false,
   defaultForInstrumentTypeIds: [],
@@ -112,6 +116,7 @@ export default function WizardOptionEditor() {
         categoryId: categoryId || "instrument-type",
         sortOrder: nextWizardSortOrder(siblings),
         compatibility: emptyCompatibility(),
+        addToAllConfig: false,
       });
       setScaleForm(emptyScaleForm((categoryId || "instrument-type") === "scale" ? "custom" : "single"));
       setLoading(false);
@@ -129,7 +134,7 @@ export default function WizardOptionEditor() {
       setLoading(false);
       return;
     }
-    setForm(formFromWizardOption(option, categoryId, listed.categories));
+    setForm({ ...formFromWizardOption(option, categoryId, listed.categories), addToAllConfig: false });
     setScaleForm(scaleFormFromAttributes(option.attributes));
     setLoading(false);
   }, [authorizedRequest, categoryId, isNew, optionId, optionCode]);
@@ -228,8 +233,8 @@ export default function WizardOptionEditor() {
     const result = isNew
       ? await createWizardOption(authorizedRequest, form.categoryId, body)
       : await updateWizardOption(authorizedRequest, categoryId, optionId, body, { code: form.code });
-    setSaving(false);
     if (!result.ok) {
+      setSaving(false);
       setError(result.code);
       const next = {};
       for (const detail of result.details || []) {
@@ -238,6 +243,25 @@ export default function WizardOptionEditor() {
       }
       setFieldErrors(next);
       return;
+    }
+    if (form.categoryId === "body-shape" && form.addToAllConfig) {
+      const shape = result.option || {
+        id: isNew ? form.code : optionId,
+        code: form.code,
+      };
+      const listed = await listWizardSetup(authorizedRequest);
+      const applied = await applyBodyShapeToAllConfig(
+        authorizedRequest,
+        listed.ok ? listed.categories : categories,
+        shape,
+      );
+      setSaving(false);
+      if (!applied.ok) {
+        setError("ADD_TO_ALL_PARTIAL");
+        return;
+      }
+    } else {
+      setSaving(false);
     }
     navigate(listHref);
   }
@@ -361,6 +385,31 @@ export default function WizardOptionEditor() {
               onUploaded={(path) => setField("imagePath", path)}
               onClear={() => setField("imagePath", "")}
             />
+            {form.categoryId === "body-shape" ? (
+              <GlbUploadField
+                label={t("admin.wizardSetup.fields.glbModel")}
+                help={t("admin.wizardSetup.glbModelHelp")}
+                storedPath={form.model3DUrl}
+                canUpload={canUpload}
+                upload={(file) => uploadAdminGlb(authorizedFormRequest, { file, scope: "models" })}
+                onUploaded={(path) => setField("model3DUrl", path)}
+                onClear={() => setField("model3DUrl", "")}
+              />
+            ) : null}
+            {form.categoryId === "body-shape" ? (
+              <div>
+                <label className="flex items-center gap-2 text-sm text-ivory">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(form.addToAllConfig)}
+                    onChange={(event) => setField("addToAllConfig", event.target.checked)}
+                    className="accent-gold"
+                  />
+                  {t("admin.wizardSetup.addToAllConfig")}
+                </label>
+                <p className="mt-2 text-xs leading-relaxed text-muted">{t("admin.wizardSetup.addToAllConfigHelp")}</p>
+              </div>
+            ) : null}
             <label className="flex items-center gap-2 text-sm text-ivory">
               <input type="checkbox" checked={form.active} onChange={(event) => setField("active", event.target.checked)} className="accent-gold" />
               {t("admin.catalog.active")}

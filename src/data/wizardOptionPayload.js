@@ -7,6 +7,7 @@ import {
   mergeSeriesConstructionAttributes,
 } from "./wizardSeriesConstruction.js";
 import { seriesSuggestionFormValues } from "./wizardSeriesSuggestions.js";
+import { attributesWithModel3DUrl, wizardOptionModel3DUrl } from "./wizardOptionModel.js";
 
 function emptyCompatibility() {
   return Object.fromEntries(COMPATIBILITY_FIELDS.map((field) => [field.key, []]));
@@ -63,6 +64,7 @@ export function formFromWizardOption(option, categoryId, categories) {
     enName: option.translations?.en?.name || option.name || "",
     icon: option.icon || (typeof option.attributes?.icon === "string" ? option.attributes.icon : "") || "",
     imagePath: wizardOptionImagePath(option),
+    model3DUrl: wizardOptionModel3DUrl(option),
     active: option.active !== false,
     isDefault: Boolean(option.isDefault),
     defaultForInstrumentTypeIds: Array.isArray(option.defaultForInstrumentTypeIds)
@@ -96,6 +98,7 @@ function sharedBody(form, { canScopeDefault, instrumentTypes, categories }) {
     description: enDescription,
     icon: form.icon,
     imagePath: form.imagePath,
+    ...(form.categoryId === "body-shape" ? { model3DUrl: typeof form.model3DUrl === "string" ? form.model3DUrl.trim() : "" } : {}),
     active: form.active,
     isDefault: form.isDefault,
     defaultForInstrumentTypeIds: canScopeDefault
@@ -122,6 +125,9 @@ function attributesForForm(form) {
   }
   delete attributes[BODY_CONSTRUCTION_ATTR];
   delete attributes[NECK_CONSTRUCTION_ATTR];
+  if (form.categoryId === "body-shape") {
+    return attributesWithModel3DUrl(attributes, form.model3DUrl);
+  }
   return attributes;
 }
 

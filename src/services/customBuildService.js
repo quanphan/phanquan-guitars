@@ -2,6 +2,7 @@ import { isCustomBuildApiConfigured } from "../config/api.js";
 import { requestForm, requestJson } from "./apiClient.js";
 import {
   buildInquiryPayload,
+  evaluateWizardNotesSelections,
   mapServerFieldToContact,
 } from "./customBuildPayload.js";
 
@@ -115,6 +116,18 @@ export async function submitCustomBuildInquiry({
     catalog,
     finishSheen,
   });
+
+  const localIssues = evaluateWizardNotesSelections(selections, catalog);
+  if (localIssues.length) {
+    return {
+      ok: false,
+      confirmed: false,
+      code: INQUIRY_CODES.VALIDATION,
+      reference: null,
+      details: localIssues,
+      contactErrors: {},
+    };
+  }
 
   const validateResponse = await requestJson("/api/custom-build/validate", {
     method: "POST",

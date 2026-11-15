@@ -68,7 +68,6 @@ import {
   DEFAULT_FRET_COUNT,
   normalizeFretCountSelection,
   parsePositiveFretCount,
-  shouldKeepCustomScaleValue,
 } from "./wizardScaleAttributes.js";
 import {
   findSeriesConstructionOption,
@@ -950,9 +949,6 @@ export function pruneSelections(selections) {
   const lists = listsOrEmpty();
   const pruned = pruneListedSelections(selections, lists);
   const next = pruned && typeof pruned === "object" ? { ...pruned } : { ...(selections || {}) };
-  if (!shouldKeepCustomScaleValue(getScaleById(next.scaleId), next.scaleId)) {
-    next.customScaleValue = "";
-  }
   next.fretCount = normalizeFretCountSelection(next.fretCount);
   return clampSelectionNotes(next);
 }

@@ -1,51 +1,9 @@
-import { mediaUrl } from "../../../config/api.js";
-import FitImage from "../../FitImage.jsx";
 import { Select } from "../../auth/Field.jsx";
-import { choiceImageSrc, optionDescription, optionLabel, wizardChoiceKey } from "../../../data/wizardCatalog.js";
+import { optionDescription, optionLabel, wizardChoiceKey } from "../../../data/wizardCatalog.js";
 import { optionIdEquals } from "../../../data/wizardSelection.js";
 import { usesSecondaryBodyWood } from "../../../data/wizardSeriesConstruction.js";
 import { useLanguage } from "../../../i18n/LanguageContext.jsx";
-import ChoiceButton from "../ChoiceButton.jsx";
-
-function WoodCard({ wood, selected, onSelect, t, language }) {
-  const name = optionLabel(wood, language, t, `customBuild.woods.${wood.id}.name`);
-  const description = optionDescription(wood, language);
-  const hasDescription = Boolean(description);
-
-  return (
-    <ChoiceButton
-      selected={selected}
-      onSelect={onSelect}
-      label={name}
-      className="flex h-full flex-col overflow-visible p-0"
-    >
-      {wood.image ? (
-        <FitImage
-          src={choiceImageSrc(wood.image, mediaUrl)}
-          alt=""
-          fit="cover"
-          frameClassName="aspect-[4/3] w-full"
-          className="max-h-none max-w-none"
-        />
-      ) : (
-        <div
-          className="flex aspect-[4/3] w-full items-center justify-center bg-ink text-[10px] uppercase tracking-[0.18em] text-muted"
-          aria-hidden="true"
-        >
-          {t("customBuild.step2.noImage")}
-        </div>
-      )}
-      <span className="px-4 py-3 text-[11px] uppercase tracking-[0.16em] text-current">
-        {name}
-      </span>
-      {hasDescription ? (
-        <span className="whitespace-pre-wrap px-4 pb-4 text-[11px] font-normal normal-case tracking-normal text-muted">
-          {description}
-        </span>
-      ) : null}
-    </ChoiceButton>
-  );
-}
+import { CHOICE_IMAGE_GRID, ChoiceImageCard } from "../ChoiceImageGrid.jsx";
 
 function constructionLabel(option, language) {
   return option?.translations?.[language]?.name || option?.translations?.en?.name || option?.name || option?.id || "";
@@ -155,16 +113,17 @@ export default function StepBodyTop({
                 role="radiogroup"
                 aria-label={t("customBuild.step2.topLabel")}
                 aria-invalid={missingKeys.has("topWoodId") || undefined}
-                className={`grid gap-3 sm:grid-cols-2 xl:grid-cols-3${missingKeys.has("topWoodId") ? " rounded-sm ring-1 ring-gold/70 p-1" : ""}`}
+                className={`${CHOICE_IMAGE_GRID}${missingKeys.has("topWoodId") ? " rounded-sm ring-1 ring-gold/70 p-1" : ""}`}
               >
                 {availableTopWoods.map((wood) => (
-                  <WoodCard
+                  <ChoiceImageCard
                     key={wizardChoiceKey(wood)}
-                    wood={wood}
                     selected={optionIdEquals(wood, selections.topWoodId)}
                     onSelect={() => selectTopWood(wood.id)}
-                    t={t}
-                    language={language}
+                    label={optionLabel(wood, language, t, `customBuild.woods.${wood.id}.name`)}
+                    description={optionDescription(wood, language)}
+                    image={wood.image}
+                    emptyLabel={t("customBuild.step2.noImage")}
                   />
                 ))}
               </div>

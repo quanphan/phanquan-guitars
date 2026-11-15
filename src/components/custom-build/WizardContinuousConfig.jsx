@@ -1,21 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
-import { mediaUrl } from "../../config/api.js";
 import { fieldClass } from "../auth/Field.jsx";
-import FitImage from "../FitImage.jsx";
 import { choiceSwatchCss } from "../../data/choiceSwatch.js";
-import { choiceImageSrc } from "../../data/wizardCatalog.js";
 import {
   CONFIG_GROUP_TARGET_ID,
   continuousConfigSections,
   firstIncompleteGroupKey,
 } from "../../data/wizardContinuous.js";
-import { applyLiveConfigSelection, buildLiveConfigGroups } from "../../data/wizardLiveConfig.js";
+import { applyLiveConfigSelection, buildLiveConfigGroups, liveSelectionKeepsGroupOpen } from "../../data/wizardLiveConfig.js";
 import {
   isCustomScale,
   isValidCustomScaleValue,
   isValidFretCountSelection,
 } from "../../data/wizardScaleAttributes.js";
 import ChoiceButton from "./ChoiceButton.jsx";
+import CustomScaleLengthField from "./CustomScaleLengthField.jsx";
+import { CHOICE_IMAGE_GRID, ChoiceImageCard } from "./ChoiceImageGrid.jsx";
 import ChoiceSwatch from "./ChoiceSwatch.jsx";
 
 function Chevron({ open }) {
@@ -36,74 +35,65 @@ function OptionGrid({ group, onSelect, t }) {
   const swatchOf = (item) => (inferNameSwatch ? choiceSwatchCss(item) : choiceSwatchCss({ swatch: item.swatch }));
   const hasSwatch = group.items?.some((item) => swatchOf(item));
   return (
-    <div className={hasImage ? "flex flex-wrap gap-3" : "flex flex-wrap gap-2"}>
-      {group.items.map((item) => (
-        <ChoiceButton
-          key={item.id}
-          selected={item.selected}
-          onSelect={() => {
-            if (!group.selectable) return;
-            if (item.value == null || item.value === "" || typeof item.value === "object") return;
-            onSelect(group.selectKey, item.value);
-          }}
-          label={item.label}
-          selectedFill={!hasImage}
-          quietBorder={hasImage}
-          className={`flex min-w-0 max-w-full flex-col p-0 text-[11px] uppercase tracking-[0.12em] ${
-            hasImage ? "group w-[300px] overflow-visible rounded-sm" : "overflow-visible px-3 py-2"
-          }`}
-        >
-          {hasImage ? (
-            <>
-              {item.image ? (
-                <FitImage
-                  src={choiceImageSrc(item.image, mediaUrl)}
-                  alt=""
-                  fit="cover"
-                  frameClassName="h-[200px] w-[300px] rounded-sm transition-[filter] duration-75 group-hover:brightness-110"
-                  className="max-h-none max-w-none"
+    <div className={hasImage ? CHOICE_IMAGE_GRID : "flex flex-wrap gap-2"}>
+      {group.items.map((item) => {
+        const selectItem = () => {
+          if (!group.selectable) return;
+          if (item.value == null || item.value === "" || typeof item.value === "object") return;
+          onSelect(group.selectKey, item.value);
+        };
+        if (hasImage) {
+          return (
+            <ChoiceImageCard
+              key={item.id}
+              selected={item.selected}
+              onSelect={selectItem}
+              label={item.label}
+              image={item.image}
+              emptyLabel={t("customBuild.step2.noImage")}
+            />
+          );
+        }
+        return (
+          <ChoiceButton
+            key={item.id}
+            selected={item.selected}
+            onSelect={selectItem}
+            label={item.label}
+            selectedFill
+            className="flex min-w-0 max-w-full flex-col overflow-visible p-0 px-3 py-2 text-[11px] uppercase tracking-[0.12em]"
+          >
+            {hasSwatch ? (
+              <span className="flex items-center gap-2">
+                <ChoiceSwatch
+                  option={inferNameSwatch ? item : { swatch: item.swatch }}
+                  className="size-7 shrink-0 border border-white/20"
                 />
-              ) : (
-                <div
-                  className="flex h-[200px] w-[300px] items-center justify-center rounded-sm bg-ink text-[10px] uppercase tracking-[0.18em] text-muted"
-                  aria-hidden="true"
-                >
-                  {t("customBuild.step2.noImage")}
-                </div>
-              )}
-              <span className="px-1 py-2 text-current">{item.label}</span>
-            </>
-          ) : hasSwatch ? (
-            <span className="flex items-center gap-2 px-3 py-2">
-              <ChoiceSwatch
-                option={inferNameSwatch ? item : { swatch: item.swatch }}
-                className="size-7 shrink-0 border border-white/20"
-              />
-              {item.label}
-            </span>
-          ) : (
-            item.label
-          )}
-        </ChoiceButton>
-      ))}
+                {item.label}
+              </span>
+            ) : (
+              item.label
+            )}
+          </ChoiceButton>
+        );
+      })}
     </div>
   );
 }
 
 function GroupExtras({ group, builder, t }) {
   const selections = builder.selections || {};
-  if (group.key === "scale" && isCustomScale(builder.scale)) {
+  const showCustomScale = group.key === "scale" && isCustomScale(builder.scale);
+
+  if (showCustomScale) {
     return (
-      <label className="mt-3 block text-[11px] uppercase tracking-[0.18em] text-gold">
-        {t("customBuild.step1.customScaleInputLabel")}
-        <input
-          value={selections.customScaleValue || ""}
-          onChange={(event) => builder.setCustomScaleValue(event.target.value)}
-          placeholder={t("customBuild.step1.customScalePlaceholder")}
-          className={fieldClass}
-          aria-invalid={!isValidCustomScaleValue(selections.customScaleValue)}
-        />
-      </label>
+      <CustomScaleLengthField
+        value={selections.customScaleValue || ""}
+        onChange={(next) => builder.setCustomScaleValue(next)}
+        t={t}
+        forceError={Boolean(builder.stepThreeAttempted)}
+        autoFocus
+      />
     );
   }
   if (group.key === "fretCount") {
@@ -179,7 +169,9 @@ function ConfigAccordion({ group, expanded, invalid, onToggle, onCollapse, build
       >
         <span className="min-w-0">
           <span className="block text-[11px] uppercase tracking-[0.16em] text-muted">{group.label}</span>
-          <span className={`mt-1 block text-sm ${group.filled ? "text-ivory" : "text-muted"}`}>{group.value}</span>
+          {group.filled ? (
+            <span className="mt-1 block text-sm text-ivory">{group.value}</span>
+          ) : null}
         </span>
         <span className="mt-1" title={expanded ? t("customBuild.summary.collapse") : t("customBuild.summary.expand")}>
           <Chevron open={expanded} />
@@ -196,15 +188,14 @@ function ConfigAccordion({ group, expanded, invalid, onToggle, onCollapse, build
                 group={group}
                 onSelect={(selectKey, value) => {
                   const applied = applyLiveConfigSelection(builder, selectKey, value);
-                  if (applied) onCollapse?.();
+                  if (!applied) return;
+                  if (liveSelectionKeepsGroupOpen(selectKey, value, builder)) return;
+                  onCollapse?.();
                 }}
                 t={t}
               />
             ) : null}
             <GroupExtras group={group} builder={builder} t={t} />
-            {!group.items?.length && group.selectable === false && !["fretCount", "customColor", "specialRequests"].includes(group.key) ? (
-              <p className="text-xs text-muted">{group.filled ? group.value : t("customBuild.summary.empty")}</p>
-            ) : null}
           </div>
         </div>
       </div>
@@ -237,6 +228,9 @@ export default function WizardContinuousConfig({ builder, t, language }) {
 
   const incompleteKey = firstIncompleteGroupKey(builder);
 
+  const customScaleIncomplete = isCustomScale(builder.scale)
+    && !isValidCustomScaleValue(builder.selections?.customScaleValue);
+
   useEffect(() => {
     setExpanded((current) => {
       if (current.size) return current;
@@ -245,16 +239,29 @@ export default function WizardContinuousConfig({ builder, t, language }) {
     });
   }, [groups, incompleteKey]);
 
+  useEffect(() => {
+    if (!customScaleIncomplete) return;
+    setExpanded((current) => {
+      if (current.has("scale")) return current;
+      const next = new Set(current);
+      next.add("scale");
+      return next;
+    });
+  }, [customScaleIncomplete]);
+
   function toggle(key) {
     setExpanded((previous) => {
       const next = new Set(previous);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
+      if (next.has(key)) {
+        if (key === "scale" && customScaleIncomplete) return previous;
+        next.delete(key);
+      } else next.add(key);
       return next;
     });
   }
 
   function collapseGroup(key) {
+    if (key === "scale" && customScaleIncomplete) return;
     setExpanded((previous) => {
       if (!previous.has(key)) return previous;
       const next = new Set(previous);

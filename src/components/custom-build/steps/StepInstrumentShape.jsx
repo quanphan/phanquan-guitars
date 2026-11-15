@@ -43,7 +43,7 @@ export default function StepInstrumentShape({
         <div
           role="radiogroup"
           aria-label={t("customBuild.step1.instrumentLabel")}
-          className="flex flex-wrap items-stretch gap-2"
+          className="flex flex-wrap items-stretch gap-3"
         >
           {instrumentTypes.map((type) => {
             const selected = selections.instrumentTypeId === type.id;
@@ -56,7 +56,7 @@ export default function StepInstrumentShape({
                 onSelect={() => selectInstrumentType(type.id)}
                 label={name}
                 selectedFill={false}
-                className="flex min-h-0 min-w-0 w-[calc((100%-0.5rem)/2)] flex-col overflow-visible p-0 sm:w-[min(12.1rem,calc((100%-1.5rem)/4))]"
+                className="flex w-[calc(((100%-0.5rem)/2)*0.7)] min-w-0 max-w-[8.47rem] flex-col overflow-visible p-0 sm:w-[8.47rem] sm:max-w-none"
               >
                 <WizardChoiceArt
                   src={type.image ? mediaUrl(type.image) : ""}
@@ -70,7 +70,7 @@ export default function StepInstrumentShape({
                   )}
                 />
                 <span
-                  className={`flex min-h-[2.5rem] w-full flex-1 flex-col items-center justify-center px-2 py-2 text-center text-[10px] uppercase tracking-[0.14em] ${
+                  className={`flex min-h-[2.5rem] w-full flex-col items-center justify-center px-1.5 py-1.5 text-center text-[10px] uppercase tracking-[0.14em] ${
                     selected ? "bg-gold/15 text-gold" : "bg-ink text-ivory/80"
                   }`}
                 >
@@ -167,7 +167,6 @@ export default function StepInstrumentShape({
                       src={shape.image ? mediaUrl(shape.image) : ""}
                       size="shapeCard"
                       fit="contain"
-                      paper
                       fallback={(
                         <ShapeSilhouette
                           id={shape.silhouette}

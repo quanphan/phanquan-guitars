@@ -3,13 +3,14 @@ import test from "node:test";
 import {
   continuousConfigGroups,
   continuousConfigSections,
-  wizardSummarySections,
   firstIncompleteGroupKey,
+  isConfiguredConfigGroup,
   isContinuousConfigStep,
   nextWizardStep,
   previousWizardStep,
+  wizardSummarySections,
 } from "../src/data/wizardContinuous.js";
-import { applyLiveConfigSelection, buildLiveConfigGroups } from "../src/data/wizardLiveConfig.js";
+import { applyLiveConfigSelection, buildLiveConfigGroups, liveSelectionKeepsGroupOpen } from "../src/data/wizardLiveConfig.js";
 import { tFor } from "../src/i18n/translations.js";
 
 test("continuous config skips step 1 groups and keeps later group order", () => {
@@ -60,7 +61,7 @@ test("continuous config skips step 1 groups and keeps later group order", () => 
   assert.equal(keys.includes("shape"), false);
   assert.equal(keys[0], "bodyPieces");
   assert.equal(keys.includes("bodyWood"), true);
-  assert.equal(keys.includes("finishType"), true);
+  assert.equal(keys.includes("finishType"), false);
   const bodyWood = groups.find((item) => item.key === "bodyWood").items[0];
   assert.equal(bodyWood.image, "/uploads/alder.png");
   assert.equal(bodyWood.value, "alder");
@@ -125,6 +126,18 @@ test("live option values stay primitive ids even when extra is a plain object", 
     false,
   );
   assert.deepEqual(calls, ["swamp-ash"]);
+});
+
+test("Custom Scale keeps the scale group open; preset scales still collapse", () => {
+  const scales = [
+    { id: "25.5", code: "25.5", type: "single", display: "25.5″" },
+    { id: "custom-scale", code: "custom-scale", type: "custom", optionId: "scale.custom-scale" },
+  ];
+  const builder = { availableScales: scales };
+  assert.equal(liveSelectionKeepsGroupOpen("scaleId", "custom-scale", builder), true);
+  assert.equal(liveSelectionKeepsGroupOpen("scaleId", "25.5", builder), false);
+  assert.equal(liveSelectionKeepsGroupOpen("bodyWoodId", "alder", builder), false);
+  assert.equal(liveSelectionKeepsGroupOpen("scaleId", "CUSTOM SCALE", { availableScales: [{ id: "25.5", name: "25\"" }] }), false);
 });
 
 test("summary sections keep wizard group order including step 1", () => {
@@ -226,6 +239,94 @@ test("customer-supplied parts keeps electronics heading so the checkbox stays vi
     { id: 5, key: "finishDetails" },
   ]);
   assert.equal(sections.some((item) => item.type === "heading" && item.step === 4 && item.key === "electronicsHardware"), true);
+});
+
+test("your configuration hides groups that have no valid admin options", () => {
+  const t = (key) => tFor("en", key);
+  const groups = continuousConfigGroups(buildLiveConfigGroups({
+    selections: { customerSuppliedParts: false },
+    availableBodyConstructions: [],
+    availableBodyWoods: [{ id: "alder", translations: { en: { name: "Alder" } } }],
+    availableTopWoods: [{ id: "flame", translations: { en: { name: "Flame" } } }],
+    availableScales: [],
+    availableStringCounts: [],
+    availableRadii: [],
+    availableNeckPieces: [],
+    availableNeckWoods: [{ id: "maple", translations: { en: { name: "Maple" } } }],
+    availableNeckConstructions: [],
+    availableFingerboardWoods: [],
+    availableNeckProfiles: [],
+    availableFretSpecs: [],
+    availablePickupConfigs: [],
+    availablePickupTypes: [],
+    availableBridges: [{ id: "tonepros", translations: { en: { name: "TonePros" } } }],
+    availableTuners: [],
+    availableHardwareFinishes: [],
+    availableControlLayouts: [],
+    availableFinishTypes: [{ id: "gloss", translations: { en: { name: "Gloss" } } }],
+    availableFinishColors: [],
+    availableInlays: [],
+    availableEngravings: [],
+    instrumentTypes: [],
+    availableSeries: [],
+    availableShapes: [],
+    topApplicable: true,
+    tunersApplicable: true,
+  }, t, "en"));
+  const keys = groups.map((item) => item.key);
+  assert.equal(keys.includes("bodyPieces"), false);
+  assert.equal(keys.includes("neckPieces"), false);
+  assert.equal(keys.includes("scale"), false);
+  assert.equal(keys.includes("tuners"), false);
+  assert.equal(keys.includes("bodyWood"), true);
+  assert.equal(keys.includes("topWood"), true);
+  assert.equal(keys.includes("neckWood"), true);
+  assert.equal(keys.includes("bridge"), true);
+  assert.equal(keys.includes("finishType"), true);
+  assert.equal(groups.find((item) => item.key === "bodyWood").filled, false);
+  assert.equal(isConfiguredConfigGroup(groups.find((item) => item.key === "bodyWood")), true);
+
+  const sections = continuousConfigSections(buildLiveConfigGroups({
+    selections: { customerSuppliedParts: false },
+    availableBodyWoods: [{ id: "alder", translations: { en: { name: "Alder" } } }],
+    availableBodyConstructions: [],
+    availableTopWoods: [],
+    availableScales: [],
+    availableStringCounts: [],
+    availableRadii: [],
+    availableNeckPieces: [],
+    availableNeckWoods: [],
+    availableNeckConstructions: [],
+    availableFingerboardWoods: [],
+    availableNeckProfiles: [],
+    availableFretSpecs: [],
+    availablePickupConfigs: [],
+    availablePickupTypes: [],
+    availableBridges: [],
+    availableTuners: [],
+    availableHardwareFinishes: [],
+    availableControlLayouts: [],
+    availableFinishTypes: [],
+    availableFinishColors: [],
+    availableInlays: [],
+    availableEngravings: [],
+    instrumentTypes: [],
+    availableSeries: [],
+    availableShapes: [],
+  }, t, "en"), [
+    { id: 2, key: "bodyTop" },
+    { id: 3, key: "neckFingerboard" },
+    { id: 4, key: "electronicsHardware" },
+    { id: 5, key: "finishDetails" },
+  ]);
+  const headingSteps = sections.filter((item) => item.type === "heading").map((item) => item.step);
+  assert.equal(headingSteps.includes(2), true);
+  assert.equal(headingSteps.includes(3), true);
+  assert.equal(headingSteps.includes(4), true);
+  assert.equal(headingSteps.includes(5), true);
+  assert.equal(sections.some((item) => item.group?.key === "bodyPieces"), false);
+  assert.equal(sections.some((item) => item.group?.key === "fretCount"), true);
+  assert.equal(sections.some((item) => item.group?.key === "customColor"), true);
 });
 
 test("first incomplete group maps missing fields to accordion keys", () => {

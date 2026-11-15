@@ -16,6 +16,7 @@ import {
   findWizardSetupOption,
   groupsWithOptions,
   wizardSetupRowKey,
+  followingGroupIds,
   keepAllowedCompatibility,
   precedingGroupIds,
   resolveGroupAfterStepChange,
@@ -48,6 +49,9 @@ test("wizard setup copy exists in English and Vietnamese", () => {
   assert.equal(tFor("en", "customBuild.summary.customerSuppliedParts"), "Customer-supplied parts");
   assert.equal(tFor("en", "admin.wizardSetup.noImage"), "No image");
   assert.equal(tFor("vi", "admin.wizardSetup.noImage"), "Không có ảnh");
+  assert.equal(tFor("en", "admin.wizardSetup.addToAllConfig"), "ADD TO ALL CONFIG");
+  assert.equal(tFor("en", "admin.wizardSetup.fields.glbModel"), "GLB model (.glb)");
+  assert.equal(tFor("vi", "admin.wizardSetup.noGlb"), "Chưa có model 3D.");
 });
 
 test("wizard options sort by sortOrder and keep the original order when values tie", () => {
@@ -665,6 +669,8 @@ test("wizard setup tabs and group filters follow API category steps", () => {
 test("compatibility only includes earlier wizard groups", () => {
   assert.deepEqual(precedingGroupIds("series"), ["instrument-type"]);
   assert.deepEqual(precedingGroupIds("body-shape"), ["instrument-type", "series"]);
+  assert.equal(followingGroupIds("body-shape").includes("body-wood"), true);
+  assert.equal(followingGroupIds("body-shape").includes("series"), false);
   assert.deepEqual(
     allowedCompatibilityFields("body-shape").map((item) => item.key),
     ["instrumentTypeIds", "seriesIds"],

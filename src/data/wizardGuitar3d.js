@@ -81,7 +81,18 @@ export function guitar3dSrc(path, resolveUpload) {
 export function optionModelUrl(option) {
   if (!option) return "";
   const attrs = asObject(option.attributes);
-  for (const value of [option.modelPath, option.modelGlb, option.glb, option.gltf, attrs.modelPath, attrs.modelGlb, attrs.glb, attrs.gltf]) {
+  for (const value of [
+    option.model3DUrl,
+    option.modelPath,
+    option.modelGlb,
+    option.glb,
+    option.gltf,
+    attrs.model3DUrl,
+    attrs.modelPath,
+    attrs.modelGlb,
+    attrs.glb,
+    attrs.gltf,
+  ]) {
     const path = trimmedString(value);
     if (path && GLB_EXT.test(path)) return path;
   }
@@ -122,7 +133,6 @@ function findByKeys(list, option) {
 }
 
 export function matchModelForShape(shape, models = WIZARD_GUITAR_3D_MODELS) {
-  const embedded = optionModelUrl(shape);
   const registered = findByKeys(models, shape);
   if (registered?.url) {
     return {
@@ -131,15 +141,6 @@ export function matchModelForShape(shape, models = WIZARD_GUITAR_3D_MODELS) {
       meshes: { ...DEFAULT_MESH_SLOTS, ...asObject(registered.meshes) },
       camera: registered.camera || DEFAULT_3D_CAMERA,
       source: "registry",
-    };
-  }
-  if (embedded) {
-    return {
-      id: String([...optionAliases(shape)][0] || "shape"),
-      url: embedded,
-      meshes: { ...DEFAULT_MESH_SLOTS, ...asObject(asObject(shape.attributes).meshes) },
-      camera: DEFAULT_3D_CAMERA,
-      source: "option",
     };
   }
   return null;

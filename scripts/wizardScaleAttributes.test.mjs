@@ -7,8 +7,11 @@ import {
   isCustomScale,
   isValidCustomScaleValue,
   isValidFretCountSelection,
+  MAX_CUSTOM_SCALE_INCHES,
   MAX_FRET_COUNT,
+  MIN_CUSTOM_SCALE_INCHES,
   MIN_FRET_COUNT,
+  parseCustomScaleInput,
   mergeScaleAttributes,
   normalizeFretCountSelection,
   shouldKeepCustomScaleValue,
@@ -18,7 +21,7 @@ import {
   validateScaleForm,
 } from "../src/data/wizardScaleAttributes.js";
 import { tFor } from "../src/i18n/translations.js";
-import { buildInquiryPayload } from "../src/services/customBuildPayload.js";
+import { buildInquiryPayload, evaluateWizardNotesSelections } from "../src/services/customBuildPayload.js";
 import { buildInquiryDisplay } from "../src/services/inquiryDisplay.js";
 import { filterOptions, optionMatches, pruneSelections } from "../src/data/wizardSelection.js";
 
@@ -55,6 +58,8 @@ test("admin custom scale option does not store a workshop-entered length", () =>
   assert.equal(isValidCustomScaleValue(""), false);
   assert.equal(isValidCustomScaleValue("   "), false);
   assert.equal(isValidCustomScaleValue('26.5"'), true);
+  assert.equal(MIN_CUSTOM_SCALE_INCHES, 24);
+  assert.equal(MAX_CUSTOM_SCALE_INCHES, 38);
   assert.equal(isCustomScale({ id: "custom-scale", name: "Custom Scale" }), true);
   assert.equal(shouldKeepCustomScaleValue(null, "custom-scale"), true);
   assert.equal(shouldKeepCustomScaleValue({ type: "single", display: "25.5″" }, "25.5"), false);
@@ -70,6 +75,36 @@ test("admin custom scale option does not store a workshop-entered length", () =>
   assert.equal(normalizeFretCountSelection(""), "");
   assert.equal(normalizeFretCountSelection("22"), "22");
   assert.equal(normalizeFretCountSelection(null), DEFAULT_FRET_COUNT);
+});
+
+test("custom scale length accepts a single value or an ordered range between 24 and 38", () => {
+  for (const value of ["24", "25", "25.5", '26.5"', "27", "38", "25-27", "25.5-27", "26.5-28", "24-38", "25.5 – 27"]) {
+    assert.equal(isValidCustomScaleValue(value), true, value);
+  }
+  for (const value of ["23", "39", "-25", "0", "25-23", "25-39", "23-27", "25-25", "abc", "25-", "-27", "25.", "25 to 27"]) {
+    assert.equal(isValidCustomScaleValue(value), false, value);
+  }
+  assert.equal(parseCustomScaleInput("25.5-27").ok, true);
+  assert.deepEqual(parseCustomScaleInput("25.5-27").values, [25.5, 27]);
+  assert.equal(parseCustomScaleInput("27-25").kind, "order");
+  assert.equal(parseCustomScaleInput("23").kind, "bounds");
+  assert.equal(parseCustomScaleInput("25-23").ok, false);
+
+  const invalidNotes = evaluateWizardNotesSelections({
+    scaleId: "custom-scale",
+    customScaleValue: "23",
+  }, { categories: [] });
+  assert.equal(invalidNotes.some((item) => item.field === "selections.scale" && item.code === "INVALID"), true);
+  const validNotes = evaluateWizardNotesSelections({
+    scaleId: "custom-scale",
+    customScaleValue: "25.5-27",
+  }, { categories: [] });
+  assert.equal(validNotes.some((item) => item.field === "selections.scale"), false);
+  const presetNotes = evaluateWizardNotesSelections({
+    scaleId: "25.5",
+    customScaleValue: "23",
+  }, { categories: [] });
+  assert.equal(presetNotes.some((item) => item.field === "selections.scale"), false);
 });
 
 test("customer custom scale value is what the wizard displays", () => {
@@ -96,6 +131,20 @@ test("default fret count is 24 and customer values persist in inquiry notes", ()
   });
   assert.match(payload.configuration.notes, /fretCount=27/);
   assert.match(payload.configuration.notes, /customScaleValue=26\.5" – 28"/);
+  const leftover = buildInquiryPayload({
+    selections: {
+      contactName: "Lan",
+      contactEmail: "lan@example.com",
+      contactPhone: "",
+      contactMessage: "",
+      contactCountry: "",
+      scaleId: "25.5",
+      customScaleValue: "26.5\" – 28\"",
+    },
+    language: "en",
+    catalog: { categories: [] },
+  });
+  assert.equal(leftover.configuration.notes.includes("customScaleValue="), false);
   const defaulted = buildInquiryPayload({
     selections: {
       contactName: "Lan",
@@ -180,7 +229,8 @@ test("admin custom scale copy exists in English and Vietnamese", () => {
   assert.equal(tFor("en", "admin.wizardSetup.scaleTypes.custom"), "Custom Scale");
   assert.equal(tFor("vi", "admin.wizardSetup.customScaleCustomerHelp").includes("Khách"), true);
   assert.equal(tFor("en", "customBuild.step1.customScaleInputLabel"), "Your scale length");
-  assert.equal(tFor("vi", "customBuild.step1.customScaleError").includes("scale"), true);
+  assert.equal(tFor("en", "customBuild.step1.customScaleError").includes("24 and 38"), true);
+  assert.equal(tFor("vi", "customBuild.step1.customScaleError").includes("24 đến 38"), true);
   assert.equal(tFor("en", "customBuild.step3.fretCountInputHelp").includes("20"), true);
   assert.equal(tFor("en", "customBuild.step3.fretCountInputHelp").includes("26"), true);
   assert.equal(tFor("en", "customBuild.step3.fretCountError").includes("20"), true);

@@ -118,6 +118,13 @@ export function precedingGroupIds(categoryId, categories) {
   return order.slice(0, index);
 }
 
+export function followingGroupIds(categoryId, categories) {
+  const order = orderedGroupIds(categories);
+  const index = order.indexOf(categoryId);
+  if (index < 0) return order.filter((id) => id !== categoryId);
+  return order.slice(index + 1);
+}
+
 export function knownGroupStep(categoryId, categories) {
   const fromList = (categories || []).find((item) => item.id === categoryId);
   if (fromList?.step != null && fromList.step !== "") {

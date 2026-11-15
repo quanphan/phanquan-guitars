@@ -1,3 +1,5 @@
+import { wizardOptionModel3DUrl } from "./wizardOptionModel.js";
+
 const CATEGORY_LIST_KEYS = {
   "instrument-type": "instrumentTypes",
   series: "series",
@@ -114,6 +116,7 @@ function toWizardOption(option) {
     translations: option.translations,
     image: option.imagePath || attributes.image || null,
     imageBack: option.imageBack || option.backImage || attributes.imageBack || attributes.backImage || null,
+    model3DUrl: wizardOptionModel3DUrl(option) || null,
     icon: option.icon || attributes.icon || "",
     active: option.active !== false,
     isDefault: Boolean(option.isDefault),

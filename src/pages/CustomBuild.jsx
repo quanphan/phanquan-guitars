@@ -1,4 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import ConfirmDialog from "../components/admin/ConfirmDialog.jsx";
 import WizardLivePanel from "../components/custom-build/WizardLivePanel.jsx";
 import StepInstrumentShape from "../components/custom-build/steps/StepInstrumentShape.jsx";
 import StepReviewSubmit from "../components/custom-build/steps/StepReviewSubmit.jsx";
@@ -7,21 +9,40 @@ import StepNav from "../components/custom-build/StepNav.jsx";
 import PageHeader from "../components/PageHeader.jsx";
 import { clearSubmittedDraftSnapshot } from "../data/customBuildDraft.js";
 import { isCustomBuildPath } from "../data/customBuildDraftResume.js";
+import {
+  clearCustomBuildReturn,
+  rememberCustomBuildReturn,
+  readCustomBuildReturn,
+  writeCustomBuildReturn,
+} from "../data/customBuildReturn.js";
 import { useCustomBuild } from "../hooks/useCustomBuild.js";
 import { useLanguage } from "../i18n/LanguageContext.jsx";
 import { isMissingRequiredConfig } from "../services/customBuildPayload.js";
 
 export default function CustomBuild() {
   const { t, language } = useLanguage();
+  const location = useLocation();
+  const navigate = useNavigate();
   const builder = useCustomBuild();
   const isFirstStep = builder.currentStep === 1;
   const isLastStep = builder.currentStep === builder.totalSteps;
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   useEffect(() => {
     return () => {
       clearSubmittedDraftSnapshot();
     };
   }, []);
+
+  useEffect(() => {
+    const next = rememberCustomBuildReturn({
+      fromState: location.state?.from,
+      referrer: typeof document === "undefined" ? "" : document.referrer,
+      origin: typeof window === "undefined" ? "" : window.location.origin,
+      existing: readCustomBuildReturn(),
+    });
+    writeCustomBuildReturn(next);
+  }, [location.state]);
 
   useEffect(() => {
     if (builder.submitStatus !== "success") return undefined;
@@ -48,8 +69,7 @@ export default function CustomBuild() {
     if (builder.catalogSource !== "live") return null;
     return (
       <StepNav
-        backTo={isFirstStep ? "/guitars" : undefined}
-        onBack={isFirstStep ? undefined : builder.goBack}
+        onBack={isFirstStep ? () => setCancelOpen(true) : builder.goBack}
         onContinue={builder.goNext}
         onReset={builder.reset}
         continueDisabled={
@@ -62,7 +82,7 @@ export default function CustomBuild() {
           builder.submitStatus === "submitting" || builder.submitStatus === "success"
         }
         resetDisabled={builder.submitStatus === "submitting"}
-        backLabel={t("customBuild.nav.back")}
+        backLabel={isFirstStep ? t("customBuild.nav.cancel") : t("customBuild.nav.back")}
         continueLabel={t("customBuild.nav.continue")}
         resetLabel={t("customBuild.reset")}
       />
@@ -200,6 +220,21 @@ export default function CustomBuild() {
           ) : null}
         </div>
       </div>
+      <ConfirmDialog
+        open={cancelOpen}
+        title={t("customBuild.cancel.title")}
+        body={t("customBuild.cancel.message")}
+        cancelLabel={t("customBuild.cancel.keep")}
+        confirmLabel={t("customBuild.cancel.confirm")}
+        onCancel={() => setCancelOpen(false)}
+        onConfirm={() => {
+          const returnTo = readCustomBuildReturn();
+          builder.discard();
+          clearCustomBuildReturn();
+          setCancelOpen(false);
+          navigate(returnTo, { replace: true });
+        }}
+      />
     </div>
   );
 }

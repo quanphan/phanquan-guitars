@@ -128,6 +128,7 @@ export function useCustomBuild() {
     updatedAt: initial.updatedAt,
   });
   const skipAutosaveRef = useRef(true);
+  const discardedRef = useRef(false);
   const emptyAfterSuccessRef = useRef(false);
   const persistableRef = useRef({
     currentStep: initial.currentStep,
@@ -453,6 +454,7 @@ export function useCustomBuild() {
   };
 
   const persistDraft = (snapshot, { refreshExpiry = true } = {}) => {
+    if (discardedRef.current) return;
     const draft = buildPersistedDraft({
       previous: draftMetaRef.current,
       ...snapshot,
@@ -468,8 +470,16 @@ export function useCustomBuild() {
     writeCustomBuildDraft(draft);
   };
 
+  const discard = () => {
+    discardedRef.current = true;
+    skipAutosaveRef.current = true;
+    clearSubmittedDraftSnapshot();
+    clearCustomBuildDraft();
+  };
+
   const reset = () => {
     if (submitStatus === "submitting") return;
+    discardedRef.current = false;
     const empty = createEmptyDraft();
     draftMetaRef.current = {
       draftId: empty.draftId,
@@ -672,6 +682,7 @@ export function useCustomBuild() {
       submitStatus,
       inquiryReference,
     };
+    if (discardedRef.current) return;
     if (submitStatus === "success") {
       const snapshot = buildPersistedDraft({
         previous: draftMetaRef.current,
@@ -845,5 +856,6 @@ export function useCustomBuild() {
     goToStep,
     submitInquiry,
     reset,
+    discard,
   };
 }

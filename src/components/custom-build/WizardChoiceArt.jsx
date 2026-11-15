@@ -12,7 +12,7 @@ const FIT = {
   cover: "object-cover",
 };
 
-export default function WizardChoiceArt({ src, size = "type", fallback, fit = "contain", paper = false }) {
+export default function WizardChoiceArt({ src, size = "type", fallback, fit = "contain" }) {
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -25,7 +25,6 @@ export default function WizardChoiceArt({ src, size = "type", fallback, fit = "c
   return (
     <span
       className={`relative block box-border overflow-hidden ${SIZE[size] || SIZE.type} shrink-0`}
-      style={paper ? { backgroundColor: "rgb(150, 150, 150)" } : undefined}
     >
       {showImage ? (
         <img

@@ -56,6 +56,7 @@ export function buildLiveConfigGroups(builder, t, language) {
       items,
       selectable: extra.selectable !== false && items.length > 0,
       selectKey,
+      configured: items.length > 0,
     };
   };
 
@@ -126,6 +127,7 @@ export function buildLiveConfigGroups(builder, t, language) {
           items: [],
           selectable: false,
           selectKey: "topWoodId",
+          configured: false,
         },
     {
       key: "scale",
@@ -225,6 +227,7 @@ export function buildLiveConfigGroups(builder, t, language) {
       items: [],
       selectable: false,
       selectKey: "fretCount",
+      configured: true,
     },
   ];
 
@@ -310,6 +313,7 @@ export function buildLiveConfigGroups(builder, t, language) {
       items: [],
       selectable: false,
       selectKey: "customColorNote",
+      configured: true,
     },
     {
       key: "inlay",
@@ -333,10 +337,20 @@ export function buildLiveConfigGroups(builder, t, language) {
       items: [],
       selectable: false,
       selectKey: "specialRequests",
+      configured: true,
     },
   );
 
   return groups.filter(Boolean);
+}
+
+export function liveSelectionKeepsGroupOpen(selectKey, value, builder) {
+  if (selectKey !== "scaleId") return false;
+  const scales = builder?.availableScales || [];
+  const scale = scales.find((option) => (
+    optionIdEquals(option, value) || String(liveOptionValue(option)) === String(value)
+  ));
+  return isCustomScale(scale);
 }
 
 export function applyLiveConfigSelection(builder, selectKey, value) {
