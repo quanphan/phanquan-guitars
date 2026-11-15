@@ -39,8 +39,9 @@ function OptionGrid({ group, onSelect, t }) {
       {group.items.map((item) => {
         const selectItem = () => {
           if (!group.selectable) return;
-          if (item.value == null || item.value === "" || typeof item.value === "object") return;
-          onSelect(group.selectKey, item.value);
+          const value = item.value == null || item.value === "" ? item.id : item.value;
+          if (value == null || value === "" || typeof value === "object") return;
+          onSelect(group.selectKey, value);
         };
         if (hasImage) {
           return (
@@ -158,7 +159,7 @@ function ConfigAccordion({ group, expanded, invalid, onToggle, onCollapse, build
     <div
       id={targetId}
       tabIndex={-1}
-      className={`border-b border-white/10 last:border-b-0 ${invalid ? "ring-1 ring-gold/70" : ""}`}
+      className={`scroll-mt-[14.75rem] border-b border-white/10 last:border-b-0 lg:scroll-mt-36 ${invalid ? "ring-1 ring-gold/70" : ""}`}
     >
       <button
         type="button"
@@ -191,6 +192,8 @@ function ConfigAccordion({ group, expanded, invalid, onToggle, onCollapse, build
                   if (!applied) return;
                   if (liveSelectionKeepsGroupOpen(selectKey, value, builder)) return;
                   onCollapse?.();
+                  const node = document.getElementById(targetId);
+                  if (node) node.scrollIntoView({ block: "nearest", inline: "nearest" });
                 }}
                 t={t}
               />

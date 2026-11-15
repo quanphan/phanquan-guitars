@@ -162,8 +162,8 @@ export default function CustomBuild() {
             {livePanel("mt-6 lg:hidden", "mobile")}
             {builder.catalogSource === "live" ? (
               <>
-                <div className="sticky z-40 bg-charcoal max-lg:top-[9.25rem] lg:top-20">
-                  <div className="pt-5 lg:pt-6">{stepNav()}</div>
+                <div className="pointer-events-none sticky z-40 bg-charcoal max-lg:top-[9.25rem] lg:top-20">
+                  <div className="pointer-events-auto pt-5 lg:pt-6">{stepNav()}</div>
                 </div>
                 {configHeading}
                 <div className="relative z-0">

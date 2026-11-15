@@ -395,4 +395,50 @@ test("fingerboard options stay visible without main neck wood and ignore stale b
     ).map((item) => item.id),
     ["ebony"],
   );
+
+  const clicked = pruneSelections({ ...selected, fingerboardWoodId: "ebony" }, lists);
+  assert.equal(clicked.fingerboardWoodId, "ebony");
+
+  const switched = pruneSelections({
+    ...selected,
+    neckWoodId: "hard-maple",
+    fingerboardWoodId: "ebony",
+  }, {
+    ...lists,
+    fingerboardWoods: [
+      lists.fingerboardWoods[0],
+      {
+        id: "purpleheart",
+        optionId: "fingerboard.purpleheart",
+        active: true,
+        instrumentTypeIds: ["electric-guitar"],
+        seriesIds: ["pq-h"],
+        shapeIds: ["double-cut"],
+        bodyWoodIds: ["mahogany"],
+        topWoodIds: ["maple"],
+        neckWoodIds: ["hard-maple"],
+        neckConstructionIds: ["set-neck"],
+      },
+    ],
+  });
+  assert.equal(switched.fingerboardWoodId, "ebony");
+  const afterSwitch = pruneSelections({ ...switched, fingerboardWoodId: "purpleheart" }, {
+    ...lists,
+    fingerboardWoods: [
+      lists.fingerboardWoods[0],
+      {
+        id: "purpleheart",
+        optionId: "fingerboard.purpleheart",
+        active: true,
+        instrumentTypeIds: ["electric-guitar"],
+        seriesIds: ["pq-h"],
+        shapeIds: ["double-cut"],
+        bodyWoodIds: ["mahogany"],
+        topWoodIds: ["maple"],
+        neckWoodIds: ["hard-maple"],
+        neckConstructionIds: ["set-neck"],
+      },
+    ],
+  });
+  assert.equal(afterSwitch.fingerboardWoodId, "purpleheart");
 });

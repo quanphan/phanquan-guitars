@@ -10,6 +10,7 @@ import {
   usesSecondaryNeckWood,
 } from "./wizardSeriesConstruction.js";
 import { allowedCompatibilityFields } from "./wizardSetupLayout.js";
+import { fingerboardMatchOptions } from "./wizardStepThree.js";
 
 function asList(value) {
   if (value == null || value === "") return [];
@@ -189,6 +190,15 @@ export function filterOptions(options, selections, lists = {}, categoryId) {
   );
 }
 
+export function listedFingerboardWoods(lists, selections) {
+  return filterOptions(
+    fingerboardMatchOptions(lists?.fingerboardWoods || []),
+    selections,
+    lists,
+    "fingerboard",
+  );
+}
+
 export function listedTuners(lists, selections) {
   const catalog = lists || {};
   const series = findSelectedOption(catalog.series, selections?.seriesId);
@@ -272,7 +282,7 @@ function fillDownstreamDefaults(next, lists) {
   }
 
   fillEmptyId(next, "neckConstructionId", available("neckConstructions", "neck-construction"), typeId);
-  fillEmptyId(next, "fingerboardWoodId", available("fingerboardWoods", "fingerboard"), typeId);
+  fillEmptyId(next, "fingerboardWoodId", listedFingerboardWoods(lists, next), typeId);
   fillEmptyId(next, "neckProfileId", available("neckProfiles", "neck-profile"), typeId);
   fillEmptyId(next, "fretSpecId", available("fretSpecs", "fret-spec"), typeId);
 
@@ -440,10 +450,8 @@ export function pruneSelections(selections, lists) {
   }
 
   if (
-    next.fingerboardWoodId &&
-    !(next.neckWoodId
-      ? available("fingerboardWoods").some((item) => optionIdEquals(item, next.fingerboardWoodId))
-      : false)
+    next.fingerboardWoodId
+    && !listedFingerboardWoods(lists, next).some((item) => optionIdEquals(item, next.fingerboardWoodId))
   ) {
     next.fingerboardWoodId = null;
   }
